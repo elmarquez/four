@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="vendor/jquery/jquery-2.1.4.js"></script>
+    <script src="vendor/mousetrap/mousetrap.min.js"></script>
+    <!--<script src="vendor/tween.js/build/tween.min.js"></script>-->
+    <script src="vendor/three.js/build/three.min.js"></script>
+    <script src="vendor/GeneticAlgorithm-TSP/src/main.js"></script>
+    <script src="vendor/GeneticAlgorithm-TSP/src/algorithm.js"></script>
+    <script src="vendor/GeneticAlgorithm-TSP/src/utils.js"></script>
+    <script src="vendor/GeneticAlgorithm-TSP/src/data.js"></script>
+    <!--<script src="lib/FirstPersonControls.js"></script>-->
+    <!--<script src="lib/FlyControls.js"></script>-->
+    <!--<script src="lib/TrackballControls.js"></script>-->
+    <style>
+        body {
+            margin:0;
+            padding:0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="webgl"></div>
+
+<script>
+    function init () {
+        var MODES = {SELECT: 0, TRACKBALL: 1, FLY: 2, WALK: 3};
+
+        Mousetrap.bind('1', function () { console.log('select mode'); setInteractionMode(MODES.SELECT); });
+        Mousetrap.bind('2', function () { console.log('trackball mode'); setInteractionMode(MODES.TRACKBALL); });
+        Mousetrap.bind('3', function () { console.log('fly mode'); setInteractionMode(MODES.FLY); });
+        Mousetrap.bind('4', function () { console.log('walk mode'); setInteractionMode(MODES.WALK); });
+
+        Mousetrap.bind('5', setTopView);
+        Mousetrap.bind('6', function () { console.log('front view'); });
+        Mousetrap.bind('7', function () { console.log('left view'); });
+        Mousetrap.bind('8', function () { console.log('right view'); });
+        Mousetrap.bind('9', function () { console.log('back view'); });
+
+        var clock = new THREE.Clock();
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        var webGLRenderer = new THREE.WebGLRenderer();
+        webGLRenderer.setClearColor(new THREE.Color(0x000, 1.0));
+        webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+        webGLRenderer.shadowMapEnabled = true;
+
+        // position and point the camera to the center of the scene
+        camera.position.x = 100;
+        camera.position.y = 50;
+        camera.position.z = 50;
+        camera.up = new THREE.Vector3(0, 0, 1);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+        var cameraHelper = new THREE.CameraHelper(camera);
+        scene.add(cameraHelper);
+
+        var ambientLight = new THREE.AmbientLight(0x383838);
+        scene.add(ambientLight);
+
+        // add spotlight for the shadows
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(100, 140, 130);
+        spotLight.intensity = 2;
+        scene.add(spotLight);
+
+        // add the output of the renderer to the html element
+        var container = document.getElementById("webgl");
+        container.appendChild(webGLRenderer.domElement);
+
+        // make some random geometry
+        var count = 20, cube, geometry, material;
+        for (var i=0; i<count;i++) {
+            var height = Math.random() * 10;
+            geometry = new THREE.BoxGeometry(5, 5, height);
+            material = new THREE.MeshPhongMaterial({color: 0x00ff00});
+            cube = new THREE.Mesh(geometry, material);
+            cube.position.setX(i * Math.random() * 5);
+            cube.position.setY(i * Math.random() * 5);
+            cube.position.setZ(height / 2);
+            scene.add(cube);
+        }
+
+        // ground plane
+        geometry = new THREE.PlaneGeometry(100, 100);
+        material = new THREE.MeshPhongMaterial({color: 0x880000});
+        var plane = new THREE.Mesh(geometry, material);
+//        plane.rotateOnAxis(new THREE.Vector3(0,0,0), Math.PI / 2);
+        scene.add(plane);
+
+        // line for displaying paths
+        material = new THREE.LineBasicMaterial({
+            color: 0xffffff
+        });
+        geometry = new THREE.Geometry();
+        geometry.vertices.push(
+                new THREE.Vector3( 0, 0, 0 ),
+                new THREE.Vector3( 50, 50, 50)
+        );
+        var line = new THREE.Line(geometry, material);
+        scene.add(line);
+
+        // generate a TSP path
+
+
+        // selection support
+
+        var controls;
+        var interactionMode = MODES.TRACKBALL;
+//        setInteractionMode(interactionMode);
+
+        render();
+
+        function setTopView () {
+            console.log('set top view');
+            camera.position.set(50, 100, 50);
+//            camera.position.x = 50;
+//            camera.position.y = 100;
+//            camera.position.z = 50;
+            camera.up = new THREE.Vector3(0, 0, 1);
+            camera.lookAt(new THREE.Vector3(0, 0, 0));
+            camera.updateProjectionMatrix();
+
+//            var dx = camera.position.x + (Math.random() * 5);
+//            var dy = camera.position.y + (Math.random() * 5);
+//            var dz = camera.position.z + (Math.random() * 5);
+//            camera.position.set(dx, dy, dz);
+//            camera.rotation.x = - Math.PI / 2;
+//            camera.rotation.y = 0;
+//            camera.rotation.z = 0;
+//            camera.rotationAutoUpdate = false;
+            render();
+        }
+
+        function setInteractionMode (mode) {
+            interactionMode = mode;
+            if (mode == MODES.WALK) {
+                controls = new THREE.FirstPersonControls(camera);
+                controls.activeLook = false;
+                controls.autoForward = false;
+                controls.lookSpeed = 0.4;
+                controls.movementSpeed = 20;
+                controls.noFly = true;
+                controls.lookVertical = true;
+                controls.constrainVertical = true;
+                controls.verticalMin = 1.0;
+                controls.verticalMax = 2.0;
+                controls.lon = -150;
+                controls.lat = 120;
+            } else if (mode === MODES.FLY) {
+                controls = new THREE.FlyControls( camera );
+                controls.movementSpeed = 1000;
+                controls.domElement = container;
+                controls.rollSpeed = Math.PI / 24;
+                controls.autoForward = false;
+                controls.dragToLook = false;
+            } else if (mode === MODES.TRACKBALL) {
+                controls = new THREE.TrackballControls( camera );
+                controls.rotateSpeed = 1.0;
+                controls.zoomSpeed = 1.2;
+                controls.panSpeed = 0.8;
+                controls.noZoom = false;
+                controls.noPan = false;
+                controls.staticMoving = true;
+                controls.dynamicDampingFactor = 0.3;
+                controls.keys = [ 65, 83, 68 ];
+                controls.addEventListener('change', render);
+            } else {
+                // disable the controller
+                // enable selection
+            }
+        }
+
+        function render() {
+//            var delta = clock.getDelta();
+            requestAnimationFrame(render);
+
+//            if (interactionMode === MODES.FLY) {
+//                controls.movementSpeed = 0.33 * 1;
+//                controls.update(delta);
+//            } else if (interactionMode === MODES.WALK) {
+//                controls.update(delta);
+//            }
+//            webGLRenderer.clear();
+            // render using requestAnimationFrame
+            webGLRenderer.render(scene, camera)
+        }
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>

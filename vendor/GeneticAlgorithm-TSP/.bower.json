@@ -1,0 +1,14 @@
+{
+  "name": "GeneticAlgorithm-TSP",
+  "homepage": "https://github.com/parano/GeneticAlgorithm-TSP",
+  "_release": "95b3ebee55",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "95b3ebee55a85fec593e00f6d3cf8bf76730dfd7"
+  },
+  "_source": "https://github.com/parano/GeneticAlgorithm-TSP.git",
+  "_target": "*",
+  "_originalSource": "https://github.com/parano/GeneticAlgorithm-TSP.git",
+  "_direct": true
+}

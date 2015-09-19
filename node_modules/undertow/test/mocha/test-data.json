@@ -1,0 +1,1124 @@
+{
+    "type": "FeatureCollection",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "EPSG:4283"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30150",
+                "feature_name": "Aramac (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30200",
+                "feature_name": "Atherton (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30250",
+                "feature_name": "Aurukun (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30270",
+                "feature_name": "Badu (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30300",
+                "feature_name": "Balonne (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30330",
+                "feature_name": "Bamaga (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30350",
+                "feature_name": "Banana (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30400",
+                "feature_name": "Barcaldine (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30450",
+                "feature_name": "Barcoo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30500",
+                "feature_name": "Bauhinia (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30550",
+                "feature_name": "Beaudesert (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30600",
+                "feature_name": "Belyando (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30650",
+                "feature_name": "Bendemere (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30700",
+                "feature_name": "Biggenden (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30750",
+                "feature_name": "Blackall (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30770",
+                "feature_name": "Boigu (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30800",
+                "feature_name": "Boonah (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30850",
+                "feature_name": "Booringa (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30900",
+                "feature_name": "Boulia (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "30950",
+                "feature_name": "Bowen (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31000",
+                "feature_name": "Brisbane (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31700",
+                "feature_name": "Broadsound (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31750",
+                "feature_name": "Bulloo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31810",
+                "feature_name": "Bundaberg (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31850",
+                "feature_name": "Bungil (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31900",
+                "feature_name": "Burdekin (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31950",
+                "feature_name": "Burke (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "31980",
+                "feature_name": "Burnett (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32000",
+                "feature_name": "Caboolture (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32060",
+                "feature_name": "Cairns (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32100",
+                "feature_name": "Calliope (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32130",
+                "feature_name": "Caloundra (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32150",
+                "feature_name": "Cambooya (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32200",
+                "feature_name": "Cardwell (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32250",
+                "feature_name": "Carpentaria (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32300",
+                "feature_name": "Charters Towers (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32330",
+                "feature_name": "Cherbourg (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32350",
+                "feature_name": "Chinchilla (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32400",
+                "feature_name": "Clifton (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32450",
+                "feature_name": "Cloncurry (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32500",
+                "feature_name": "Cook (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32530",
+                "feature_name": "Cooloola (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32550",
+                "feature_name": "Crow's Nest (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32600",
+                "feature_name": "Croydon (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32650",
+                "feature_name": "Dalby (T)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32700",
+                "feature_name": "Dalrymple (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32740",
+                "feature_name": "Dauan (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32750",
+                "feature_name": "Diamantina (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32770",
+                "feature_name": "Doomadgee (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32800",
+                "feature_name": "Douglas (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32850",
+                "feature_name": "Duaringa (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32900",
+                "feature_name": "Eacham (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "32950",
+                "feature_name": "Eidsvold (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33000",
+                "feature_name": "Emerald (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33030",
+                "feature_name": "Erub (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33050",
+                "feature_name": "Esk (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33100",
+                "feature_name": "Etheridge (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33150",
+                "feature_name": "Fitzroy (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33200",
+                "feature_name": "Flinders (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33250",
+                "feature_name": "Gatton (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33300",
+                "feature_name": "Gayndah (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33350",
+                "feature_name": "Gladstone (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33460",
+                "feature_name": "Gold Coast (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33600",
+                "feature_name": "Goondiwindi (T)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33650",
+                "feature_name": "Hammond (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33700",
+                "feature_name": "Herberton (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33750",
+                "feature_name": "Hervey Bay (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33800",
+                "feature_name": "Hinchinbrook (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33830",
+                "feature_name": "Hope Vale (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33840",
+                "feature_name": "Iama (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33850",
+                "feature_name": "Ilfracombe (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33900",
+                "feature_name": "Inglewood (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33930",
+                "feature_name": "Injinoo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "33960",
+                "feature_name": "Ipswich (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34000",
+                "feature_name": "Isis (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34050",
+                "feature_name": "Isisford (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34100",
+                "feature_name": "Jericho (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34150",
+                "feature_name": "Johnstone (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34200",
+                "feature_name": "Jondaryan (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34250",
+                "feature_name": "Kilcoy (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34300",
+                "feature_name": "Kilkivan (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34350",
+                "feature_name": "Kingaroy (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34400",
+                "feature_name": "Kolan (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34420",
+                "feature_name": "Kowanyama (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34430",
+                "feature_name": "Kubin (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34450",
+                "feature_name": "Laidley (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34550",
+                "feature_name": "Livingstone (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34570",
+                "feature_name": "Lockhart River (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34600",
+                "feature_name": "Logan (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34700",
+                "feature_name": "Longreach (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34740",
+                "feature_name": "Mabuiag (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34760",
+                "feature_name": "Mackay (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34830",
+                "feature_name": "Mapoon (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34850",
+                "feature_name": "Mareeba (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34900",
+                "feature_name": "Maroochy (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34950",
+                "feature_name": "Maryborough (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34800",
+                "feature_name": "McKinlay (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "34970",
+                "feature_name": "Mer (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35000",
+                "feature_name": "Millmerran (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35050",
+                "feature_name": "Mirani (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35100",
+                "feature_name": "Miriam Vale (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35150",
+                "feature_name": "Monto (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35250",
+                "feature_name": "Mornington (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35300",
+                "feature_name": "Mount Isa (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35350",
+                "feature_name": "Mount Morgan (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35450",
+                "feature_name": "Mundubbera (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35500",
+                "feature_name": "Murgon (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35550",
+                "feature_name": "Murilla (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35600",
+                "feature_name": "Murweh (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35650",
+                "feature_name": "Nanango (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35670",
+                "feature_name": "Napranum (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35700",
+                "feature_name": "Nebo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35730",
+                "feature_name": "New Mapoon (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35750",
+                "feature_name": "Noosa (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35770",
+                "feature_name": "Palm Island (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35800",
+                "feature_name": "Paroo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35850",
+                "feature_name": "Peak Downs (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35900",
+                "feature_name": "Perry (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "35950",
+                "feature_name": "Pine Rivers (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36050",
+                "feature_name": "Pittsworth (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36070",
+                "feature_name": "Pormpuraaw (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36100",
+                "feature_name": "Poruma (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36150",
+                "feature_name": "Quilpie (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36200",
+                "feature_name": "Redcliffe (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36250",
+                "feature_name": "Redland (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36300",
+                "feature_name": "Richmond (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36350",
+                "feature_name": "Rockhampton (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36400",
+                "feature_name": "Roma (T)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36450",
+                "feature_name": "Rosalie (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36470",
+                "feature_name": "Saibai (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36550",
+                "feature_name": "Sarina (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36570",
+                "feature_name": "Seisia (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36480",
+                "feature_name": "St Pauls (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36600",
+                "feature_name": "Stanthorpe (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36650",
+                "feature_name": "Tambo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36700",
+                "feature_name": "Tara (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36750",
+                "feature_name": "Taroom (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36800",
+                "feature_name": "Thuringowa (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36850",
+                "feature_name": "Tiaro (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36900",
+                "feature_name": "Toowoomba (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "36950",
+                "feature_name": "Torres (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37000",
+                "feature_name": "Townsville (C)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37090",
+                "feature_name": "Ugar (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37110",
+                "feature_name": "Umagico (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "39399",
+                "feature_name": "Unincorporated Qld"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37120",
+                "feature_name": "Waggamba (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37150",
+                "feature_name": "Wambo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37170",
+                "feature_name": "Warraber (IC)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37200",
+                "feature_name": "Warroo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37260",
+                "feature_name": "Warwick (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37300",
+                "feature_name": "Weipa (T)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37330",
+                "feature_name": "Whitsunday (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37400",
+                "feature_name": "Winton (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37450",
+                "feature_name": "Wondai (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37500",
+                "feature_name": "Woocoo (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37550",
+                "feature_name": "Woorabinda (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37570",
+                "feature_name": "Wujal Wujal (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37600",
+                "feature_name": "Yarrabah (S)"
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "feature_code": "37650",
+                "feature_name": "Yorke (IC)"
+            }
+        }
+    ]
+}
