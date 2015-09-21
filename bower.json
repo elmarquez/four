@@ -1,20 +1,20 @@
 {
-  "name": "threejs-test",
-  "version": "0.0.0",
+  "name": "threejs-navigator",
+  "version": "0.1.0",
+  "description": "Threejs multi-mode scene navigator",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
   "license": "MIT",
   "ignore": [
-    "**/.*",
     "node_modules",
-    "bower_components",
-    "test",
-    "tests"
+    "vendor",
+    "test"
   ],
   "dependencies": {
     "bluebird": "https://github.com/petkaantonov/bluebird.git#~2.10.0",
     "GeneticAlgorithm-TSP": "https://github.com/parano/GeneticAlgorithm-TSP.git",
+    "jquery": "~2.1.4",
     "mousetrap": "https://github.com/ccampbell/mousetrap.git#~1.5.3",
     "parallel.js": "https://github.com/adambom/parallel.js.git",
     "rivets": "~0.8.1",
