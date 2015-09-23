@@ -13,13 +13,13 @@
     <script src="vendor/GeneticAlgorithm-TSP/src/data.js"></script>
     <!--<script src="vendor/GeneticAlgorithm-TSP/src/main.js"></script>-->
     <script src="vendor/GeneticAlgorithm-TSP/src/utils.js"></script>
+    <script src="lib/controls/SelectionController.js"></script>
     <script src="lib/controls/SimpleFirstPersonControls.js"></script>
     <script src="lib/controls/TrackballControls.js"></script>
     <script src="lib/renderers/Projector.js"></script>
     <script src="lib/BoundingBox.js"></script>
     <script src="lib/SelectionSet.js"></script>
     <script src="lib/viewport3d.js"></script>
-
     <style>
         body {
             margin:0;
@@ -31,16 +31,17 @@
             overflow: hidden;
             position: absolute;
             right: 0;
-            top: 0;
+            top: 48px;
             z-index: 500;
         }
         .controls {
+            background-color: #333;
             height: 48px;
-            left: 20px;
+            left: 0px;
             padding: 1px;
+            right: 0px;
             position: absolute;
-            top: 20px;
-            z-index: 900;
+            top: 0px;
         }
         .control-group {
             margin: 0;
@@ -64,7 +65,7 @@
             height: 92px;
             position: absolute;
             right: 20px;
-            top: 20px;
+            top: 68px;
             width: 92px;
             z-index: 900;
         }
@@ -80,7 +81,6 @@
     </style>
 </head>
 <body>
-    <div id="webgl"></div>
     <div class="controls">
         <div class="control-group offset-right inline">
             <button class="button control" onclick="viewport.setMode(viewport.MODES.SELECT)">Select</button>
@@ -97,6 +97,7 @@
             <button class="button control" onclick="viewport.setView(viewport.VIEWS.BACK)">Back</button>
         </div>
     </div>
+    <div id="webgl"></div>
     <div class="orientation-control">
         Control widget
     </div>
