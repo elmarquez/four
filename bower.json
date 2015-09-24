@@ -12,6 +12,7 @@
     "test"
   ],
   "dependencies": {
+    "angular": "~1.4.6",
     "bluebird": "https://github.com/petkaantonov/bluebird.git#~2.10.0",
     "GeneticAlgorithm-TSP": "https://github.com/parano/GeneticAlgorithm-TSP.git",
     "jquery": "~2.1.4",
