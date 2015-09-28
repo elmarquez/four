@@ -1,19 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="lidar">
 <head lang="en">
     <meta charset="UTF-8">
     <title>Threejs Multi-mode Navigation Example</title>
     <!-- vendor -->
     <script src="vendor/jquery/dist/jquery.js"></script>
+    <script src="vendor/angular/angular.js"></script>
     <script src="vendor/mousetrap/mousetrap.min.js"></script>
-    <script src="vendor/sightglass/index.js"></script>
-    <script src="vendor/rivets/dist/rivets.js"></script>
     <script src="vendor/three.js/build/three.min.js"></script>
     <script src="vendor/tween.js/build/tween.min.js"></script>
-    <script src="vendor/GeneticAlgorithm-TSP/src/algorithm.js"></script>
-    <script src="vendor/GeneticAlgorithm-TSP/src/data.js"></script>
-    <!--<script src="vendor/GeneticAlgorithm-TSP/src/main.js"></script>-->
-    <script src="vendor/GeneticAlgorithm-TSP/src/utils.js"></script>
 
     <!-- lib -->
     <script src="lib/controls/OrbitControls.js"></script>
@@ -25,6 +20,7 @@
     <script src="lib/BoundingBox.js"></script>
     <script src="lib/SelectionSet.js"></script>
     <script src="lib/viewport3d.js"></script>
+    <script src="lib/app.js"></script>
     <style>
         body {
             margin:0;
@@ -40,6 +36,12 @@
             z-index: 500;
         }
         #webgl:focus {
+            outline: none;
+        }
+        .active {
+            background-color: #ffffff;
+        }
+        .button:focus {
             outline: none;
         }
         .controls {
@@ -89,20 +91,20 @@
     </style>
 </head>
 <body>
-    <div class="controls">
+    <div class="controls" ng-controller="NavController">
         <div class="control-group offset-right inline">
-            <button class="button control" onclick="viewport.setMode(viewport.MODES.SELECT)">Select</button>
-            <button class="button control" onclick="viewport.setMode(viewport.MODES.TRACKBALL)">Nav</button>
-            <button class="button control" onclick="viewport.setMode(viewport.MODES.WALK)">Walk</button>
-            <button class="button control" onclick="viewport.setMode(viewport.MODES.ORBIT)">Orbit</button>
+            <button class="button control" ng-click="setMode(MODES.SELECT)" ng-class="{active:mode===MODES.SELECT}">Select</button>
+            <button class="button control" ng-click="setMode(MODES.TRACKBALL)" ng-class="{active:mode===MODES.TRACKBALL}">Nav</button>
+            <button class="button control" ng-click="setMode(MODES.WALK)" ng-class="{active:mode===MODES.WALK}">Walk</button>
+            <button class="button control" ng-click="setMode(MODES.ORBIT)" ng-class="{active:mode===MODES.ORBIT}">Orbit</button>
         </div>
         <div class="control-group inline">
-            <button class="button control" onclick="viewport.setView(viewport.VIEWS.PERSPECTIVE)">Persp</button>
-            <button class="button control" onclick="viewport.setView(viewport.VIEWS.TOP)">Top</button>
-            <button class="button control" onclick="viewport.setView(viewport.VIEWS.LEFT)">Left</button>
-            <button class="button control" onclick="viewport.setView(viewport.VIEWS.RIGHT)">Right</button>
-            <button class="button control" onclick="viewport.setView(viewport.VIEWS.FRONT)">Front</button>
-            <button class="button control" onclick="viewport.setView(viewport.VIEWS.BACK)">Back</button>
+            <button class="button control" ng-click="setView(VIEWS.PERSPECTIVE)" ng-class="{active:view===VIEWS.PERSPECTIVE}">Persp</button>
+            <button class="button control" ng-click="setView(VIEWS.TOP)" ng-class="{active:view===VIEWS.TOP}">Top</button>
+            <button class="button control" ng-click="setView(VIEWS.LEFT)" ng-class="{active:view===VIEWS.LEFT}">Left</button>
+            <button class="button control" ng-click="setView(VIEWS.RIGHT)" ng-class="{active:view===VIEWS.RIGHT}">Right</button>
+            <button class="button control" ng-click="setView(VIEWS.FRONT)" ng-class="{active:view===VIEWS.FRONT}">Front</button>
+            <button class="button control" ng-click="setView(VIEWS.BACK)" ng-class="{active:view===VIEWS.BACK}">Back</button>
         </div>
     </div>
     <div id="webgl"></div>
