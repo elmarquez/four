@@ -12,15 +12,20 @@
 
     <!-- lib -->
     <script src="lib/controls/OrbitControls.js"></script>
-    <script src="lib/controls/SelectionController.js"></script>
     <script src="lib/controls/SimpleFirstPersonControls.js"></script>
     <script src="lib/controls/TrackballControls.js"></script>
     <script src="lib/path/TravellingSalesman.js"></script>
-    <script src="lib/renderers/Projector.js"></script>
-    <script src="lib/BoundingBox.js"></script>
-    <script src="lib/SelectionSet.js"></script>
-    <script src="lib/viewport3d.js"></script>
+
+    <!-- application -->
     <script src="lib/app.js"></script>
+    <script src="lib/BoundingBox.js"></script>
+    <script src="lib/NavigationController.js"></script>
+    <script src="lib/PathPlanner.js"></script>
+    <script src="lib/Scene.js"></script>
+    <script src="lib/SelectionController.js"></script>
+    <script src="lib/SelectionSet.js"></script>
+    <script src="lib/TargetCamera.js"></script>
+    <script src="lib/viewport3d.js"></script>
     <style>
         body {
             margin:0;
@@ -116,7 +121,9 @@
     </div>
     <script>
         $(document).ready(function () {
-            var viewport = window.viewport = new Viewport3D('webgl');
+            var scene = window.scene = new Scene3D();
+            scene.init();
+            var viewport = window.viewport = new Viewport3D('webgl', scene);
             viewport.init();
             viewport.render();
         });
