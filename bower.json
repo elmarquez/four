@@ -16,7 +16,7 @@
     "bluebird": "https://github.com/petkaantonov/bluebird.git#~2.10.0",
     "jquery": "~2.1.4",
     "mousetrap": "https://github.com/ccampbell/mousetrap.git#~1.5.3",
-    "three.js": "https://github.com/mrdoob/three.js.git",
+    "three.js": "https://github.com/mrdoob/three.js.git#r72",
     "tween.js": "https://github.com/tweenjs/tween.js.git"
   }
 }

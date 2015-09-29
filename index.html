@@ -14,6 +14,7 @@
     <script src="lib/controls/OrbitControls.js"></script>
     <script src="lib/controls/SimpleFirstPersonControls.js"></script>
     <script src="lib/controls/TrackballControls.js"></script>
+    <script src="lib/controls/TransformControls.js"></script>
     <script src="lib/path/TravellingSalesman.js"></script>
 
     <!-- application -->
@@ -121,7 +122,9 @@
     </div>
     <script>
         $(document).ready(function () {
+            var element = document.getElementById('webgl');
             var scene = window.scene = new Scene3D();
+            scene.createDefaultCamera({height: element.clientHeight, width: element.clientWidth});
             var viewport = window.viewport = new Viewport3D('webgl', scene);
             viewport.init();
             viewport.render();
