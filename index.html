@@ -11,16 +11,16 @@
     <script src="vendor/tween.js/build/tween.min.js"></script>
 
     <!-- lib -->
-    <script src="lib/controls/OrbitControls.js"></script>
-    <script src="lib/controls/SimpleFirstPersonControls.js"></script>
-    <script src="lib/controls/TrackballControls.js"></script>
+    <!--<script src="lib/controls/dist/FirstPersonControls.js"></script>-->
+    <!--<script src="lib/controls/dist/OrbitControls.js"></script>-->
+    <script src="lib/controls/dist/TrackballControls.js"></script>
     <script src="lib/controls/TransformControls.js"></script>
+    <script src="lib/controls/WalkController.js"></script>
     <script src="lib/path/TravellingSalesman.js"></script>
 
     <!-- application -->
     <script src="lib/app.js"></script>
     <script src="lib/BoundingBox.js"></script>
-    <script src="lib/NavigationController.js"></script>
     <script src="lib/PathPlanner.js"></script>
     <script src="lib/Scene.js"></script>
     <script src="lib/SelectionController.js"></script>
@@ -31,6 +31,14 @@
         body {
             margin:0;
             padding:0;
+        }
+        #commandbox {
+            background: #888;
+            margin-left: auto;
+            margin-right: auto;
+            min-height: 400px;
+            width: 400px;
+            z-index: 800;
         }
         #webgl {
             bottom: 0;
@@ -114,6 +122,7 @@
         </div>
     </div>
     <div id="webgl"></div>
+    <div id="commandbox"></div>
     <div class="orientation-control">
         Control widget
     </div>
@@ -123,9 +132,9 @@
     <script>
         $(document).ready(function () {
             var element = document.getElementById('webgl');
-            var scene = window.scene = new Scene3D();
+            var scene = window.scene = new FOUR.Scene3D();
             scene.createDefaultCamera({height: element.clientHeight, width: element.clientWidth});
-            var viewport = window.viewport = new Viewport3D('webgl', scene);
+            var viewport = window.viewport = new FOUR.Viewport3D('webgl', scene);
             viewport.init();
             viewport.render();
         });
