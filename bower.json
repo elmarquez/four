@@ -9,11 +9,9 @@
   "ignore": [
     "Gruntfile.js",
     "NOTES.md",
-    "app.js",
-    "index.html",
-    "orbit.html",
     "package.json",
     "conf",
+    "lib",
     "node_modules",
     "vendor",
     "test"

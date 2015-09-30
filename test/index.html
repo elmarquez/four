@@ -13,7 +13,6 @@
     <!-- lib -->
     <script src="../lib/controls/dist/TrackballControls.js"></script>
     <script src="../lib/controls/OrbitController.js"></script>
-    <script src="../lib/controls/TransformControls.js"></script>
     <script src="../lib/controls/WalkController.js"></script>
     <script src="../lib/path/TravellingSalesman.js"></script>
     <script src="../lib/BoundingBox.js"></script>
@@ -132,7 +131,7 @@
     </div>
     <script>
         $(document).ready(function () {
-            var keystate = window.keystate = new FOUR.KeyStateControl();
+            var keystate = window.keystate = new FOUR.KeyStateController();
 
             var element = document.getElementById('webgl');
             var scene = window.scene = new FOUR.Scene3D();
