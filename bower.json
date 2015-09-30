@@ -9,6 +9,7 @@
   "ignore": [
     "Gruntfile.js",
     "NOTES.md",
+    "app.js",
     "index.html",
     "orbit.html",
     "package.json",
@@ -17,8 +18,10 @@
     "vendor",
     "test"
   ],
+  "devDependencies": {
+    "angular": "~1.4.6"
+  },
   "dependencies": {
-    "angular": "~1.4.6",
     "bluebird": "https://github.com/petkaantonov/bluebird.git#~2.10.0",
     "jquery": "~2.1.4",
     "mousetrap": "https://github.com/ccampbell/mousetrap.git#~1.5.3",
