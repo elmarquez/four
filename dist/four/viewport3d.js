@@ -135,13 +135,13 @@ FOUR.Viewport3D = (function () {
     Viewport3D.prototype.setCamera = function (name) {
         var self = this;
         if (self.camera) {
-            self.camera.removeEventListener('continuous-update-end', self.stopContinuousRendering);
-            self.camera.removeEventListener('continuous-update-start', self.startContinuousRendering);
+            self.camera.removeEventListener('continuous-update-end', self.onStopContinuousRendering);
+            self.camera.removeEventListener('continuous-update-start', self.onStartContinuousRendering);
             self.camera.removeEventListener('update', self.render);
         }
         self.camera = self.scene.getCamera(name);
-        self.camera.addEventListener('continuous-update-end', self.stopContinuousRendering.bind(self));
-        self.camera.addEventListener('continuous-update-start', self.startContinuousRendering.bind(self));
+        self.camera.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
+        self.camera.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
         self.camera.addEventListener('update', self.render.bind(self));
         self.render();
     };
@@ -336,11 +336,11 @@ FOUR.Viewport3D = (function () {
 
     };
 
-    Viewport3D.prototype.startContinuousRendering = function () {
+    Viewport3D.prototype.onStartContinuousRendering = function () {
         this.continuous = true;
     };
 
-    Viewport3D.prototype.stopContinuousRendering = function () {
+    Viewport3D.prototype.onStopContinuousRendering = function () {
         this.continuous = false;
     };
 
