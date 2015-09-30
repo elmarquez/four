@@ -6,14 +6,13 @@
     <!-- vendor -->
     <script src="vendor/jquery/dist/jquery.js"></script>
     <script src="vendor/angular/angular.js"></script>
-    <script src="vendor/mousetrap/mousetrap.min.js"></script>
+    <script src="vendor/mousetrap/mousetrap.js"></script>
     <script src="vendor/three.js/build/three.min.js"></script>
     <script src="vendor/tween.js/build/tween.min.js"></script>
 
     <!-- lib -->
-    <!--<script src="lib/controls/dist/FirstPersonControls.js"></script>-->
-    <!--<script src="lib/controls/dist/OrbitControls.js"></script>-->
     <script src="lib/controls/dist/TrackballControls.js"></script>
+    <script src="lib/controls/OrbitController.js"></script>
     <script src="lib/controls/TransformControls.js"></script>
     <script src="lib/controls/WalkController.js"></script>
     <script src="lib/path/TravellingSalesman.js"></script>
@@ -21,6 +20,7 @@
     <!-- application -->
     <script src="lib/app.js"></script>
     <script src="lib/BoundingBox.js"></script>
+    <script src="lib/KeyStateController.js"></script>
     <script src="lib/PathPlanner.js"></script>
     <script src="lib/Scene.js"></script>
     <script src="lib/SelectionController.js"></script>
@@ -131,9 +131,73 @@
     </div>
     <script>
         $(document).ready(function () {
+            var keystate = window.keystate = new FOUR.KeyStateControl();
+
             var element = document.getElementById('webgl');
             var scene = window.scene = new FOUR.Scene3D();
             scene.createDefaultCamera({height: element.clientHeight, width: element.clientWidth});
+
+            // Basic scene lighting
+            var ambientLight = new THREE.AmbientLight(0x383838);
+            ambientLight.name = 'ambient';
+            scene.lights.add(ambientLight);
+
+            // add spotlight for the shadows
+            var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.intensity = 2;
+            spotLight.name = 'spotlight';
+            spotLight.position.set(100, 140, 130);
+            scene.lights.add(spotLight);
+
+            // Sample geometry
+            var obj, geometry, material;
+
+            // poles
+            var poles = [
+                [0,0],[20,0],[40,0],[60,0],[80,0],[100,0],
+                [0,10],[20,10],[40,10],[60,10],[80,10],[100,10]
+            ];
+            poles.forEach(function (pole) {
+                geometry = new THREE.CylinderGeometry(0.5, 0.5, 15, 20, 4);
+                material = new THREE.MeshPhongMaterial({color: 0x00ff00});
+                obj = new THREE.Mesh(geometry, material);
+                obj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+                obj.position.setX(pole[0]);
+                obj.position.setY(pole[1]);
+                obj.position.setZ(7.5);
+                obj.userData.type = 'pole';
+                scene.model.add(obj);
+            });
+
+            // catenaries
+            var catenaries = [
+                [0,0,20,0],[20,0,40,0],[40,0,60,0],[60,0,80,0],[80,0,100,0],
+                [0,10,20,10],[20,10,40,10],[40,10,60,10],[60,10,80,10],[80,10,100,10]
+            ];
+            catenaries.forEach(function (c) {
+                var height = 15;
+                material = new THREE.LineBasicMaterial({color: 0xff0000, linewidth: 2.0});
+                geometry = new THREE.Geometry();
+                geometry.vertices.push(
+                        new THREE.Vector3(0,0,height / 2),
+                        new THREE.Vector3(20,0,height / 2)
+                );
+                obj = new THREE.Line(geometry, material);
+                obj.position.setX(c[0]);
+                obj.position.setY(c[1]);
+                obj.position.setZ(height / 2);
+                obj.userData.type = 'catenary';
+                scene.model.add(obj);
+            });
+
+            // axis helper
+            var axisHelper = new THREE.AxisHelper(5);
+            scene.helpers.add(axisHelper);
+
+            // update the bounding box
+            scene.boundingBox.update(scene.children);
+
+            // viewport
             var viewport = window.viewport = new FOUR.Viewport3D('webgl', scene);
             viewport.init();
             viewport.render();

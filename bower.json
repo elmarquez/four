@@ -7,6 +7,12 @@
   ],
   "license": "MIT",
   "ignore": [
+    "Gruntfile.js",
+    "NOTES.md",
+    "index.html",
+    "orbit.html",
+    "package.json",
+    "conf",
     "node_modules",
     "vendor",
     "test"
