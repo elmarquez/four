@@ -113,16 +113,14 @@ FOUR.BoundingBox = (function () {
         self.envelope.min.y + (self.depth / 2),
         self.envelope.min.z + (self.height / 2)
     );
-    console.dir(self);
+    //console.dir(self);
   };
 
   return BoundingBox;
 
 }());
 
-;/* global Mousetrap, THREE */
-/* jshint unused:false */
-'use strict';
+;'use strict';
 
 var FOUR = FOUR || {};
 
@@ -137,43 +135,60 @@ FOUR.KeyStateController = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
-
-    self.KEYS = {};
-    self.MODIFIERS = {
+    self.KEYS = {
       ALT: 'alt',
       CTRL: 'ctrl',
+      CTRL_A: 'ctrl+a',
+      CTRL_N: 'ctrl+n',
+      DOWN: 'down',
+      LEFT: 'left',
       META: 'meta',
-      SHIFT: 'shift'
+      RIGHT: 'right',
+      SHIFT: 'shift',
+      UP: 'up'
     };
     self.enabled = config.enabled || false;
-    self.modifiers = {};
+    self.modifiers = {}; // map of currently pressed keys
 
-    Object.keys(self.MODIFIERS).forEach(function (key) {
-      self.modifiers[self.MODIFIERS[key]] = false;
+    Object.keys(self.KEYS).forEach(function (key) {
+      self.modifiers[self.KEYS[key]] = false;
     });
 
-    // listen for events
-    Mousetrap.bind('alt', function () { self.keydown(self.MODIFIERS.ALT); }, 'keydown');
-    Mousetrap.bind('alt', function () { self.keyup(self.MODIFIERS.ALT); }, 'keyup');
-    Mousetrap.bind('ctrl', function () { self.keydown(self.MODIFIERS.CTRL); }, 'keydown');
-    Mousetrap.bind('ctrl', function () { self.keyup(self.MODIFIERS.CTRL); }, 'keyup');
-    Mousetrap.bind('shift', function () { self.keydown(self.MODIFIERS.SHIFT); }, 'keydown');
-    Mousetrap.bind('shift', function () { self.keyup(self.MODIFIERS.SHIFT); }, 'keyup');
-    //Mousetrap.bind('shift shift', function () { self.keyDoublePress(self.MODIFIERS.SHIFT); });
+    // modifier keys
+    Mousetrap.bind('alt', function () { self.keydown(self.KEYS.ALT); }, 'keydown');
+    Mousetrap.bind('alt', function () { self.keyup(self.KEYS.ALT); }, 'keyup');
+    Mousetrap.bind('ctrl', function () { self.keydown(self.KEYS.CTRL); }, 'keydown');
+    Mousetrap.bind('ctrl', function () { self.keyup(self.KEYS.CTRL); }, 'keyup');
+    //Mousetrap.bind('shift+space', function () { console.log('shift space'); });
+    Mousetrap.bind('shift', function () { self.keydown(self.KEYS.SHIFT); }, 'keydown');
+    Mousetrap.bind('shift', function () { self.keyup(self.KEYS.SHIFT); }, 'keyup');
 
     // selection
-    Mousetrap.bind('ctrl+a', function () { self.controller.selection.selectAll(); });
-    Mousetrap.bind('ctrl+n', function () { self.controller.selection.selectNone(); });
+    Mousetrap.bind('ctrl+a', function () { self.keyup(self.KEYS.CTRL_A); });
+    Mousetrap.bind('ctrl+n', function () { self.keyup(self.KEYS.CTRL_N); });
+
+    // arrow keys
+    //Mousetrap.bind('up', function () { self.keydown(self.KEYS.UP); }, 'keydown');
+    //Mousetrap.bind('up', function () { self.keyup(self.KEYS.UP); }, 'keyup');
+    //Mousetrap.bind('down', function () { self.keydown(self.KEYS.DOWN); }, 'keydown');
+    //Mousetrap.bind('down', function () { self.keyup(self.KEYS.DOWN); }, 'keyup');
+    //Mousetrap.bind('left', function () { self.keydown(self.KEYS.LEFT); }, 'keydown');
+    //Mousetrap.bind('left', function () { self.keyup(self.KEYS.LEFT); }, 'keyup');
+    //Mousetrap.bind('right', function () { self.keydown(self.KEYS.RIGHT); }, 'keydown');
+    //Mousetrap.bind('right', function () { self.keyup(self.KEYS.RIGHT); }, 'keyup');
+    Mousetrap.bind('i', function () { self.keydown(self.KEYS.UP); }, 'keydown');
+    Mousetrap.bind('i', function () { self.keyup(self.KEYS.UP); }, 'keyup');
+    Mousetrap.bind('k', function () { self.keydown(self.KEYS.DOWN); }, 'keydown');
+    Mousetrap.bind('k', function () { self.keyup(self.KEYS.DOWN); }, 'keyup');
+    Mousetrap.bind('j', function () { self.keydown(self.KEYS.LEFT); }, 'keydown');
+    Mousetrap.bind('j', function () { self.keyup(self.KEYS.LEFT); }, 'keyup');
+    Mousetrap.bind('l', function () { self.keydown(self.KEYS.RIGHT); }, 'keydown');
+    Mousetrap.bind('l', function () { self.keyup(self.KEYS.RIGHT); }, 'keyup');
   }
 
   KeyStateController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
   KeyStateController.prototype.constructor = KeyStateController;
-
-  KeyStateController.prototype.keyDoublePress = function (key) {
-    this.modifiers[key] = false;
-    this.dispatchEvent({'type': 'key-double-press', value: key});
-  };
 
   KeyStateController.prototype.keydown = function (key) {
     this.modifiers[key] = true;
@@ -181,10 +196,15 @@ FOUR.KeyStateController = (function () {
   };
 
   KeyStateController.prototype.keyup = function (key) {
-    this.modifiers[key] = true;
+    this.modifiers[key] = false;
     this.dispatchEvent({'type': 'keyup', value: key});
   };
 
+  /**
+   * Register key event callback.
+   * @param {String} command Key command
+   * @param {Function} callback Callback
+   */
   KeyStateController.prototype.register = function (command, callback) {
     throw new Error('not implemented');
   };
@@ -342,6 +362,7 @@ FOUR.PathPlanner = (function () {
                 camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.position.set(tweened.x, tweened.y, tweened.z);
                 camera.target.set(tweened.tx, tweened.ty, tweened.tz);
+                emit('continuous-update');
             });
             tween.start();
             emit('continuous-update-start');
@@ -497,14 +518,22 @@ FOUR.Scene3D = (function () {
      * @param config
      */
     Scene3D.prototype.createDefaultCamera = function (config) {
+        // TODO rename to createCamera
         var self = this;
         Object.keys(config).forEach(function (key) {
            camera[key] = config[key];
         });
         var targetcamera = new FOUR.TargetCamera(camera.fov, camera.width / camera.height, camera.near, camera.far);
-        targetcamera.name = self.DEFAULT_CAMERA_NAME;
-        targetcamera.position.set(-100, -100, 100);
+        targetcamera.name = self.DEFAULT_CAMERA_NAME; // use name field
         self.cameras.add(targetcamera);
+        targetcamera.setPositionAndTarget(-50, -50, 50, 0, 0, 0); // use position, target fields
+        targetcamera.addEventListener('continuous-update-end', function () { self.emit('continuous-update-end'); });
+        targetcamera.addEventListener('continuous-update-start', function () { self.emit('continuous-update-start'); });
+        targetcamera.addEventListener('update', function () { self.emit('update'); });
+    };
+
+    Scene3D.prototype.emit = function (type) {
+      this.dispatchEvent({'type':type});
     };
 
     Scene3D.prototype.getCamera = function (name) {
@@ -579,6 +608,7 @@ FOUR.SelectionControl = (function () {
 
     // listen for mouse events
     self.selection.addEventListener('update', self.update.bind(self), false);
+    self.viewport.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self), false);
     self.viewport.domElement.addEventListener('mousedown', self.onMouseDown.bind(self), false);
     self.viewport.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
     self.viewport.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
@@ -602,6 +632,11 @@ FOUR.SelectionControl = (function () {
     this.enabled = true;
   };
 
+  SelectionControl.prototype.onContextMenu = function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   SelectionControl.prototype.onKeyDown = function (event) {
     if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
       this.modifiers[event.value] = true;
@@ -611,6 +646,10 @@ FOUR.SelectionControl = (function () {
   SelectionControl.prototype.onKeyUp = function (event) {
     if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
       this.modifiers[event.value] = false;
+    } else if (event.value === 'ctrl+a') {
+      this.selectAll();
+    } else if (event.value === 'ctrl+n') {
+      this.selectNone();
     }
   };
 
@@ -889,9 +928,7 @@ FOUR.SelectionSet = (function () {
   return SelectionSet;
 
 }());
-;/* global Mousetrap, THREE, TWEEN */
-/* jshint unused:false */
-'use strict';
+;'use strict';
 
 var FOUR = FOUR || {};
 
@@ -1006,12 +1043,29 @@ FOUR.TargetCamera = (function () {
 
     TargetCamera.prototype.setDistance = function (dist) {
         console.log('update the camera distance from target');
-        // compute position using target as anchor point
+        var offset, distance, next, self = this;
+        // get the direction and current distance from the target to the camera
+        offset = new THREE.Vector3().subVectors(self.position, self.target);
+        distance = offset.length();
+        // compute the new camera distance and position
+        offset.setLength(dist);
+        next = new THREE.Vector3().addVectors(self.target, offset);
+        // move the camera to the new position
+        return self.planner.tweenToPosition(
+            self,
+            new THREE.Vector3(next.x, next.y, next.z),
+            self.target,
+            self.emit.bind(self));
     };
 
     TargetCamera.prototype.setPosition = function (x, y, z) {
-      // update target
-        // transition
+        var self = this;
+        // TODO need to update the target!!!
+        return self.planner.tweenToPosition(
+            self,
+            new THREE.Vector3(x, y, z),
+            self.target,
+            self.emit.bind(self));
     };
 
     TargetCamera.prototype.setPositionAndTarget = function (x, y, z, tx ,ty, tz) {
@@ -1031,17 +1085,12 @@ FOUR.TargetCamera = (function () {
      * @param {Number} z Z coordinate
      */
     TargetCamera.prototype.setTarget = function (x, y, z) {
-        throw new Error('not implemented');
-        //var self = this;
-        //var direction = new THREE.Vector3().subVectors(self.target, self.position);
-        //self.target.set(x, y, z);
-        //var position = new THREE.Vector3().addVectors(self.target, direction);
-        //self.distance = distance(position, self.target);
-        //return self.planner.tweenToPosition(
-        //    self,
-        //    new THREE.Vector3(cx, cy, cz),
-        //    new THREE.Vector3(tx, ty, tz),
-        //    self.emit.bind(self));
+        var self = this;
+        return self.planner.tweenToPosition(
+            self,
+            self.position,
+            new THREE.Vector3(x, y, z),
+            self.emit.bind(self));
     };
 
     /**
@@ -1050,7 +1099,7 @@ FOUR.TargetCamera = (function () {
      * @param {BoundingBox} bbox View bounding box
      */
     TargetCamera.prototype.setView = function (view, bbox) {
-        var dist, height, offset = 10, self = this;
+        var dist, height, offset, self = this;
         var center = bbox.getCenter();
         var cx = center.x; // new camera position
         var cy = center.y;
@@ -1058,54 +1107,36 @@ FOUR.TargetCamera = (function () {
         var tx = center.x; // new camera target
         var ty = center.y;
         var tz = center.z;
-        var rx = self.rotation.x; // camera rotation in radians
-        var ry = self.rotation.y;
-        var rz = self.rotation.z;
         // reorient the camera relative to the bounding box
         if (view === self.VIEWS.TOP) {
             height = bbox.getYDimension();
-            offset += (bbox.getZDimension() / 2);
+            offset = (bbox.getZDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             cz = center.z + dist + offset;
-            rx = 0;
-            ry = 0;
-            rz = Math.PI * 2;
         }
         else if (view === self.VIEWS.FRONT) {
             height = bbox.getZDimension();
-            offset += (bbox.getYDimension() / 2);
+            offset = (bbox.getYDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             cy = center.y - dist - offset;
-            rx = Math.PI / 2;
-            ry = 0;
-            rz = Math.PI * 2;
         }
         else if (view === self.VIEWS.BACK) {
             height = bbox.getZDimension();
-            offset += (bbox.getYDimension() / 2);
+            offset = (bbox.getYDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             cy = center.y + dist + offset;
-            rx = -Math.PI / 2;
-            ry = 0;
-            rz = Math.PI;
         }
         else if (view === self.VIEWS.RIGHT) {
             height = bbox.getZDimension();
-            offset += (bbox.getXDimension() / 2);
+            offset = (bbox.getXDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             cx = center.x + dist + offset;
-            rx = 0;
-            ry = Math.PI / 2;
-            rz = Math.PI / 2;
         }
         else if (view === self.VIEWS.LEFT) {
             height = bbox.getZDimension();
-            offset += (bbox.getXDimension() / 2);
+            offset = (bbox.getXDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             cx = center.x - dist - offset;
-            rx = 0;
-            ry = -Math.PI / 2;
-            rz = -Math.PI / 2;
         }
         else if (view === self.VIEWS.PERSPECTIVE) {
             cx = center.x - 50;
@@ -1114,21 +1145,12 @@ FOUR.TargetCamera = (function () {
             tx = center.x;
             ty = center.y;
             tz = center.z;
-            rx = Math.PI / 8;
-            ry = -Math.PI / 4;
-            rz = -Math.PI / 4;
         }
         self.planner.tweenToPosition(
             self,
             new THREE.Vector3(cx, cy, cz),
             new THREE.Vector3(tx, ty, tz),
             self.emit.bind(self));
-        //self.planner.tweenToPositionAndRotation(
-        //    self,
-        //    new THREE.Vector3(cx, cy, cz),
-        //    new THREE.Vector3(tx, ty, tz),
-        //    new THREE.Euler(rx, ry, rz),
-        //    self.emit.bind(self));
     };
 
     /**
@@ -1148,20 +1170,31 @@ FOUR.TargetCamera = (function () {
         this.emit('update');
     };
 
+    TargetCamera.prototype.translate = function (x, y, z) {
+        var self = this;
+        self.position.add(new THREE.Vector3(x, y, z));
+        self.target.add(new THREE.Vector3(x, y, z));
+        //self.emit('update');
+    };
+
     /**
      * Zoom in incrementally.
      */
     TargetCamera.prototype.zoomIn = function () {
         console.log('zoom in');
-        var self = this;
-        var dist = self.distance / self.ZOOM_FACTOR;
-    };
-
-    /**
-     * Zoom the view to fit the window selection.
-     */
-    TargetCamera.prototype.zoomInToWindow = function () {
-        throw new Error('zoom in to window');
+        var offset, distance, next, self = this;
+        // get the direction and current distance from the target to the camera
+        offset = new THREE.Vector3().subVectors(self.position, self.target);
+        distance = offset.length();
+        // compute the new camera distance and position
+        offset.setLength(distance / self.ZOOM_FACTOR);
+        next = new THREE.Vector3().addVectors(self.target, offset);
+        // move the camera to the new position
+        return self.planner.tweenToPosition(
+            self,
+            new THREE.Vector3(next.x, next.y, next.z),
+            self.target,
+            self.emit.bind(self));
     };
 
     /**
@@ -1169,8 +1202,19 @@ FOUR.TargetCamera = (function () {
      */
     TargetCamera.prototype.zoomOut = function () {
         console.log('zoom out');
-        var self = this;
-        var dist = self.distance * self.ZOOM_FACTOR;
+        var offset, distance, next, self = this;
+        // get the direction and current distance from the target to the camera
+        offset = new THREE.Vector3().subVectors(self.position, self.target);
+        distance = offset.length();
+        // compute the new camera distance and position
+        offset.setLength(distance * self.ZOOM_FACTOR);
+        next = new THREE.Vector3().addVectors(self.target, offset);
+        // move the camera to the new position
+        return self.planner.tweenToPosition(
+            self,
+            new THREE.Vector3(next.x, next.y, next.z),
+            self.target,
+            self.emit.bind(self));
     };
 
     /**
@@ -1179,30 +1223,33 @@ FOUR.TargetCamera = (function () {
      */
     TargetCamera.prototype.zoomToFit = function (bbox) {
         console.log('zoom to fit all or selected items');
-        var diff, dist, next, offset = 5, self = this, target;
-        // the offset from the current camera position to the new camera position
-        dist = bbox.getRadius() / Math.tan(Math.PI * self.fov / 360);
-        target = new THREE.Vector3(0, 0, -(dist + offset)); // 100 is the distance from the camera to the target, measured along the Z axis
-        target.applyQuaternion(self.quaternion);
-        target.add(self.position);
-        var center = bbox.getCenter();
-        diff = new THREE.Vector3().subVectors(bbox.getCenter(), target);
-        // the next camera position
-        next = new THREE.Vector3().add(self.position, diff);
-        // move the camera to the next position
+        var direction, distance, next, self = this;
+        // get the direction from the target to the camera
+        direction = new THREE.Vector3().subVectors(self.position, self.target);
+        // get the distance required to fit all entities within the view
+        distance = bbox.getRadius() / Math.tan(Math.PI * self.fov / 360);
+        // compute the new camera position
+        direction.setLength(distance);
+        next = new THREE.Vector3().addVectors(bbox.getCenter(), direction);
+        // move the camera to the new position
         return self.planner.tweenToPosition(
             self,
             new THREE.Vector3(next.x, next.y, next.z),
-            new THREE.Vector3(bbox.x, bbox.y, bbox.z),
+            bbox.getCenter(),
             self.emit.bind(self));
+    };
+
+    /**
+     * Zoom the view to fit the window selection.
+     */
+    TargetCamera.prototype.zoomToWindow = function () {
+        throw new Error('zoom in to window');
     };
 
     return TargetCamera;
 
 }());
-;/* global Mousetrap, THREE, TWEEN */
-/* jshint unused:false */
-'use strict';
+;'use strict';
 
 var FOUR = FOUR || {};
 
@@ -1920,17 +1967,545 @@ FOUR.OrbitController = (function () {
 	return OrbitController;
 
 }());
-;/* global Mousetrap, THREE, TWEEN */
-/* jshint unused:false */
-'use strict';
+;'use strict';
 
 var FOUR = FOUR || {};
 
+/**
+ * Trackball controller with integrated first person walking functionality.
+ */
+FOUR.TrackballController = function (object, domElement) {
+
+    var _this = this;
+    var STATE = {
+        NONE: -1,
+        ROTATE: 0,
+        ZOOM: 1,
+        PAN: 2,
+        TOUCH_ROTATE: 3,
+        TOUCH_ZOOM_PAN: 4,
+        TRANSLATE: 5
+    };
+
+    this.object = object;
+    this.domElement = (domElement !== undefined) ? domElement : document;
+
+    // API
+    this.enabled = true;
+    this.screen = { left: 0, top: 0, width: 0, height: 0 };
+
+    this.panSpeed = 0.3;
+    this.rotateSpeed = 1.0;
+    this.translateSpeed = 1.0;
+    this.zoomSpeed = 1.2;
+
+    this.noZoom = false;
+    this.noPan = false;
+    this.noRotate = false;
+    this.noTranslate = false;
+
+    this.staticMoving = false;
+    this.dynamicDampingFactor = 0.2;
+
+    this.minDistance = 0;
+    this.maxDistance = Infinity;
+
+    this.keys = [
+        65 /*A*/, 83 /*S*/, 68 /*D*/,
+        73 /*I*/, 74 /*J*/, 75 /*K*/, 76 /*L*/
+    ];
+
+    // internals
+    this.target = new THREE.Vector3();
+    var EPS = 0.000001;
+    var lastPosition = new THREE.Vector3();
+
+    var _state = STATE.NONE,
+        _prevState = STATE.NONE,
+
+        _eye = new THREE.Vector3(),
+
+        _movePrev = new THREE.Vector2(),
+        _moveCurr = new THREE.Vector2(),
+
+        _lastAxis = new THREE.Vector3(),
+        _lastAngle = 0,
+
+        _zoomStart = new THREE.Vector2(),
+        _zoomEnd = new THREE.Vector2(),
+
+        _touchZoomDistanceStart = 0,
+        _touchZoomDistanceEnd = 0,
+
+        _panStart = new THREE.Vector2(),
+        _panEnd = new THREE.Vector2(),
+
+        _key = null;
+
+    // for reset
+    this.target0 = this.target.clone();
+    this.position0 = this.object.position.clone();
+    this.up0 = this.object.up.clone();
+
+    // events
+    var changeEvent = { type: 'change' };
+    var startEvent = { type: 'start' };
+    var endEvent = { type: 'end' };
+
+    // methods
+    this.handleResize = function () {
+        if (this.domElement === document) {
+            this.screen.left = 0;
+            this.screen.top = 0;
+            this.screen.width = window.innerWidth;
+            this.screen.height = window.innerHeight;
+        } else {
+            var box = this.domElement.getBoundingClientRect();
+            // adjustments come from similar code in the jquery offset() function
+            var d = this.domElement.ownerDocument.documentElement;
+            this.screen.left = box.left + window.pageXOffset - d.clientLeft;
+            this.screen.top = box.top + window.pageYOffset - d.clientTop;
+            this.screen.width = box.width;
+            this.screen.height = box.height;
+        }
+    };
+
+    this.handleEvent = function (event) {
+        if (typeof this[event.type] === 'function') {
+            this[event.type](event);
+        }
+    };
+
+    var getMouseOnScreen = (function () {
+        var vector = new THREE.Vector2();
+        return function getMouseOnScreen(pageX, pageY) {
+            vector.set(
+                (pageX - _this.screen.left) / _this.screen.width,
+                (pageY - _this.screen.top) / _this.screen.height
+           );
+           return vector;
+        };
+    }());
+
+    var getMouseOnCircle = (function () {
+        var vector = new THREE.Vector2();
+        return function getMouseOnCircle(pageX, pageY) {
+            vector.set(
+                ((pageX - _this.screen.width * 0.5 - _this.screen.left) / (_this.screen.width * 0.5)),
+                ((_this.screen.height + 2 * (_this.screen.top - pageY)) / _this.screen.width) // screen.width intentional
+           );
+            return vector;
+        };
+    }());
+
+    this.checkDistances = function () {
+        if (! _this.noZoom || ! _this.noPan) {
+            if (_eye.lengthSq() > _this.maxDistance * _this.maxDistance) {
+                _this.object.position.addVectors(_this.target, _eye.setLength(_this.maxDistance));
+                _zoomStart.copy(_zoomEnd);
+            }
+            if (_eye.lengthSq() < _this.minDistance * _this.minDistance) {
+                _this.object.position.addVectors(_this.target, _eye.setLength(_this.minDistance));
+                _zoomStart.copy(_zoomEnd);
+            }
+        }
+    };
+
+    this.panCamera = (function() {
+        var mouseChange = new THREE.Vector2(),
+            objectUp = new THREE.Vector3(),
+            pan = new THREE.Vector3();
+
+        return function panCamera() {
+            mouseChange.copy(_panEnd).sub(_panStart);
+            if (mouseChange.lengthSq()) {
+                mouseChange.multiplyScalar(_eye.length() * _this.panSpeed);
+                pan.copy(_eye).cross(_this.object.up).setLength(mouseChange.x);
+                pan.add(objectUp.copy(_this.object.up).setLength(mouseChange.y));
+
+                _this.object.position.add(pan);
+                _this.target.add(pan);
+                if (_this.staticMoving) {
+                    _panStart.copy(_panEnd);
+                } else {
+                    _panStart.add(mouseChange.subVectors(_panEnd, _panStart).multiplyScalar(_this.dynamicDampingFactor));
+                }
+            }
+        };
+    }());
+
+    this.reset = function () {
+        _state = STATE.NONE;
+        _prevState = STATE.NONE;
+
+        _this.target.copy(_this.target0);
+        _this.object.position.copy(_this.position0);
+        _this.object.up.copy(_this.up0);
+
+        _eye.subVectors(_this.object.position, _this.target);
+
+        _this.object.lookAt(_this.target);
+
+        _this.dispatchEvent(changeEvent);
+
+        lastPosition.copy(_this.object.position);
+    };
+
+    this.rotateCamera = (function() {
+
+        var axis = new THREE.Vector3(),
+            quaternion = new THREE.Quaternion(),
+            eyeDirection = new THREE.Vector3(),
+            objectUpDirection = new THREE.Vector3(),
+            objectSidewaysDirection = new THREE.Vector3(),
+            moveDirection = new THREE.Vector3(),
+            angle;
+
+        return function rotateCamera() {
+
+            moveDirection.set(_moveCurr.x - _movePrev.x, _moveCurr.y - _movePrev.y, 0);
+            angle = moveDirection.length();
+
+            if (angle) {
+
+                _eye.copy(_this.object.position).sub(_this.target);
+
+                eyeDirection.copy(_eye).normalize();
+                objectUpDirection.copy(_this.object.up).normalize();
+                objectSidewaysDirection.crossVectors(objectUpDirection, eyeDirection).normalize();
+
+                objectUpDirection.setLength(_moveCurr.y - _movePrev.y);
+                objectSidewaysDirection.setLength(_moveCurr.x - _movePrev.x);
+
+                moveDirection.copy(objectUpDirection.add(objectSidewaysDirection));
+
+                axis.crossVectors(moveDirection, _eye).normalize();
+
+                angle *= _this.rotateSpeed;
+                quaternion.setFromAxisAngle(axis, angle);
+
+                _eye.applyQuaternion(quaternion);
+                _this.object.up.applyQuaternion(quaternion);
+
+                _lastAxis.copy(axis);
+                _lastAngle = angle;
+
+            } else if (! _this.staticMoving && _lastAngle) {
+
+                _lastAngle *= Math.sqrt(1.0 - _this.dynamicDampingFactor);
+                _eye.copy(_this.object.position).sub(_this.target);
+                quaternion.setFromAxisAngle(_lastAxis, _lastAngle);
+                _eye.applyQuaternion(quaternion);
+                _this.object.up.applyQuaternion(quaternion);
+
+            }
+
+            _movePrev.copy(_moveCurr);
+
+        };
+
+    }());
+
+    this.translateCamera = function () {
+
+
+        //console.log('translate the camera');
+    };
+
+    this.zoomCamera = function () {
+        var factor;
+        if (_state === STATE.TOUCH_ZOOM_PAN) {
+            factor = _touchZoomDistanceStart / _touchZoomDistanceEnd;
+            _touchZoomDistanceStart = _touchZoomDistanceEnd;
+            _eye.multiplyScalar(factor);
+        } else {
+            factor = 1.0 + (_zoomEnd.y - _zoomStart.y) * _this.zoomSpeed;
+            if (factor !== 1.0 && factor > 0.0) {
+                _eye.multiplyScalar(factor);
+                if (_this.staticMoving) {
+                    _zoomStart.copy(_zoomEnd);
+                } else {
+                    _zoomStart.y += (_zoomEnd.y - _zoomStart.y) * this.dynamicDampingFactor;
+                }
+            }
+        }
+    };
+
+    this.update = function () {
+        _eye.subVectors(_this.object.position, _this.target);
+        if (! _this.noRotate) {
+            _this.rotateCamera();
+        }
+        if (! _this.noZoom) {
+            _this.zoomCamera();
+        }
+        if (! _this.noPan) {
+            _this.panCamera();
+        }
+        if (! _this.noTranslate) {
+            _this.translateCamera();
+        }
+
+        _this.object.position.addVectors(_this.target, _eye);
+        _this.checkDistances();
+        _this.object.lookAt(_this.target);
+
+        if (lastPosition.distanceToSquared(_this.object.position) > EPS) {
+            _this.dispatchEvent(changeEvent);
+            lastPosition.copy(_this.object.position);
+        }
+    };
+
+    // listeners
+    function keydown(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        window.removeEventListener('keydown', keydown);
+        _prevState = _state;
+        if (_state !== STATE.NONE) {
+            return;
+        } else if (event.keyCode === _this.keys[STATE.ROTATE] && ! _this.noRotate) {
+            _state = STATE.ROTATE;
+        } else if (event.keyCode === _this.keys[STATE.ZOOM] && ! _this.noZoom) {
+            _state = STATE.ZOOM;
+        } else if (event.keyCode === _this.keys[STATE.PAN] && ! _this.noPan) {
+            _state = STATE.PAN;
+        } else if (event.keyCode >= 73 || event.keyCode <= 76) {
+            _state = STATE.TRANSLATE;
+        }
+    }
+
+    function keyup(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        _state = _prevState;
+        window.addEventListener('keydown', keydown, false);
+    }
+
+    function mousedown(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (_state === STATE.NONE) {
+            _state = event.button;
+        }
+        if (_state === STATE.ROTATE && ! _this.noRotate) {
+            _moveCurr.copy(getMouseOnCircle(event.pageX, event.pageY));
+            _movePrev.copy(_moveCurr);
+        } else if (_state === STATE.ZOOM && ! _this.noZoom) {
+            _zoomStart.copy(getMouseOnScreen(event.pageX, event.pageY));
+            _zoomEnd.copy(_zoomStart);
+        } else if (_state === STATE.PAN && ! _this.noPan) {
+            _panStart.copy(getMouseOnScreen(event.pageX, event.pageY));
+            _panEnd.copy(_panStart);
+        }
+
+        document.addEventListener('mousemove', mousemove, false);
+        document.addEventListener('mouseup', mouseup, false);
+
+        _this.dispatchEvent(startEvent);
+    }
+
+    function mousemove(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (_state === STATE.ROTATE && ! _this.noRotate) {
+            _movePrev.copy(_moveCurr);
+            _moveCurr.copy(getMouseOnCircle(event.pageX, event.pageY));
+        } else if (_state === STATE.ZOOM && ! _this.noZoom) {
+            _zoomEnd.copy(getMouseOnScreen(event.pageX, event.pageY));
+        } else if (_state === STATE.PAN && ! _this.noPan) {
+            _panEnd.copy(getMouseOnScreen(event.pageX, event.pageY));
+        }
+    }
+
+    function mouseup(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        _state = STATE.NONE;
+
+        document.removeEventListener('mousemove', mousemove);
+        document.removeEventListener('mouseup', mouseup);
+        _this.dispatchEvent(endEvent);
+    }
+
+    function mousewheel(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        var delta = 0;
+        if (event.wheelDelta) {
+            // WebKit / Opera / Explorer 9
+            delta = event.wheelDelta / 40;
+        } else if (event.detail) {
+            // Firefox
+            delta = - event.detail / 3;
+        }
+        _zoomStart.y += delta * 0.01;
+        _this.dispatchEvent(startEvent);
+        _this.dispatchEvent(endEvent);
+    }
+
+    function touchstart(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+
+        switch (event.touches.length) {
+            case 1:
+                _state = STATE.TOUCH_ROTATE;
+                _moveCurr.copy(getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY));
+                _movePrev.copy(_moveCurr);
+                break;
+            case 2:
+                _state = STATE.TOUCH_ZOOM_PAN;
+                var dx = event.touches[0].pageX - event.touches[1].pageX;
+                var dy = event.touches[0].pageY - event.touches[1].pageY;
+                _touchZoomDistanceEnd = _touchZoomDistanceStart = Math.sqrt(dx * dx + dy * dy);
+
+                var x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+                var y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+                _panStart.copy(getMouseOnScreen(x, y));
+                _panEnd.copy(_panStart);
+                break;
+            default:
+                _state = STATE.NONE;
+        }
+        _this.dispatchEvent(startEvent);
+    }
+
+    function touchmove(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        switch (event.touches.length) {
+
+            case 1:
+                _movePrev.copy(_moveCurr);
+                _moveCurr.copy(getMouseOnCircle( event.touches[0].pageX, event.touches[0].pageY));
+                break;
+
+            case 2:
+                var dx = event.touches[0].pageX - event.touches[1].pageX;
+                var dy = event.touches[0].pageY - event.touches[1].pageY;
+                _touchZoomDistanceEnd = Math.sqrt(dx * dx + dy * dy);
+
+                var x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+                var y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+                _panEnd.copy(getMouseOnScreen(x, y));
+                break;
+
+            default:
+                _state = STATE.NONE;
+        }
+    }
+
+    function touchend(event) {
+        if (_this.enabled === false) {
+            return;
+        }
+        switch (event.touches.length) {
+            case 1:
+                _movePrev.copy(_moveCurr);
+                _moveCurr.copy(getMouseOnCircle( event.touches[0].pageX, event.touches[0].pageY));
+                break;
+            case 2:
+                _touchZoomDistanceStart = _touchZoomDistanceEnd = 0;
+
+                var x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+                var y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+                _panEnd.copy(getMouseOnScreen(x, y));
+                _panStart.copy(_panEnd);
+                break;
+        }
+        _state = STATE.NONE;
+        _this.dispatchEvent(endEvent);
+    }
+
+    function contextmenu(event) {
+        event.preventDefault();
+    }
+
+    this.dispose = function() {
+        this.domElement.removeEventListener('contextmenu', contextmenu, false);
+        this.domElement.removeEventListener('mousedown', mousedown, false);
+        this.domElement.removeEventListener('mousewheel', mousewheel, false);
+        this.domElement.removeEventListener('DOMMouseScroll', mousewheel, false); // firefox
+
+        this.domElement.removeEventListener('touchstart', touchstart, false);
+        this.domElement.removeEventListener('touchend', touchend, false);
+        this.domElement.removeEventListener('touchmove', touchmove, false);
+
+        document.removeEventListener('mousemove', mousemove, false);
+        document.removeEventListener('mouseup', mouseup, false);
+
+        window.removeEventListener('keydown', keydown, false);
+        window.removeEventListener('keyup', keyup, false);
+    };
+
+    this.domElement.addEventListener('contextmenu', contextmenu, false);
+    this.domElement.addEventListener('mousedown', mousedown, false);
+    this.domElement.addEventListener('mousewheel', mousewheel, false);
+    this.domElement.addEventListener('DOMMouseScroll', mousewheel, false); // firefox
+
+    this.domElement.addEventListener('touchstart', touchstart, false);
+    this.domElement.addEventListener('touchend', touchend, false);
+    this.domElement.addEventListener('touchmove', touchmove, false);
+
+    window.addEventListener('keydown', keydown, false);
+    window.addEventListener('keyup', keyup, false);
+
+    this.handleResize();
+
+    // force an update at start
+    this.update();
+
+};
+
+FOUR.TrackballController.prototype = Object.create(THREE.EventDispatcher.prototype);
+FOUR.TrackballController.prototype.constructor = FOUR.TrackballController;
+;'use strict';
+
+var FOUR = FOUR || {};
+
+/**
+ * First person navigation controller. Uses U-I-O-J-K-L keys for navigation
+ * and the mouse point for look control.
+ */
 FOUR.WalkController = (function () {
 
     function WalkController (camera, domElement) {
         THREE.EventDispatcher.call(this);
         var self = this;
+
+        self.KEY = {
+            I: 73,
+            J: 74,
+            K: 75,
+            L: 76,
+            U: 85,
+            O: 79
+        };
 
         self.MODIFIERS = {
             ALT: 'ALT',
@@ -1938,10 +2513,16 @@ FOUR.WalkController = (function () {
             SHIFT: 'SHIFT'
         };
 
+        self.actions = {};
         self.camera = camera;
         self.domElement = domElement;
-
         self.enabled = false;
+        self.look = {
+            up: false,
+            down: false,
+            left: false,
+            right: false
+        };
         self.lookSpeed = 0.005;
         self.lookVertical = true;
         self.modifiers = {
@@ -1949,30 +2530,29 @@ FOUR.WalkController = (function () {
             'CTRL': false,
             'SHIFT': false
         };
-        self.mouseX = 0;
-        self.mouseY = 0;
-        self.movementSpeed = 1.0;
-        self.planner = new FOUR.PathPlanner();
+        self.mouse = {
+            start: { x: 0, y: 0 },
+            end: { x: 0, y: 0 }
+        };
+        self.move = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            up: false,
+            down: false
+        };
+        self.movementSpeed = 100.0;
+        self.enforceWalkHeight = false;
 
         self.lat = 0;
         self.lon = 0;
         self.phi = 0;
         self.theta = 0;
 
-        if ( self.domElement === document ) {
-            self.viewHalfX = window.innerWidth / 2;
-            self.viewHalfY = window.innerHeight / 2;
-        } else {
-            self.viewHalfX = self.domElement.offsetWidth / 2;
-            self.viewHalfY = self.domElement.offsetHeight / 2;
-            self.domElement.setAttribute('tabindex', -1);
-        }
-
-        // movement keys
-        Mousetrap.bind('up', function () { self.translate(); });
-        Mousetrap.bind('down', function () { self.translate(); });
-        Mousetrap.bind('left', function () { self.rotate(); });
-        Mousetrap.bind('right', function () { self.rotate(); });
+        self.viewHalfX = self.domElement.offsetWidth / 2;
+        self.viewHalfY = self.domElement.offsetHeight / 2;
+        self.domElement.setAttribute('tabindex', -1);
     }
 
     WalkController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -1982,56 +2562,198 @@ FOUR.WalkController = (function () {
     WalkController.prototype.WALK_HEIGHT = 2;
 
     WalkController.prototype.disable = function () {
-        this.enabled = false;
+        var self = this;
+        self.enabled = false;
+        self.domElement.removeEventListener('mousedown', self.onMouseDown);
     };
 
     WalkController.prototype.enable = function () {
         var self = this;
+        // attach mousedown listener
+        self.domElement.addEventListener('mousedown', self.onMouseDown.bind(self));
         // translate the camera to the walking height
-        self.camera.setPositionAndTarget(
+        if (self.enforceWalkHeight) {
+            self.setWalkHeight().then(function () {
+                self.enabled = true;
+            });
+        } else {
+            self.enabled = true;
+        }
+    };
+
+    WalkController.prototype.onKeyDown = function (event) {
+        // ALT key changes controller to look mode
+        var self = this;
+        if (!self.enabled) {
+            return;
+        }
+        switch(event.keyCode) {
+            case self.KEY.I:
+                self.move.forward = true;
+                //self.actions['forward'] = self.translate(self.camera, self.modifiers);
+                break;
+            case self.KEY.K:
+                self.move.backward = true;
+                break;
+            case self.KEY.J:
+                self.move.left = true;
+                break;
+            case self.KEY.L:
+                self.move.right = true;
+                break;
+            case self.KEY.U:
+                self.move.up = true;
+                break;
+            case self.KEY.O:
+                self.move.down = true;
+                break;
+        }
+    };
+
+    WalkController.prototype.onKeyUp = function (event) {
+        var self = this;
+        switch(event.keyCode) {
+            case self.KEY.I:
+                self.move.forward = false;
+                //if (self.actions.hasOwnProperty('forward')) {
+                //    delete self.actions.forward;
+                //}
+                break;
+            case self.KEY.K:
+                self.move.backward = false;
+                break;
+            case self.KEY.J:
+                self.move.left = false;
+                break;
+            case self.KEY.L:
+                self.move.right = false;
+                break;
+            case self.KEY.U:
+                self.move.up = false;
+                break;
+            case self.KEY.O:
+                self.move.down = false;
+                break;
+        }
+    };
+
+    WalkController.prototype.onMouseDown = function (event) {
+        console.log('mouse down');
+        var self = this;
+        // get mouse coordinates
+        self.mouse.start = new THREE.Vector2(
+            event.pageX - self.domElement.offsetLeft - self.viewHalfX,
+            event.pageY - self.domElement.offsetTop - self.viewHalfY
+        );
+        // bind mousemove, mouseup handlers
+        self.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
+        self.domElement.addEventListener('mouseup', self.onMouseUp.bind(self), false);
+    };
+
+    WalkController.prototype.onMouseMove = function (event) {
+        console.log('mouse move');
+        var self = this;
+        // get mouse coordinates
+        self.mouse.end = new THREE.Vector2(
+            event.pageX - self.domElement.offsetLeft - self.viewHalfX,
+            event.pageY - self.domElement.offsetTop - self.viewHalfY
+        );
+    };
+
+    WalkController.prototype.onMouseUp = function (event) {
+        console.log('mouse up');
+        // detatch mousemove, mouseup handlers
+        var self = this;
+        self.domElement.removeEventListener('mousemove', self.onMouseMove);
+        self.domElement.removeEventListener('mouseup', self.onMouseUp);
+        Object.keys(self.look).forEach(function (key) {
+            self.look[key] = false;
+        });
+    };
+
+    WalkController.prototype.onResize = function () {
+        console.log('resize');
+    };
+
+    WalkController.prototype.setWalkHeight = function () {
+        console.log('set starting height');
+        var self = this;
+        return self.camera.setPositionAndTarget(
             self.camera.position.x,
             self.camera.position.y,
             self.WALK_HEIGHT,
             self.camera.target.x,
             self.camera.target.y,
-            self.WALK_HEIGHT)
-            .then(function () {
-                self.enabled = true;
-            });
-    };
-
-    WalkController.prototype.onKeyDown = function (event) {
-        console.log('key down');
-        // ALT key changes controller to look mode
-    };
-
-    WalkController.prototype.onKeyUp = function (event) {
-        console.log('key up');
-    };
-
-    WalkController.prototype.onMouseDown = function () {
-        console.log('mouse down');
-    };
-
-    WalkController.prototype.onMouseMove = function () {
-        console.log('mouse move');
-    };
-
-    WalkController.prototype.onMouseUp = function () {
-        console.log('mouse up');
-    };
-
-    WalkController.prototype.rotate = function () {
-        console.log('rotate');
-    };
-
-    WalkController.prototype.translate = function () {
-        console.log('translate');
+            self.WALK_HEIGHT);
     };
 
     WalkController.prototype.update = function (delta) {
-        console.log('update');
+        var self = this;
+        var distance = delta * self.movementSpeed;
+        var change = false;
+
+        // translate the camera
+        if (self.move.forward) {
+            self.camera.translateZ(-distance);
+            change = true;
+        }
+        if (self.move.backward) {
+            self.camera.translateZ(distance);
+            change = true;
+        }
+        if (self.move.right) {
+            self.camera.translateX(distance);
+            change = true;
+        }
+        if (self.move.left) {
+            self.camera.translateX(-distance);
+            change = true;
+        }
+        if (self.move.up) {
+            self.camera.translateY(-distance);
+            change = true;
+        }
+        if (self.move.down) {
+            self.camera.translateY(distance);
+            change = true;
+        }
+
+        // change the camera lookat direction
+        var cameraDirection = self.camera.getWorldDirection();
+        var mouseDirection = new THREE.Vector2().subVectors(self.mouse.end, self.mouse.start);
+
+        if (self.look.up) {
+            console.log('look up');
+        }
+        if (self.look.down) {
+            console.log('look down');
+        }
+        if (self.look.left) {
+            console.log('look left');
+        }
+        if (self.look.right) {
+            console.log('look right');
+        }
+
+        if (change) {
+            self.dispatchEvent({'type':'change'});
+        }
     };
+
+    //WalkController.prototype.update = function (delta) {
+    //    var self = this;
+    //    // execute all walk actions
+    //    var actions = Object.keys(self.actions);
+    //    if (actions.length > 0) {
+    //        var direction = self.camera.getWorldDirection();
+    //        var distance = delta * self.movementSpeed;
+    //        var offset = new THREE.Vector3().copy(direction).setLength(distance);
+    //        actions.forEach(function (key) {
+    //            self.actions[key].apply(self, [delta, offset]);
+    //        });
+    //        self.dispatchEvent({'type':'change'});
+    //    }
+    //};
 
     return WalkController;
 
@@ -2090,11 +2812,9 @@ THREE.FirstPersonControls = function ( object, domElement ) {
         this.viewHalfY = window.innerHeight / 2;
 
     } else {
-
         this.viewHalfX = this.domElement.offsetWidth / 2;
         this.viewHalfY = this.domElement.offsetHeight / 2;
         this.domElement.setAttribute( 'tabindex', -1 );
-
     }
 
     this.onMouseDown = function ( event ) {
@@ -4378,8 +5098,7 @@ var TravellingSalesman = (function () {
 
     return TravellingSalesman;
 }());
-;/* global Mousetrap, THREE, TWEEN */
-'use strict';
+;'use strict';
 
 var FOUR = FOUR || {};
 
@@ -4416,7 +5135,6 @@ FOUR.Viewport3D = (function () {
         this.backgroundColor = new THREE.Color(0x000, 1.0);
         this.camera = null;
         this.clock = new THREE.Clock();
-        this.continuous = false; // render continuously
         this.controller = {};
         this.domElement = null;
         this.domElementId = elementId;
@@ -4426,6 +5144,7 @@ FOUR.Viewport3D = (function () {
             'CTRL': false,
             'SHIFT': false
         };
+        this.renderContinuous = false;
         this.renderer = null;
         this.scene = scene;
 
@@ -4468,12 +5187,32 @@ FOUR.Viewport3D = (function () {
         self.setupKeyboardBindings();
         self.setupControllers();
         // listen for events
+        //window.addEventListener('keydown', function () {
+        //    self.renderContinuous = true;
+        //    self.render();
+        //});
+        //window.addEventListener('keyup', function () { self.renderContinuous = false; });
+        window.addEventListener('resize', function () {
+            self.onWindowResize().bind(self);
+        }, true);
         self.domElement.addEventListener('mousemove', function () {
             requestAnimationFrame(self.render.bind(self));
         });
+        self.scene.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
+        self.scene.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
+        self.scene.addEventListener('update', self.render.bind(self));
+        // draw the first frame
+        self.render();
     };
 
-    // TODO need to wire this function up
+    Viewport3D.prototype.onStartContinuousRendering = function () {
+        this.renderContinuous = true;
+    };
+
+    Viewport3D.prototype.onStopContinuousRendering = function () {
+        this.renderContinuous = false;
+    };
+
     Viewport3D.prototype.onWindowResize = function () {
         var self = this;
         var height = self.domElement.clientHeight;
@@ -4481,7 +5220,7 @@ FOUR.Viewport3D = (function () {
         self.camera.aspect = width / height;
         self.camera.updateProjectionMatrix();
         self.renderer.setSize(width, height);
-        self.render();
+        self.update();
     };
 
     /**
@@ -4489,9 +5228,9 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.render = function () {
         var self = this;
-        var delta = self.clock.getDelta();
         // update scene state
         TWEEN.update();
+        var delta = self.clock.getDelta();
         if (self.mode === self.MODES.ORBIT) {
             self.controller[self.CONTROLLERS.ORBIT].update(delta);
         }
@@ -4500,10 +5239,10 @@ FOUR.Viewport3D = (function () {
         } else if (self.mode === self.MODES.WALK) {
             self.controller[self.CONTROLLERS.WALK].update(delta);
         }
-        // render the frame
+        // render the scene to the DOM
         self.renderer.render(self.scene, self.camera);
         // enqueue the next rendering task
-        if (self.continuous) {
+        if (self.renderContinuous) {
             requestAnimationFrame(self.render.bind(self));
         }
     };
@@ -4514,15 +5253,7 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.setCamera = function (name) {
         var self = this;
-        if (self.camera) {
-            self.camera.removeEventListener('continuous-update-end', self.onStopContinuousRendering);
-            self.camera.removeEventListener('continuous-update-start', self.onStartContinuousRendering);
-            self.camera.removeEventListener('update', self.render);
-        }
         self.camera = self.scene.getCamera(name);
-        self.camera.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
-        self.camera.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
-        self.camera.addEventListener('update', self.render.bind(self));
         self.render();
     };
 
@@ -4564,15 +5295,15 @@ FOUR.Viewport3D = (function () {
         self.controller.selection.addEventListener('update', self.render.bind(self), false);
 
         // trackball controller
-        //self.controller.trackball = new THREE.TrackballControls(self.camera, self.domElement);
-        //self.controller.trackball.rotateSpeed = 1.0;
-        //self.controller.trackball.zoomSpeed = 1.2;
-        //self.controller.trackball.panSpeed = 0.8;
-        //self.controller.trackball.noZoom = false;
-        //self.controller.trackball.noPan = false;
-        //self.controller.trackball.staticMoving = true;
-        //self.controller.trackball.dynamicDampingFactor = 0.3;
-        //self.controller.trackball.keys = [65, 83, 68];
+        self.controller.trackball = new FOUR.TrackballController(self.camera, self.domElement);
+        self.controller.trackball.rotateSpeed = 1.0;
+        self.controller.trackball.zoomSpeed = 1.2;
+        self.controller.trackball.panSpeed = 0.8;
+        self.controller.trackball.noZoom = false;
+        self.controller.trackball.noPan = false;
+        self.controller.trackball.staticMoving = true;
+        self.controller.trackball.dynamicDampingFactor = 0.3;
+        self.controller.trackball.keys = [65, 83, 68];
         //self.controller.trackball.addEventListener('change', self.render.bind(self));
         //self.controller.trackball.disable();
 
@@ -4580,6 +5311,7 @@ FOUR.Viewport3D = (function () {
         //self.controller.walk = new THREE.FirstPersonControls(self.camera, document);
         //self.controller.walk.constrainVertical = true;
         //self.controller.walk.lookSpeed = 0.2;
+        //self.controller.walk.activeLook = false;
         //self.controller.walk.lookVertical = true;
         //self.controller.walk.movementSpeed = 10;
         //self.controller.walk.noFly = true;
@@ -4607,11 +5339,11 @@ FOUR.Viewport3D = (function () {
         //self.controller.orbit.disable();
 
         // keystate controller
-        self.controller.keystate = new FOUR.KeyStateControl();
+        self.controller.keystate = new FOUR.KeyStateController();
         self.controller.keystate.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
         self.controller.keystate.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.selection));
+        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
+        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
 
         // set the navigation mode
         this.setMode(this.mode);
@@ -4619,7 +5351,6 @@ FOUR.Viewport3D = (function () {
 
     Viewport3D.prototype.setupKeyboardBindings = function () {
         var self = this;
-
 
         // bounding box
         Mousetrap.bind('b', function () {
@@ -4714,14 +5445,6 @@ FOUR.Viewport3D = (function () {
             self.camera.zoomOut();
         });
 
-    };
-
-    Viewport3D.prototype.onStartContinuousRendering = function () {
-        this.continuous = true;
-    };
-
-    Viewport3D.prototype.onStopContinuousRendering = function () {
-        this.continuous = false;
     };
 
     return Viewport3D;

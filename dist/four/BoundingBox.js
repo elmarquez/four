@@ -113,7 +113,7 @@ FOUR.BoundingBox = (function () {
         self.envelope.min.y + (self.depth / 2),
         self.envelope.min.z + (self.height / 2)
     );
-    console.dir(self);
+    //console.dir(self);
   };
 
   return BoundingBox;

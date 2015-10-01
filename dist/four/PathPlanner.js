@@ -148,6 +148,7 @@ FOUR.PathPlanner = (function () {
                 camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.position.set(tweened.x, tweened.y, tweened.z);
                 camera.target.set(tweened.tx, tweened.ty, tweened.tz);
+                emit('continuous-update');
             });
             tween.start();
             emit('continuous-update-start');

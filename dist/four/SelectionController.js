@@ -36,6 +36,7 @@ FOUR.SelectionControl = (function () {
 
     // listen for mouse events
     self.selection.addEventListener('update', self.update.bind(self), false);
+    self.viewport.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self), false);
     self.viewport.domElement.addEventListener('mousedown', self.onMouseDown.bind(self), false);
     self.viewport.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
     self.viewport.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
@@ -59,6 +60,11 @@ FOUR.SelectionControl = (function () {
     this.enabled = true;
   };
 
+  SelectionControl.prototype.onContextMenu = function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   SelectionControl.prototype.onKeyDown = function (event) {
     if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
       this.modifiers[event.value] = true;
@@ -68,6 +74,10 @@ FOUR.SelectionControl = (function () {
   SelectionControl.prototype.onKeyUp = function (event) {
     if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
       this.modifiers[event.value] = false;
+    } else if (event.value === 'ctrl+a') {
+      this.selectAll();
+    } else if (event.value === 'ctrl+n') {
+      this.selectNone();
     }
   };
 

@@ -1,4 +1,3 @@
-/* global Mousetrap, THREE, TWEEN */
 'use strict';
 
 var FOUR = FOUR || {};
@@ -36,7 +35,6 @@ FOUR.Viewport3D = (function () {
         this.backgroundColor = new THREE.Color(0x000, 1.0);
         this.camera = null;
         this.clock = new THREE.Clock();
-        this.continuous = false; // render continuously
         this.controller = {};
         this.domElement = null;
         this.domElementId = elementId;
@@ -46,6 +44,7 @@ FOUR.Viewport3D = (function () {
             'CTRL': false,
             'SHIFT': false
         };
+        this.renderContinuous = false;
         this.renderer = null;
         this.scene = scene;
 
@@ -88,12 +87,32 @@ FOUR.Viewport3D = (function () {
         self.setupKeyboardBindings();
         self.setupControllers();
         // listen for events
+        //window.addEventListener('keydown', function () {
+        //    self.renderContinuous = true;
+        //    self.render();
+        //});
+        //window.addEventListener('keyup', function () { self.renderContinuous = false; });
+        window.addEventListener('resize', function () {
+            self.onWindowResize().bind(self);
+        }, true);
         self.domElement.addEventListener('mousemove', function () {
             requestAnimationFrame(self.render.bind(self));
         });
+        self.scene.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
+        self.scene.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
+        self.scene.addEventListener('update', self.render.bind(self));
+        // draw the first frame
+        self.render();
     };
 
-    // TODO need to wire this function up
+    Viewport3D.prototype.onStartContinuousRendering = function () {
+        this.renderContinuous = true;
+    };
+
+    Viewport3D.prototype.onStopContinuousRendering = function () {
+        this.renderContinuous = false;
+    };
+
     Viewport3D.prototype.onWindowResize = function () {
         var self = this;
         var height = self.domElement.clientHeight;
@@ -101,7 +120,7 @@ FOUR.Viewport3D = (function () {
         self.camera.aspect = width / height;
         self.camera.updateProjectionMatrix();
         self.renderer.setSize(width, height);
-        self.render();
+        self.update();
     };
 
     /**
@@ -109,9 +128,9 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.render = function () {
         var self = this;
-        var delta = self.clock.getDelta();
         // update scene state
         TWEEN.update();
+        var delta = self.clock.getDelta();
         if (self.mode === self.MODES.ORBIT) {
             self.controller[self.CONTROLLERS.ORBIT].update(delta);
         }
@@ -120,10 +139,10 @@ FOUR.Viewport3D = (function () {
         } else if (self.mode === self.MODES.WALK) {
             self.controller[self.CONTROLLERS.WALK].update(delta);
         }
-        // render the frame
+        // render the scene to the DOM
         self.renderer.render(self.scene, self.camera);
         // enqueue the next rendering task
-        if (self.continuous) {
+        if (self.renderContinuous) {
             requestAnimationFrame(self.render.bind(self));
         }
     };
@@ -134,15 +153,7 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.setCamera = function (name) {
         var self = this;
-        if (self.camera) {
-            self.camera.removeEventListener('continuous-update-end', self.onStopContinuousRendering);
-            self.camera.removeEventListener('continuous-update-start', self.onStartContinuousRendering);
-            self.camera.removeEventListener('update', self.render);
-        }
         self.camera = self.scene.getCamera(name);
-        self.camera.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
-        self.camera.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
-        self.camera.addEventListener('update', self.render.bind(self));
         self.render();
     };
 
@@ -184,15 +195,15 @@ FOUR.Viewport3D = (function () {
         self.controller.selection.addEventListener('update', self.render.bind(self), false);
 
         // trackball controller
-        //self.controller.trackball = new THREE.TrackballControls(self.camera, self.domElement);
-        //self.controller.trackball.rotateSpeed = 1.0;
-        //self.controller.trackball.zoomSpeed = 1.2;
-        //self.controller.trackball.panSpeed = 0.8;
-        //self.controller.trackball.noZoom = false;
-        //self.controller.trackball.noPan = false;
-        //self.controller.trackball.staticMoving = true;
-        //self.controller.trackball.dynamicDampingFactor = 0.3;
-        //self.controller.trackball.keys = [65, 83, 68];
+        self.controller.trackball = new FOUR.TrackballController(self.camera, self.domElement);
+        self.controller.trackball.rotateSpeed = 1.0;
+        self.controller.trackball.zoomSpeed = 1.2;
+        self.controller.trackball.panSpeed = 0.8;
+        self.controller.trackball.noZoom = false;
+        self.controller.trackball.noPan = false;
+        self.controller.trackball.staticMoving = true;
+        self.controller.trackball.dynamicDampingFactor = 0.3;
+        self.controller.trackball.keys = [65, 83, 68];
         //self.controller.trackball.addEventListener('change', self.render.bind(self));
         //self.controller.trackball.disable();
 
@@ -200,6 +211,7 @@ FOUR.Viewport3D = (function () {
         //self.controller.walk = new THREE.FirstPersonControls(self.camera, document);
         //self.controller.walk.constrainVertical = true;
         //self.controller.walk.lookSpeed = 0.2;
+        //self.controller.walk.activeLook = false;
         //self.controller.walk.lookVertical = true;
         //self.controller.walk.movementSpeed = 10;
         //self.controller.walk.noFly = true;
@@ -227,11 +239,11 @@ FOUR.Viewport3D = (function () {
         //self.controller.orbit.disable();
 
         // keystate controller
-        self.controller.keystate = new FOUR.KeyStateControl();
+        self.controller.keystate = new FOUR.KeyStateController();
         self.controller.keystate.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
         self.controller.keystate.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.selection));
+        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
+        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
 
         // set the navigation mode
         this.setMode(this.mode);
@@ -239,7 +251,6 @@ FOUR.Viewport3D = (function () {
 
     Viewport3D.prototype.setupKeyboardBindings = function () {
         var self = this;
-
 
         // bounding box
         Mousetrap.bind('b', function () {
@@ -334,14 +345,6 @@ FOUR.Viewport3D = (function () {
             self.camera.zoomOut();
         });
 
-    };
-
-    Viewport3D.prototype.onStartContinuousRendering = function () {
-        this.continuous = true;
-    };
-
-    Viewport3D.prototype.onStopContinuousRendering = function () {
-        this.continuous = false;
     };
 
     return Viewport3D;

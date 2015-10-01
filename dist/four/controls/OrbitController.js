@@ -1,5 +1,3 @@
-/* global Mousetrap, THREE, TWEEN */
-/* jshint unused:false */
 'use strict';
 
 var FOUR = FOUR || {};
