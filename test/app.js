@@ -6,16 +6,16 @@ angular
     ['$scope', function ($scope) {
 
         $scope.MODES = {
-            SELECT: 0,
-            TRACKBALL: 1,
-            ORBIT: 2,
-            WALK: 3
+            SELECTION: 'selection',
+            TRACKBALL: 'trackball',
+            ORBIT: 'orbit',
+            WALK: 'walk'
         };
 
         $scope.setMode = function (mode) {
             $scope.mode = mode;
-            if (mode === $scope.MODES.SELECT) {
-                window['viewport'].setMode(window['viewport'].MODES.SELECT);
+            if (mode === $scope.MODES.SELECTION) {
+                window['viewport'].setMode(window['viewport'].MODES.SELECTION);
             } else if (mode === $scope.MODES.TRACKBALL) {
                 window['viewport'].setMode(window['viewport'].MODES.TRACKBALL);
             } else if (mode === $scope.MODES.ORBIT) {
@@ -46,7 +46,7 @@ angular
             setTimeout(function () {
                 $scope.VIEWS = window['viewport'].camera.VIEWS;
                 $scope.camera = window['viewport'].camera;
-                $scope.mode = $scope.MODES.SELECT;
+                $scope.mode = $scope.MODES.SELECTION;
                 $scope.view = window['viewport'].camera.VIEWS.PERSPECTIVE;
             }, 2000);
         };

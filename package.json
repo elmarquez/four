@@ -26,5 +26,8 @@
     "time-grunt": "0.3.x"
   },
   "optionalDependencies": {},
-  "scripts": {}
+  "scripts": {},
+  "dependencies": {
+    "golden-layout": "^1.0.10"
+  }
 }
