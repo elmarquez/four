@@ -1,6 +1,6 @@
 {
   "name": "threejs-navigator",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Threejs multi-mode scene navigator",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
