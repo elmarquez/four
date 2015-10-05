@@ -31,9 +31,10 @@
         body {
             background-color: #484848;
             color: #C9CCC6;
-            margin:0;
-            padding:0;
+            margin: 0;
+            padding: 0;
         }
+
         #commandbox {
             background: #888;
             margin-left: auto;
@@ -42,6 +43,7 @@
             width: 400px;
             z-index: 800;
         }
+
         #webgl {
             bottom: 0;
             left: 0;
@@ -51,15 +53,19 @@
             top: 48px;
             z-index: 500;
         }
+
         #webgl:focus {
             outline: none;
         }
+
         .active {
             background-color: #ffffff;
         }
+
         .button:focus {
             outline: none;
         }
+
         .controls {
             background-color: #333;
             height: 48px;
@@ -69,10 +75,12 @@
             position: absolute;
             top: 0px;
         }
+
         .control-group {
             margin: 0;
             padding: 0;
         }
+
         .control {
             border: 1px solid #222;
             display: inline;
@@ -80,14 +88,17 @@
             overflow: hidden;
             width: 48px;
         }
+
         .inline {
             display: inline;
         }
+
         .offset-right {
             margin-right: 20px;
         }
+
         .orientation-control {
-            background-color: rgba(255,255,255,1);
+            background-color: rgba(255, 255, 255, 1);
             height: 92px;
             position: absolute;
             right: 20px;
@@ -95,8 +106,9 @@
             width: 92px;
             z-index: 900;
         }
+
         .axis-control {
-            background-color: rgba(255,255,255,1);
+            background-color: rgba(255, 255, 255, 1);
             bottom: 20px;
             height: 48px;
             position: absolute;
@@ -107,103 +119,125 @@
     </style>
 </head>
 <body>
-    <div class="controls" ng-controller="NavController">
-        <div class="control-group offset-right inline">
-            <button class="button control" ng-click="setMode(MODES.SELECT)" ng-class="{active:mode===MODES.SELECT}">Select</button>
-            <button class="button control" ng-click="setMode(MODES.TRACKBALL)" ng-class="{active:mode===MODES.TRACKBALL}">Nav</button>
-            <button class="button control" ng-click="setMode(MODES.WALK)" ng-class="{active:mode===MODES.WALK}">Walk</button>
-            <button class="button control" ng-click="setMode(MODES.ORBIT)" ng-class="{active:mode===MODES.ORBIT}">Orbit</button>
-        </div>
-        <div class="control-group inline">
-            <button class="button control" ng-click="setView(VIEWS.PERSPECTIVE)" ng-class="{active:view===VIEWS.PERSPECTIVE}">Persp</button>
-            <button class="button control" ng-click="setView(VIEWS.TOP)" ng-class="{active:view===VIEWS.TOP}">Top</button>
-            <button class="button control" ng-click="setView(VIEWS.LEFT)" ng-class="{active:view===VIEWS.LEFT}">Left</button>
-            <button class="button control" ng-click="setView(VIEWS.RIGHT)" ng-class="{active:view===VIEWS.RIGHT}">Right</button>
-            <button class="button control" ng-click="setView(VIEWS.FRONT)" ng-class="{active:view===VIEWS.FRONT}">Front</button>
-            <button class="button control" ng-click="setView(VIEWS.BACK)" ng-class="{active:view===VIEWS.BACK}">Back</button>
-        </div>
+<div class="controls" ng-controller="NavController">
+    <div class="control-group offset-right inline">
+        <button class="button control" ng-click="setMode(MODES.SELECT)" ng-class="{active:mode===MODES.SELECT}">Select
+        </button>
+        <button class="button control" ng-click="setMode(MODES.TRACKBALL)" ng-class="{active:mode===MODES.TRACKBALL}">
+            Nav
+        </button>
+        <button class="button control" ng-click="setMode(MODES.WALK)" ng-class="{active:mode===MODES.WALK}">Walk
+        </button>
+        <button class="button control" ng-click="setMode(MODES.ORBIT)" ng-class="{active:mode===MODES.ORBIT}">Orbit
+        </button>
     </div>
-    <div id="webgl"></div>
-    <div id="commandbox"></div>
-    <div class="orientation-control">
-        Control widget
+    <div class="control-group inline">
+        <button class="button control" ng-click="setView(VIEWS.PERSPECTIVE)"
+                ng-class="{active:view===VIEWS.PERSPECTIVE}">Persp
+        </button>
+        <button class="button control" ng-click="setView(VIEWS.TOP)" ng-class="{active:view===VIEWS.TOP}">Top</button>
+        <button class="button control" ng-click="setView(VIEWS.LEFT)" ng-class="{active:view===VIEWS.LEFT}">Left
+        </button>
+        <button class="button control" ng-click="setView(VIEWS.RIGHT)" ng-class="{active:view===VIEWS.RIGHT}">Right
+        </button>
+        <button class="button control" ng-click="setView(VIEWS.FRONT)" ng-class="{active:view===VIEWS.FRONT}">Front
+        </button>
+        <button class="button control" ng-click="setView(VIEWS.BACK)" ng-class="{active:view===VIEWS.BACK}">Back
+        </button>
     </div>
-    <div class="axis-control">
-        Axis
-    </div>
-    <script>
-        $(document).ready(function () {
-            var keystate = window.keystate = new FOUR.KeyStateController();
+</div>
+<div id="webgl"></div>
+<div id="commandbox"></div>
+<div class="orientation-control">
+    Control widget
+</div>
+<div class="axis-control">
+    Axis
+</div>
+<script>
+    $(document).ready(function () {
+        var keystate = window.keystate = new FOUR.KeyStateController();
 
-            var element = document.getElementById('webgl');
-            var scene = window.scene = new FOUR.Scene3D();
-            scene.createDefaultCamera({height: element.clientHeight, width: element.clientWidth});
+        var element = document.getElementById('webgl');
+        var scene = window.scene = new FOUR.Scene3D();
+        scene.createDefaultCamera({height: element.clientHeight, width: element.clientWidth});
 
-            // Basic scene lighting
-            var ambientLight = new THREE.AmbientLight(0x383838);
-            ambientLight.name = 'ambient';
-            scene.lights.add(ambientLight);
+        // Basic scene lighting
+        var ambientLight = new THREE.AmbientLight(0x383838);
+        ambientLight.name = 'ambient';
+        scene.lights.add(ambientLight);
 
-            // add spotlight for the shadows
-            var spotLight = new THREE.SpotLight(0xffffff);
-            spotLight.intensity = 2;
-            spotLight.name = 'spotlight';
-            spotLight.position.set(100, 140, 130);
-            scene.lights.add(spotLight);
+        // add spotlight for the shadows
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.intensity = 2;
+        spotLight.name = 'spotlight';
+        spotLight.position.set(100, 140, 130);
+        scene.lights.add(spotLight);
 
-            // Sample geometry
-            var obj, geometry, material;
+        // Sample geometry
+        var obj, geometry, material;
 
-            // poles
-            var poles = [
-                [0,0],[20,0],[40,0],[60,0],[80,0],[100,0],
-                [0,10],[20,10],[40,10],[60,10],[80,10],[100,10]
-            ];
-            poles.forEach(function (pole) {
-                geometry = new THREE.CylinderGeometry(0.5, 0.5, 15, 20, 4);
-                material = new THREE.MeshPhongMaterial({color: 0x00ff00});
-                obj = new THREE.Mesh(geometry, material);
-                obj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-                obj.position.setX(pole[0]);
-                obj.position.setY(pole[1]);
-                obj.position.setZ(7.5);
-                obj.userData.type = 'pole';
-                scene.model.add(obj);
-            });
-
-            // catenaries
-            var catenaries = [
-                [0,0,20,0],[20,0,40,0],[40,0,60,0],[60,0,80,0],[80,0,100,0],
-                [0,10,20,10],[20,10,40,10],[40,10,60,10],[60,10,80,10],[80,10,100,10]
-            ];
-            catenaries.forEach(function (c) {
-                var height = 15;
-                material = new THREE.LineBasicMaterial({color: 0xff0000, linewidth: 2.0});
-                geometry = new THREE.Geometry();
-                geometry.vertices.push(
-                        new THREE.Vector3(0,0,height / 2),
-                        new THREE.Vector3(20,0,height / 2)
-                );
-                obj = new THREE.Line(geometry, material);
-                obj.position.setX(c[0]);
-                obj.position.setY(c[1]);
-                obj.position.setZ(height / 2);
-                obj.userData.type = 'catenary';
-                scene.model.add(obj);
-            });
-
-            // axis helper
-            var axisHelper = new THREE.AxisHelper(5);
-            scene.helpers.add(axisHelper);
-
-            // update the bounding box
-            scene.boundingBox.update(scene.children);
-
-            // viewport
-            var viewport = window.viewport = new FOUR.Viewport3D('webgl', scene);
-            viewport.init();
-            viewport.render();
+        // poles
+        var poles = [
+            [0, 0], [20, 0], [40, 0], [60, 0], [80, 0], [100, 0],
+            [0, 10], [20, 10], [40, 10], [60, 10], [80, 10], [100, 10]
+        ];
+        poles.forEach(function (pole) {
+            geometry = new THREE.CylinderGeometry(0.5, 0.5, 15, 20, 4);
+            material = new THREE.MeshPhongMaterial({color: 0x00ff00});
+            obj = new THREE.Mesh(geometry, material);
+            obj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+            obj.position.setX(pole[0]);
+            obj.position.setY(pole[1]);
+            obj.position.setZ(7.5);
+            obj.userData.type = 'pole';
+            scene.model.add(obj);
         });
-    </script>
+
+        // catenaries
+        var catenaries = [
+            [0, 0, 20, 0], [20, 0, 40, 0], [40, 0, 60, 0], [60, 0, 80, 0], [80, 0, 100, 0],
+            [0, 10, 20, 10], [20, 10, 40, 10], [40, 10, 60, 10], [60, 10, 80, 10], [80, 10, 100, 10]
+        ];
+        catenaries.forEach(function (c) {
+            var height = 15;
+            material = new THREE.LineBasicMaterial({color: 0xff0000, linewidth: 2.0});
+            geometry = new THREE.Geometry();
+            geometry.vertices.push(
+                    new THREE.Vector3(0, 0, height / 2),
+                    new THREE.Vector3(20, 0, height / 2)
+            );
+            obj = new THREE.Line(geometry, material);
+            obj.position.setX(c[0]);
+            obj.position.setY(c[1]);
+            obj.position.setZ(height / 2);
+            obj.userData.type = 'catenary';
+            scene.model.add(obj);
+        });
+
+        // terrain
+        geometry = new THREE.PlaneGeometry(200, 200, 30, 30);
+        var length = geometry.vertices.length;
+        for (var index = 0; index < length; index++) {
+            geometry.vertices[index].z = Math.floor((Math.random() * 2) + 1);
+        }
+        material = new THREE.MeshBasicMaterial({color: 'blue', wireframe: true});
+        var terrain = new THREE.Mesh(geometry, material);
+        terrain.position.set(50, 50, 0);
+        scene.helpers.add(terrain);
+
+        // axis helper
+        var axisHelper = new THREE.AxisHelper(5);
+        scene.helpers.add(axisHelper);
+
+        // update the bounding box
+        scene.boundingBox.update(scene.children);
+
+        // viewport
+        var viewport = window.viewport = new FOUR.Viewport3D('webgl', scene);
+        viewport.init();
+        viewport.render();
+    });
+</script>
 </body>
 </html>
