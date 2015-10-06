@@ -10,7 +10,7 @@
     <script src="../vendor/tweenjs/src/Tween.js"></script>
 
     <!-- lib -->
-    <script src="../lib/controls/TrackballControls.js"></script>
+    <script src="../lib/controls/MultiController.js"></script>
     <style>
         body {
             margin:0;
@@ -44,8 +44,9 @@
                 camera.position.z = 500;
 
                 container = document.getElementById('webgl');
-                controls = new THREE.TrackballControls(camera, container);
+                controls = new FOUR.MultiController(camera, container);
                 controls.addEventListener('change', render);
+                controls.enable();
 
                 // world
                 scene = new THREE.Scene();
@@ -85,24 +86,6 @@
 
                 window.addEventListener('resize', onWindowResize, false);
                 render();
-
-                window.addEventListener('keyup', function (evt) {
-                   // hit L to level out the camera
-                   if (evt.keyCode = 76) {
-                       console.log('level camera out');
-                       var start = { x: camera.up.x, y: camera.up.y, z: camera.up.z };
-                       var finish = { x: 0, y: 1, z: 0 };
-                       var tween = new TWEEN.Tween(start).to(finish, 1000);
-                       tween.easing(TWEEN.Easing.Cubic.InOut);
-                       tween.onComplete(function () {
-                           console.dir(camera.up);
-                       });
-                       tween.onUpdate(function () {
-                           camera.up = new THREE.Vector3(this.x, this.y, this.z);
-                       });
-                       tween.start();
-                   }
-                });
             }
 
             function onWindowResize() {
@@ -114,7 +97,6 @@
             }
 
             function animate() {
-                TWEEN.update();
                 requestAnimationFrame(animate);
                 controls.update();
             }
