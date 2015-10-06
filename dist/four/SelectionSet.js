@@ -86,9 +86,10 @@ FOUR.SelectionSet = (function () {
    */
   SelectionSet.prototype.getBoundingBox = function () {
     var self = this;
+    var objs = self.getObjects();
     var bbox = new FOUR.BoundingBox();
     bbox.name = self.name + '-bounding-box';
-    bbox.update(self.selection);
+    bbox.update(objs);
     return bbox;
   };
 

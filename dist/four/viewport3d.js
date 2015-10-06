@@ -9,26 +9,11 @@ FOUR.Viewport3D = (function () {
 
     function Viewport3D(elementId, scene) {
         THREE.EventDispatcher.call(this);
-        this.COLORS = {
-            SELECTED: 0xffa500
-        };
-        this.CONTROLLERS = {
+        this.MODES = {
             ORBIT: 'orbit',
-            SELECT: 'select',
+            SELECTION: 'selection',
             TRACKBALL: 'trackball',
             WALK: 'walk'
-        };
-        this.MODES = {
-            INSPECT: -1,
-            ORBIT: 0,
-            SELECT: 1,
-            TRACKBALL: 2,
-            WALK: 3
-        };
-        this.MODIFIERS = {
-            ALT: 'ALT',
-            CTRL: 'CTRL',
-            SHIFT: 'SHIFT'
         };
         this.WALK_HEIGHT = 7.5;
 
@@ -38,15 +23,10 @@ FOUR.Viewport3D = (function () {
         this.controller = {};
         this.domElement = null;
         this.domElementId = elementId;
-        this.mode = this.MODES.SELECT;
-        this.modifiers = {
-            'ALT': false,
-            'CTRL': false,
-            'SHIFT': false
-        };
+        this.mode = this.MODES.SELECTION;
         this.renderContinuous = false;
         this.renderer = null;
-        this.scene = scene;
+        this.scene = scene || new THREE.Scene();
 
         this.walk = {
             index: 0,
@@ -69,6 +49,16 @@ FOUR.Viewport3D = (function () {
         }
     };
 
+    Viewport3D.prototype.handleResize = function () {
+        var self = this;
+        var height = self.domElement.clientHeight;
+        var width = self.domElement.clientWidth;
+        self.camera.aspect = width / height;
+        self.camera.updateProjectionMatrix();
+        self.renderer.setSize(width, height);
+        self.render();
+    };
+
     /**
      * Initialize the viewport.
      */
@@ -87,39 +77,13 @@ FOUR.Viewport3D = (function () {
         self.setupKeyboardBindings();
         self.setupControllers();
         // listen for events
-        //window.addEventListener('keydown', function () {
-        //    self.renderContinuous = true;
-        //    self.render();
-        //});
-        //window.addEventListener('keyup', function () { self.renderContinuous = false; });
         window.addEventListener('resize', function () {
-            self.onWindowResize().bind(self);
+            self.handleResize();
         }, true);
-        self.domElement.addEventListener('mousemove', function () {
-            requestAnimationFrame(self.render.bind(self));
-        });
-        self.scene.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
-        self.scene.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
         self.scene.addEventListener('update', self.render.bind(self));
         // draw the first frame
         self.render();
-    };
-
-    Viewport3D.prototype.onStartContinuousRendering = function () {
-        this.renderContinuous = true;
-    };
-
-    Viewport3D.prototype.onStopContinuousRendering = function () {
-        this.renderContinuous = false;
-    };
-
-    Viewport3D.prototype.onWindowResize = function () {
-        var self = this;
-        var height = self.domElement.clientHeight;
-        var width = self.domElement.clientWidth;
-        self.camera.aspect = width / height;
-        self.camera.updateProjectionMatrix();
-        self.renderer.setSize(width, height);
+        // start updating controllers
         self.update();
     };
 
@@ -128,27 +92,11 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.render = function () {
         var self = this;
-        // update scene state
-        TWEEN.update();
-        var delta = self.clock.getDelta();
-        if (self.mode === self.MODES.ORBIT) {
-            self.controller[self.CONTROLLERS.ORBIT].update(delta);
-        }
-        if (self.mode === self.MODES.TRACKBALL) {
-            self.controller[self.CONTROLLERS.TRACKBALL].update(delta);
-        } else if (self.mode === self.MODES.WALK) {
-            self.controller[self.CONTROLLERS.WALK].update(delta);
-        }
-        // render the scene to the DOM
         self.renderer.render(self.scene, self.camera);
-        // enqueue the next rendering task
-        if (self.renderContinuous) {
-            requestAnimationFrame(self.render.bind(self));
-        }
     };
 
     /**
-     * Set the viewport camera
+     * Set the viewport camera.
      * @param {String} name Camera name
      */
     Viewport3D.prototype.setCamera = function (name) {
@@ -159,16 +107,11 @@ FOUR.Viewport3D = (function () {
 
     Viewport3D.prototype.setMode = function (mode) {
         var self = this;
-        self.mode = mode;
         // disable the existing controller
-        Object.keys(self.controller).forEach(function (key) {
-            var controller = self.controller[key];
-            if (controller && controller.hasOwnProperty('disable')) {
-                controller.disable();
-            }
-        });
+        self.controller[self.mode].disable();
         // enable the new controller
-        if (self.mode === self.MODES.SELECT) {
+        self.mode = mode;
+        if (self.mode === self.MODES.SELECTION) {
             console.log('select mode');
             self.controller.selection.enable();
         } else if (self.mode === self.MODES.ORBIT) {
@@ -176,23 +119,20 @@ FOUR.Viewport3D = (function () {
             self.controller.orbit.enable();
         } else if (self.mode === self.MODES.TRACKBALL) {
             console.log('trackball mode');
-            //self.controller.trackball.enable();
+            self.controller.trackball.enable();
         } else if (self.mode === self.MODES.WALK) {
             console.log('walk mode');
             self.controller.walk.enable();
-        } else if (self.mode === self.MODES.INSPECT) {
-            // center the camera on the bounding box, zoom to fit, then enable the orbit controller
-            console.log('INSPECT mode');
         }
     };
 
     Viewport3D.prototype.setupControllers = function () {
-        // TODO this code should be outside of the viewport
+        // TODO this code should possibly be located outside of the viewport
         var self = this;
 
         // selection controller
         self.controller.selection = new FOUR.SelectionControl({viewport: self});
-        self.controller.selection.addEventListener('update', self.render.bind(self), false);
+        self.controller.selection.addEventListener('update', self.render.bind(self));
 
         // trackball controller
         self.controller.trackball = new FOUR.TrackballController(self.camera, self.domElement);
@@ -204,39 +144,24 @@ FOUR.Viewport3D = (function () {
         self.controller.trackball.staticMoving = true;
         self.controller.trackball.dynamicDampingFactor = 0.3;
         self.controller.trackball.keys = [65, 83, 68];
-        //self.controller.trackball.addEventListener('change', self.render.bind(self));
-        //self.controller.trackball.disable();
+        self.controller.trackball.disable();
+        self.controller.trackball.addEventListener('change', self.render.bind(self));
 
-        //// first person navigation controller
-        //self.controller.walk = new THREE.FirstPersonControls(self.camera, document);
-        //self.controller.walk.constrainVertical = true;
-        //self.controller.walk.lookSpeed = 0.2;
-        //self.controller.walk.activeLook = false;
-        //self.controller.walk.lookVertical = true;
-        //self.controller.walk.movementSpeed = 10;
-        //self.controller.walk.noFly = true;
-        //self.controller.walk.verticalMax = 2.0;
-        //self.controller.walk.verticalMin = 1.0;
-        //self.controller.walk.lon = -150;
-        //self.controller.walk.lat = 120;
-        //self.controller.walk.phi = 0;
-        //self.controller.walk.theta = 1;
-        //self.controller.walk.moveBackward = true;
-        //self.controller.walk.moveForward = true;
-        //self.controller.walk.target.set(0,0,0);
-        ////self.controller.walk.disable();
-
+        // first person navigation controller
         self.controller.walk = new FOUR.WalkController(self.camera, self.domElement);
+        self.controller.walk.enforceWalkHeight = true;
         self.controller.walk.disable();
+        self.controller.walk.addEventListener('change', self.render.bind(self));
 
         // orbit controller
-        //self.controller.orbit = new THREE.OrbitControls(self.camera, self.domElement);
-        //self.controller.orbit.dampingFactor = 0.25;
-        //self.controller.orbit.enableDamping = true;
-        //self.controller.orbit.enablePan = true;
-        //self.controller.orbit.enableZoom = true;
-        //self.controller.orbit.target.set(0,0,0);
-        //self.controller.orbit.disable();
+        self.controller.orbit = new FOUR.OrbitController(self.camera, self.domElement);
+        self.controller.orbit.dampingFactor = 0.25;
+        self.controller.orbit.enableDamping = true;
+        self.controller.orbit.enablePan = true;
+        self.controller.orbit.enableZoom = true;
+        self.controller.orbit.target.set(0,0,0);
+        self.controller.orbit.disable();
+        self.controller.orbit.addEventListener('change', self.render.bind(self));
 
         // keystate controller
         self.controller.keystate = new FOUR.KeyStateController();
@@ -245,8 +170,8 @@ FOUR.Viewport3D = (function () {
         self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
         self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
 
-        // set the navigation mode
-        this.setMode(this.mode);
+        // set the viewport mode
+        self.setMode(self.mode);
     };
 
     Viewport3D.prototype.setupKeyboardBindings = function () {
@@ -262,7 +187,7 @@ FOUR.Viewport3D = (function () {
         // viewport mode
         // TODO modify the cursor depending on the mode
         Mousetrap.bind('q', function () {
-            self.setMode(self.MODES.SELECT);
+            self.setMode(self.MODES.SELECTION);
         });
         Mousetrap.bind('w', function () {
             self.setMode(self.MODES.TRACKBALL);
@@ -345,6 +270,17 @@ FOUR.Viewport3D = (function () {
             self.camera.zoomOut();
         });
 
+    };
+
+    Viewport3D.prototype.update = function () {
+        var self = this;
+        // enqueue next update
+        requestAnimationFrame(self.update.bind(self));
+        // update tween state
+        TWEEN.update();
+        // update the current controller if it has an update() function
+        var delta = self.clock.getDelta();
+        self.controller[self.mode].update(delta);
     };
 
     return Viewport3D;

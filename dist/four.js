@@ -155,49 +155,44 @@ FOUR.KeyStateController = (function () {
     });
 
     // modifier keys
-    Mousetrap.bind('alt', function () { self.keydown(self.KEYS.ALT); }, 'keydown');
-    Mousetrap.bind('alt', function () { self.keyup(self.KEYS.ALT); }, 'keyup');
-    Mousetrap.bind('ctrl', function () { self.keydown(self.KEYS.CTRL); }, 'keydown');
-    Mousetrap.bind('ctrl', function () { self.keyup(self.KEYS.CTRL); }, 'keyup');
-    //Mousetrap.bind('shift+space', function () { console.log('shift space'); });
-    Mousetrap.bind('shift', function () { self.keydown(self.KEYS.SHIFT); }, 'keydown');
-    Mousetrap.bind('shift', function () { self.keyup(self.KEYS.SHIFT); }, 'keyup');
+    Mousetrap.bind('alt', function (evt) { self.keydown(self.KEYS.ALT, evt); }, 'keydown');
+    Mousetrap.bind('alt', function (evt) { self.keyup(self.KEYS.ALT, evt); }, 'keyup');
+    Mousetrap.bind('ctrl', function (evt) { self.keydown(self.KEYS.CTRL, evt); }, 'keydown');
+    Mousetrap.bind('ctrl', function (evt) { self.keyup(self.KEYS.CTRL, evt); }, 'keyup');
+    Mousetrap.bind('shift', function (evt) { self.keydown(self.KEYS.SHIFT, evt); }, 'keydown');
+    Mousetrap.bind('shift', function (evt) { self.keyup(self.KEYS.SHIFT, evt); }, 'keyup');
 
     // selection
-    Mousetrap.bind('ctrl+a', function () { self.keyup(self.KEYS.CTRL_A); });
-    Mousetrap.bind('ctrl+n', function () { self.keyup(self.KEYS.CTRL_N); });
+    Mousetrap.bind('ctrl+a', function (evt) { self.keyup(self.KEYS.CTRL_A, evt); });
+    Mousetrap.bind('ctrl+n', function (evt) { self.keyup(self.KEYS.CTRL_N, evt); });
 
     // arrow keys
-    //Mousetrap.bind('up', function () { self.keydown(self.KEYS.UP); }, 'keydown');
-    //Mousetrap.bind('up', function () { self.keyup(self.KEYS.UP); }, 'keyup');
-    //Mousetrap.bind('down', function () { self.keydown(self.KEYS.DOWN); }, 'keydown');
-    //Mousetrap.bind('down', function () { self.keyup(self.KEYS.DOWN); }, 'keyup');
-    //Mousetrap.bind('left', function () { self.keydown(self.KEYS.LEFT); }, 'keydown');
-    //Mousetrap.bind('left', function () { self.keyup(self.KEYS.LEFT); }, 'keyup');
-    //Mousetrap.bind('right', function () { self.keydown(self.KEYS.RIGHT); }, 'keydown');
-    //Mousetrap.bind('right', function () { self.keyup(self.KEYS.RIGHT); }, 'keyup');
-    Mousetrap.bind('i', function () { self.keydown(self.KEYS.UP); }, 'keydown');
-    Mousetrap.bind('i', function () { self.keyup(self.KEYS.UP); }, 'keyup');
-    Mousetrap.bind('k', function () { self.keydown(self.KEYS.DOWN); }, 'keydown');
-    Mousetrap.bind('k', function () { self.keyup(self.KEYS.DOWN); }, 'keyup');
-    Mousetrap.bind('j', function () { self.keydown(self.KEYS.LEFT); }, 'keydown');
-    Mousetrap.bind('j', function () { self.keyup(self.KEYS.LEFT); }, 'keyup');
-    Mousetrap.bind('l', function () { self.keydown(self.KEYS.RIGHT); }, 'keydown');
-    Mousetrap.bind('l', function () { self.keyup(self.KEYS.RIGHT); }, 'keyup');
+    Mousetrap.bind('i', function (evt) { self.keydown(self.KEYS.UP, evt); }, 'keydown');
+    Mousetrap.bind('i', function (evt) { self.keyup(self.KEYS.UP, evt); }, 'keyup');
+    Mousetrap.bind('k', function (evt) { self.keydown(self.KEYS.DOWN, evt); }, 'keydown');
+    Mousetrap.bind('k', function (evt) { self.keyup(self.KEYS.DOWN, evt); }, 'keyup');
+    Mousetrap.bind('j', function (evt) { self.keydown(self.KEYS.LEFT, evt); }, 'keydown');
+    Mousetrap.bind('j', function (evt) { self.keyup(self.KEYS.LEFT, evt); }, 'keyup');
+    Mousetrap.bind('l', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
+    Mousetrap.bind('l', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
+    Mousetrap.bind('u', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
+    Mousetrap.bind('u', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
+    Mousetrap.bind('o', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
+    Mousetrap.bind('o', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
   }
 
   KeyStateController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
   KeyStateController.prototype.constructor = KeyStateController;
 
-  KeyStateController.prototype.keydown = function (key) {
+  KeyStateController.prototype.keydown = function (key, evt) {
     this.modifiers[key] = true;
-    this.dispatchEvent({'type': 'keydown', value: key});
+    this.dispatchEvent({'type': 'keydown', key: key, keyCode: evt ? evt.keyCode : null});
   };
 
-  KeyStateController.prototype.keyup = function (key) {
+  KeyStateController.prototype.keyup = function (key, evt) {
     this.modifiers[key] = false;
-    this.dispatchEvent({'type': 'keyup', value: key});
+    this.dispatchEvent({'type': 'keyup', key: key, keyCode: evt ? evt.keyCode : null});
   };
 
   /**
@@ -362,7 +357,7 @@ FOUR.PathPlanner = (function () {
                 camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.position.set(tweened.x, tweened.y, tweened.z);
                 camera.target.set(tweened.tx, tweened.ty, tweened.tz);
-                emit('continuous-update');
+                emit('update');
             });
             tween.start();
             emit('continuous-update-start');
@@ -504,12 +499,6 @@ FOUR.Scene3D = (function () {
 
     Scene3D.prototype.DEFAULT_CAMERA_NAME = 'camera1';
 
-    Scene3D.prototype.ENTITIES = {
-        GROUND: 'ground',
-        POINT: 'point',
-        POLE: 'pole'
-    };
-
     Scene3D.prototype.constructor = Scene3D;
 
     /**
@@ -588,6 +577,17 @@ FOUR.SelectionControl = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
+    self.KEY = {
+      SHIFT: 16, // SHIFT
+      CTRL: 17,
+      ALT: 18 // ALT
+    };
+    self.MODE = {
+      POINT: 0,
+      FACE: 1,
+      MESH: 2,
+      OBJECT: 3
+    };
     self.MODIFIERS = {
       ALT: 'alt',
       CTRL: 'ctrl',
@@ -638,17 +638,19 @@ FOUR.SelectionControl = (function () {
   };
 
   SelectionControl.prototype.onKeyDown = function (event) {
-    if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
-      this.modifiers[event.value] = true;
+    var self = this;
+    if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = true;
     }
   };
 
   SelectionControl.prototype.onKeyUp = function (event) {
-    if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
-      this.modifiers[event.value] = false;
-    } else if (event.value === 'ctrl+a') {
+    var self = this;
+    if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = false;
+    } else if (event.key === 'ctrl+a') {
       this.selectAll();
-    } else if (event.value === 'ctrl+n') {
+    } else if (event.key === 'ctrl+n') {
       this.selectNone();
     }
   };
@@ -684,11 +686,11 @@ FOUR.SelectionControl = (function () {
       // update the selection set using only the nearest selected object
       var objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
       // add objects
-      if (self.modifiers.shift === true) {
+      if (self.modifiers[self.KEY.SHIFT] === true) {
         self.selection.addAll(objs);
       }
       // remove objects
-      else if (self.modifiers.alt === true) {
+      else if (self.modifiers[self.KEY.ALT] === true) {
         self.selection.removeAll(objs);
       }
       // toggle selection state
@@ -819,9 +821,10 @@ FOUR.SelectionSet = (function () {
    */
   SelectionSet.prototype.getBoundingBox = function () {
     var self = this;
+    var objs = self.getObjects();
     var bbox = new FOUR.BoundingBox();
     bbox.name = self.name + '-bounding-box';
-    bbox.update(self.selection);
+    bbox.update(objs);
     return bbox;
   };
 
@@ -1254,6 +1257,844 @@ FOUR.TargetCamera = (function () {
 var FOUR = FOUR || {};
 
 /**
+ * Renders the view from a scene camera to the DOM.
+ */
+FOUR.Viewport3D = (function () {
+
+    function Viewport3D(elementId, scene) {
+        THREE.EventDispatcher.call(this);
+        this.MODES = {
+            ORBIT: 'orbit',
+            SELECTION: 'selection',
+            TRACKBALL: 'trackball',
+            WALK: 'walk'
+        };
+        this.WALK_HEIGHT = 7.5;
+
+        this.backgroundColor = new THREE.Color(0x000, 1.0);
+        this.camera = null;
+        this.clock = new THREE.Clock();
+        this.controller = {};
+        this.domElement = null;
+        this.domElementId = elementId;
+        this.mode = this.MODES.SELECTION;
+        this.renderContinuous = false;
+        this.renderer = null;
+        this.scene = scene || new THREE.Scene();
+
+        this.walk = {
+            index: 0,
+            path: []
+        };
+    }
+
+    Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+    Viewport3D.prototype.constructor = Viewport3D;
+
+    Viewport3D.prototype.getViewBoundingBox = function () {
+        var self = this;
+        if (self.scene.selection.count > 0) {
+            return self.scene.selection.getBoundingBox();
+        } else {
+            var bbox = new FOUR.BoundingBox('scene-bounding-box');
+            bbox.update(self.scene.model.children);
+            return bbox;
+        }
+    };
+
+    Viewport3D.prototype.handleResize = function () {
+        var self = this;
+        var height = self.domElement.clientHeight;
+        var width = self.domElement.clientWidth;
+        self.camera.aspect = width / height;
+        self.camera.updateProjectionMatrix();
+        self.renderer.setSize(width, height);
+        self.render();
+    };
+
+    /**
+     * Initialize the viewport.
+     */
+    Viewport3D.prototype.init = function () {
+        var self = this;
+        self.domElement = document.getElementById(self.domElementId);
+        // renderer
+        self.renderer = new THREE.WebGLRenderer({antialias: true});
+        self.renderer.setClearColor(self.backgroundColor);
+        self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
+        self.renderer.shadowMap.enabled = true;
+        self.domElement.appendChild(self.renderer.domElement);
+        // set the camera
+        self.setCamera(self.scene.DEFAULT_CAMERA_NAME);
+        // setup interactions
+        self.setupKeyboardBindings();
+        self.setupControllers();
+        // listen for events
+        window.addEventListener('resize', function () {
+            self.handleResize();
+        }, true);
+        self.scene.addEventListener('update', self.render.bind(self));
+        // draw the first frame
+        self.render();
+        // start updating controllers
+        self.update();
+    };
+
+    /**
+     * Render the viewport once.
+     */
+    Viewport3D.prototype.render = function () {
+        var self = this;
+        self.renderer.render(self.scene, self.camera);
+    };
+
+    /**
+     * Set the viewport camera.
+     * @param {String} name Camera name
+     */
+    Viewport3D.prototype.setCamera = function (name) {
+        var self = this;
+        self.camera = self.scene.getCamera(name);
+        self.render();
+    };
+
+    Viewport3D.prototype.setMode = function (mode) {
+        var self = this;
+        // disable the existing controller
+        self.controller[self.mode].disable();
+        // enable the new controller
+        self.mode = mode;
+        if (self.mode === self.MODES.SELECTION) {
+            console.log('select mode');
+            self.controller.selection.enable();
+        } else if (self.mode === self.MODES.ORBIT) {
+            console.log('orbit mode');
+            self.controller.orbit.enable();
+        } else if (self.mode === self.MODES.TRACKBALL) {
+            console.log('trackball mode');
+            self.controller.trackball.enable();
+        } else if (self.mode === self.MODES.WALK) {
+            console.log('walk mode');
+            self.controller.walk.enable();
+        }
+    };
+
+    Viewport3D.prototype.setupControllers = function () {
+        // TODO this code should possibly be located outside of the viewport
+        var self = this;
+
+        // selection controller
+        self.controller.selection = new FOUR.SelectionControl({viewport: self});
+        self.controller.selection.addEventListener('update', self.render.bind(self));
+
+        // trackball controller
+        self.controller.trackball = new FOUR.TrackballController(self.camera, self.domElement);
+        self.controller.trackball.rotateSpeed = 1.0;
+        self.controller.trackball.zoomSpeed = 1.2;
+        self.controller.trackball.panSpeed = 0.8;
+        self.controller.trackball.noZoom = false;
+        self.controller.trackball.noPan = false;
+        self.controller.trackball.staticMoving = true;
+        self.controller.trackball.dynamicDampingFactor = 0.3;
+        self.controller.trackball.keys = [65, 83, 68];
+        self.controller.trackball.disable();
+        self.controller.trackball.addEventListener('change', self.render.bind(self));
+
+        // first person navigation controller
+        self.controller.walk = new FOUR.WalkController(self.camera, self.domElement);
+        self.controller.walk.enforceWalkHeight = true;
+        self.controller.walk.disable();
+        self.controller.walk.addEventListener('change', self.render.bind(self));
+
+        // orbit controller
+        self.controller.orbit = new FOUR.OrbitController(self.camera, self.domElement);
+        self.controller.orbit.dampingFactor = 0.25;
+        self.controller.orbit.enableDamping = true;
+        self.controller.orbit.enablePan = true;
+        self.controller.orbit.enableZoom = true;
+        self.controller.orbit.target.set(0,0,0);
+        self.controller.orbit.disable();
+        self.controller.orbit.addEventListener('change', self.render.bind(self));
+
+        // keystate controller
+        self.controller.keystate = new FOUR.KeyStateController();
+        self.controller.keystate.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
+        self.controller.keystate.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
+        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
+        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
+
+        // set the viewport mode
+        self.setMode(self.mode);
+    };
+
+    Viewport3D.prototype.setupKeyboardBindings = function () {
+        var self = this;
+
+        // bounding box
+        Mousetrap.bind('b', function () {
+            console.log('toggle bounding box visibility');
+            self.scene.boundingBox.toggleVisibility();
+            self.render();
+        });
+
+        // viewport mode
+        // TODO modify the cursor depending on the mode
+        Mousetrap.bind('q', function () {
+            self.setMode(self.MODES.SELECTION);
+        });
+        Mousetrap.bind('w', function () {
+            self.setMode(self.MODES.TRACKBALL);
+        });
+        Mousetrap.bind('e', function () {
+            self.setMode(self.MODES.WALK);
+        });
+        Mousetrap.bind('r', function () {
+            self.setMode(self.MODES.ORBIT);
+        });
+
+        // view controls
+        Mousetrap.bind('f', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.zoomToFit(bbox).then(function () {});
+        });
+
+        Mousetrap.bind('5', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.setView(self.camera.VIEWS.TOP, bbox);
+        });
+        Mousetrap.bind('6', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.setView(self.camera.VIEWS.FRONT, bbox);
+        });
+        Mousetrap.bind('7', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.setView(self.camera.VIEWS.LEFT,bbox);
+        });
+        Mousetrap.bind('8', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.setView(self.camera.VIEWS.RIGHT, bbox);
+        });
+        Mousetrap.bind('9', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.setView(self.camera.VIEWS.BACK, bbox);
+        });
+        Mousetrap.bind('0', function () {
+            var bbox = self.getViewBoundingBox();
+            self.camera.setView(self.camera.VIEWS.PERSPECTIVE, bbox);
+        });
+
+        // walk controls
+        Mousetrap.bind('g', function () {
+            self.generateWalkPath();
+        });
+        Mousetrap.bind(',', function () {
+            self.walkToPreviousPoint();
+        });
+        Mousetrap.bind('.', function () {
+            self.walkToNextPoint();
+        });
+        Mousetrap.bind('/', function () {
+            console.log('switch object focus');
+            self.moveToNextWaypointFeature();
+        });
+
+        // camera controls
+        Mousetrap.bind('t', function () {
+            console.log('toggle camera target visibility');
+            if (self.camera.target.visible) {
+                self.camera.hideTarget();
+            } else {
+                self.camera.showTarget();
+            }
+        });
+        Mousetrap.bind('y', function () {
+            console.log('toggle camera frustrum visibility');
+            if (self.camera.frustrum.visible) {
+                self.camera.hideFrustrum();
+            } else {
+                self.camera.showFrustrum();
+            }
+        });
+        Mousetrap.bind('=', function () {
+            self.camera.zoomIn();
+        });
+
+        Mousetrap.bind('-', function () {
+            self.camera.zoomOut();
+        });
+
+    };
+
+    Viewport3D.prototype.update = function () {
+        var self = this;
+        // enqueue next update
+        requestAnimationFrame(self.update.bind(self));
+        // update tween state
+        TWEEN.update();
+        // update the current controller if it has an update() function
+        var delta = self.clock.getDelta();
+        self.controller[self.mode].update(delta);
+    };
+
+    return Viewport3D;
+
+}());
+;'use strict';
+
+var FOUR = FOUR || {};
+
+/**
+ * Hybrid trackball, first person controller.
+ */
+FOUR.MultiController = (function () {
+
+    var EPS = 0.000001;
+    var lastPosition = new THREE.Vector3();
+
+    var STATE = {
+        NONE: -1,
+        ROTATE: 0,
+        ZOOM: 1,
+        PAN: 2,
+        TOUCH_ROTATE: 3,
+        TOUCH_ZOOM_PAN: 4,
+        TRANSLATE: 5
+    };
+
+    var _state = STATE.NONE,
+      _prevState = STATE.NONE,
+
+      _eye = new THREE.Vector3(),
+
+      _movePrev = new THREE.Vector2(),
+      _moveCurr = new THREE.Vector2(),
+
+      _lastAxis = new THREE.Vector3(),
+      _lastAngle = 0,
+
+      _zoomStart = new THREE.Vector2(),
+      _zoomEnd = new THREE.Vector2(),
+
+      _touchZoomDistanceStart = 0,
+      _touchZoomDistanceEnd = 0,
+
+      _panStart = new THREE.Vector2(),
+      _panEnd = new THREE.Vector2(),
+
+      _key = null;
+
+    function MultiController (camera, domElement) {
+        THREE.EventDispatcher.call(this);
+
+        var self = this;
+
+        self.EVENTS = {
+            CHANGE: {},
+            END: {},
+            START: {}
+        };
+        self.KEY = {
+            A: 65,
+            S: 83,
+            D: 68,
+            I: 73,
+            J: 74,
+            K: 75,
+            L: 76,
+
+            CANCEL: 27,
+            MOVE_FORWARD: 73,
+            MOVE_LEFT: 74,
+            MOVE_BACK: 75,
+            MOVE_RIGHT: 76,
+            MOVE_UP: 85,
+            MOVE_DOWN: 79
+        };
+
+        self.camera = camera;
+        self.domElement = (domElement !== undefined) ? domElement : document;
+
+        // API
+        self.enabled = true;
+        self.screen = { left: 0, top: 0, width: 0, height: 0 };
+
+        self.panSpeed = 0.3;
+        self.rotateSpeed = 1.0;
+        self.translateSpeed = 1.0;
+        self.zoomSpeed = 1.2;
+
+        self.noZoom = false;
+        self.noPan = false;
+        self.noRotate = false;
+        self.noTranslate = false;
+
+        self.staticMoving = false;
+        self.dynamicDampingFactor = 0.2;
+
+        self.minDistance = 0;
+        self.maxDistance = Infinity;
+
+        self.keys = [
+            65 /*A*/, 83 /*S*/, 68 /*D*/,
+            73 /*I*/, 74 /*J*/, 75 /*K*/, 76 /*L*/
+        ];
+
+        // internals
+        self.target = new THREE.Vector3();
+
+        // for reset
+        self.target0 = self.target.clone();
+        self.position0 = self.camera.position.clone();
+        self.up0 = self.camera.up.clone();
+
+        // events
+        self.changeEvent = { type: 'change' };
+        self.startEvent = { type: 'start' };
+        self.endEvent = { type: 'end' };
+    }
+
+    MultiController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+    MultiController.prototype.constructor = MultiController;
+
+    MultiController.prototype.checkDistances = function () {
+        var self = this;
+        if (!self.noZoom || !self.noPan) {
+            if (_eye.lengthSq() > self.maxDistance * self.maxDistance) {
+                self.camera.position.addVectors(self.target, _eye.setLength(self.maxDistance));
+                _zoomStart.copy(_zoomEnd);
+            }
+            if (_eye.lengthSq() < self.minDistance * self.minDistance) {
+                self.camera.position.addVectors(self.target, _eye.setLength(self.minDistance));
+                _zoomStart.copy(_zoomEnd);
+            }
+        }
+    };
+
+    MultiController.prototype.contextmenu = function (event) {
+        event.preventDefault();
+    };
+
+    MultiController.prototype.disable = function () {
+        var self = this;
+        self.enabled = false;
+        self.domElement.removeEventListener('contextmenu', self.contextmenu);
+        self.domElement.removeEventListener('mousedown', self.mousedown);
+        self.domElement.removeEventListener('mousewheel', self.mousewheel);
+        self.domElement.removeEventListener('DOMMouseScroll', self.mousewheel); // firefox
+
+        self.domElement.removeEventListener('touchstart', self.touchstart);
+        self.domElement.removeEventListener('touchend', self.touchend);
+        self.domElement.removeEventListener('touchmove', self.touchmove);
+
+        document.removeEventListener('mousemove', self.mousemove);
+        document.removeEventListener('mouseup', self.mouseup);
+
+        window.removeEventListener('keydown', self.keydown);
+        window.removeEventListener('keyup', self.keyup);
+    };
+
+    MultiController.prototype.enable = function () {
+        var self = this;
+        self.enabled = true;
+        self.handleResize(); // update screen size settings
+        self.domElement.addEventListener('contextmenu', self.contextmenu);
+        self.domElement.addEventListener('mousedown', self.mousedown.bind(self));
+        self.domElement.addEventListener('mousewheel', self.mousewheel.bind(self));
+        self.domElement.addEventListener('DOMMouseScroll', self.mousewheel.bind(self)); // firefox
+
+        self.domElement.addEventListener('touchstart', self.touchstart.bind(self));
+        self.domElement.addEventListener('touchend', self.touchend.bind(self));
+        self.domElement.addEventListener('touchmove', self.touchmove.bind(self));
+
+        window.addEventListener('keydown', self.keydown.bind(self));
+        window.addEventListener('keyup', self.keyup.bind(self));
+    };
+
+    MultiController.prototype.getMouseOnCircle = (function () {
+        var vector = new THREE.Vector2();
+        return function getMouseOnCircle(pageX, pageY) {
+            vector.set(
+              ((pageX - this.screen.width * 0.5 - this.screen.left) / (this.screen.width * 0.5)),
+              ((this.screen.height + 2 * (this.screen.top - pageY)) / this.screen.width) // screen.width intentional
+            );
+            return vector;
+        };
+    }());
+
+    MultiController.prototype.getMouseOnScreen = (function () {
+        var vector = new THREE.Vector2();
+        return function getMouseOnScreen(pageX, pageY) {
+            vector.set(
+              (pageX - this.screen.left) / this.screen.width,
+              (pageY - this.screen.top) / this.screen.height
+            );
+            return vector;
+        };
+    }());
+
+    MultiController.prototype.handleEvent = function (event) {
+        if (typeof this[event.type] === 'function') {
+            this[event.type](event);
+        }
+    };
+
+    MultiController.prototype.handleResize = function () {
+        var self = this;
+        if (self.domElement === document) {
+            self.screen.left = 0;
+            self.screen.top = 0;
+            self.screen.width = window.innerWidth;
+            self.screen.height = window.innerHeight;
+        } else {
+            var box = self.domElement.getBoundingClientRect();
+            // adjustments come from similar code in the jquery offset() function
+            var d = self.domElement.ownerDocument.documentElement;
+            self.screen.left = box.left + window.pageXOffset - d.clientLeft;
+            self.screen.top = box.top + window.pageYOffset - d.clientTop;
+            self.screen.width = box.width;
+            self.screen.height = box.height;
+        }
+    };
+
+    MultiController.prototype.keydown = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        window.removeEventListener('keydown', self.keydown.bind(self));
+        _prevState = _state;
+        if (_state !== STATE.NONE) {
+            return;
+        } else if (event.keyCode === self.keys[STATE.ROTATE] && ! self.noRotate) {
+            _state = STATE.ROTATE;
+        } else if (event.keyCode === self.keys[STATE.ZOOM] && ! self.noZoom) {
+            _state = STATE.ZOOM;
+        } else if (event.keyCode === self.keys[STATE.PAN] && ! self.noPan) {
+            _state = STATE.PAN;
+        } else if (event.keyCode >= 73 || event.keyCode <= 76) {
+            _state = STATE.TRANSLATE;
+        }
+    };
+
+    MultiController.prototype.keyup = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        _state = _prevState;
+        window.addEventListener('keydown', self.keydown.bind(self));
+    };
+
+    MultiController.prototype.mousedown = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (_state === STATE.NONE) {
+            _state = event.button;
+        }
+        if (_state === STATE.ROTATE && ! self.noRotate) {
+            _moveCurr.copy(self.getMouseOnCircle(event.pageX, event.pageY));
+            _movePrev.copy(_moveCurr);
+        } else if (_state === STATE.ZOOM && ! self.noZoom) {
+            _zoomStart.copy(self.getMouseOnScreen(event.pageX, event.pageY));
+            _zoomEnd.copy(_zoomStart);
+        } else if (_state === STATE.PAN && ! self.noPan) {
+            _panStart.copy(self.getMouseOnScreen(event.pageX, event.pageY));
+            _panEnd.copy(_panStart);
+        }
+
+        document.addEventListener('mousemove', self.mousemove.bind(self));
+        document.addEventListener('mouseup', self.mouseup.bind(self));
+
+        self.dispatchEvent(self.startEvent);
+    };
+
+    MultiController.prototype.mousemove = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (_state === STATE.ROTATE && ! self.noRotate) {
+            _movePrev.copy(_moveCurr);
+            _moveCurr.copy(self.getMouseOnCircle(event.pageX, event.pageY));
+        } else if (_state === STATE.ZOOM && ! self.noZoom) {
+            _zoomEnd.copy(self.getMouseOnScreen(event.pageX, event.pageY));
+        } else if (_state === STATE.PAN && ! self.noPan) {
+            _panEnd.copy(self.getMouseOnScreen(event.pageX, event.pageY));
+        }
+    };
+
+    MultiController.prototype.mouseup = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        _state = STATE.NONE;
+
+        document.removeEventListener('mousemove', self.mousemove.bind(self));
+        document.removeEventListener('mouseup', self.mouseup.bind(self));
+        self.dispatchEvent(self.endEvent);
+    };
+
+    MultiController.prototype.mousewheel = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        var delta = 0;
+        if (event.wheelDelta) {
+            // WebKit / Opera / Explorer 9
+            delta = event.wheelDelta / 40;
+        } else if (event.detail) {
+            // Firefox
+            delta = - event.detail / 3;
+        }
+        _zoomStart.y += delta * 0.01;
+        self.dispatchEvent(self.startEvent);
+        self.dispatchEvent(self.endEvent);
+    };
+
+    MultiController.prototype.panCamera = (function() {
+        var mouseChange = new THREE.Vector2(),
+            cameraUp = new THREE.Vector3(),
+            pan = new THREE.Vector3();
+
+        return function panCamera () {
+            var self = this;
+            mouseChange.copy(_panEnd).sub(_panStart);
+            if (mouseChange.lengthSq()) {
+                mouseChange.multiplyScalar(_eye.length() * self.panSpeed);
+                pan.copy(_eye).cross(self.camera.up).setLength(mouseChange.x);
+                pan.add(cameraUp.copy(self.camera.up).setLength(mouseChange.y));
+
+                self.camera.position.add(pan);
+                self.target.add(pan);
+                if (self.staticMoving) {
+                    _panStart.copy(_panEnd);
+                } else {
+                    _panStart.add(mouseChange.subVectors(_panEnd, _panStart).multiplyScalar(self.dynamicDampingFactor));
+                }
+            }
+        };
+    }());
+
+    MultiController.prototype.reset = function () {
+        var self = this;
+        _state = STATE.NONE;
+        _prevState = STATE.NONE;
+
+        self.target.copy(self.target0);
+        self.camera.position.copy(self.position0);
+        self.camera.up.copy(self.up0);
+
+        _eye.subVectors(self.camera.position, self.target);
+
+        self.camera.lookAt(self.target);
+
+        self.dispatchEvent(self.changeEvent);
+
+        lastPosition.copy(self.camera.position);
+    };
+
+    MultiController.prototype.rotateCamera = (function() {
+
+        var axis = new THREE.Vector3(),
+            quaternion = new THREE.Quaternion(),
+            eyeDirection = new THREE.Vector3(),
+            cameraUpDirection = new THREE.Vector3(),
+            cameraSidewaysDirection = new THREE.Vector3(),
+            moveDirection = new THREE.Vector3(),
+            angle;
+
+        return function rotateCamera() {
+            var self = this;
+            moveDirection.set(_moveCurr.x - _movePrev.x, _moveCurr.y - _movePrev.y, 0);
+            angle = moveDirection.length();
+
+            if (angle) {
+                _eye.copy(self.camera.position).sub(self.target);
+
+                eyeDirection.copy(_eye).normalize();
+                cameraUpDirection.copy(self.camera.up).normalize();
+                cameraSidewaysDirection.crossVectors(cameraUpDirection, eyeDirection).normalize();
+
+                cameraUpDirection.setLength(_moveCurr.y - _movePrev.y);
+                cameraSidewaysDirection.setLength(_moveCurr.x - _movePrev.x);
+
+                moveDirection.copy(cameraUpDirection.add(cameraSidewaysDirection));
+
+                axis.crossVectors(moveDirection, _eye).normalize();
+
+                angle *= self.rotateSpeed;
+                quaternion.setFromAxisAngle(axis, angle);
+
+                _eye.applyQuaternion(quaternion);
+                self.camera.up.applyQuaternion(quaternion);
+
+                _lastAxis.copy(axis);
+                _lastAngle = angle;
+            } else if (! self.staticMoving && _lastAngle) {
+                _lastAngle *= Math.sqrt(1.0 - self.dynamicDampingFactor);
+                _eye.copy(self.camera.position).sub(self.target);
+                quaternion.setFromAxisAngle(_lastAxis, _lastAngle);
+                _eye.applyQuaternion(quaternion);
+                self.camera.up.applyQuaternion(quaternion);
+            }
+            _movePrev.copy(_moveCurr);
+        };
+    }());
+
+    MultiController.prototype.touchstart = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        switch (event.touches.length) {
+            case 1:
+                _state = STATE.TOUCH_ROTATE;
+                _moveCurr.copy(self.getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY));
+                _movePrev.copy(_moveCurr);
+                break;
+            case 2:
+                _state = STATE.TOUCH_ZOOM_PAN;
+                var dx = event.touches[0].pageX - event.touches[1].pageX;
+                var dy = event.touches[0].pageY - event.touches[1].pageY;
+                _touchZoomDistanceEnd = _touchZoomDistanceStart = Math.sqrt(dx * dx + dy * dy);
+                var x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+                var y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+                _panStart.copy(self.getMouseOnScreen(x, y));
+                _panEnd.copy(_panStart);
+                break;
+            default:
+                _state = STATE.NONE;
+        }
+        self.dispatchEvent(self.startEvent);
+    };
+
+    MultiController.prototype.touchmove = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        switch (event.touches.length) {
+            case 1:
+                _movePrev.copy(_moveCurr);
+                _moveCurr.copy(self.getMouseOnCircle( event.touches[0].pageX, event.touches[0].pageY));
+                break;
+            case 2:
+                var dx = event.touches[0].pageX - event.touches[1].pageX;
+                var dy = event.touches[0].pageY - event.touches[1].pageY;
+                _touchZoomDistanceEnd = Math.sqrt(dx * dx + dy * dy);
+
+                var x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+                var y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+                _panEnd.copy(self.getMouseOnScreen(x, y));
+                break;
+            default:
+                _state = STATE.NONE;
+        }
+    };
+
+    MultiController.prototype.touchend = function (event) {
+        var self = this;
+        if (self.enabled === false) {
+            return;
+        }
+        switch (event.touches.length) {
+            case 1:
+                _movePrev.copy(_moveCurr);
+                _moveCurr.copy(self.getMouseOnCircle( event.touches[0].pageX, event.touches[0].pageY));
+                break;
+            case 2:
+                _touchZoomDistanceStart = _touchZoomDistanceEnd = 0;
+
+                var x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+                var y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+                _panEnd.copy(self.getMouseOnScreen(x, y));
+                _panStart.copy(_panEnd);
+                break;
+        }
+        _state = STATE.NONE;
+        self.dispatchEvent(self.endEvent);
+    };
+
+    MultiController.prototype.translateCamera = function () {
+
+
+        //console.log('translate the camera');
+    };
+
+    MultiController.prototype.update = function () {
+        var self = this;
+        _eye.subVectors(self.camera.position, self.target);
+        if (! self.noRotate) {
+            self.rotateCamera();
+        }
+        if (! self.noZoom) {
+            self.zoomCamera();
+        }
+        if (! self.noPan) {
+            self.panCamera();
+        }
+        if (! self.noTranslate) {
+            self.translateCamera();
+        }
+
+        self.camera.position.addVectors(self.target, _eye);
+        self.checkDistances();
+        self.camera.lookAt(self.target);
+
+        if (lastPosition.distanceToSquared(self.camera.position) > EPS) {
+            self.dispatchEvent(self.changeEvent);
+            lastPosition.copy(self.camera.position);
+        }
+    };
+
+    MultiController.prototype.zoomCamera = function () {
+        var factor, self = this;
+        if (_state === STATE.TOUCH_ZOOM_PAN) {
+            factor = _touchZoomDistanceStart / _touchZoomDistanceEnd;
+            _touchZoomDistanceStart = _touchZoomDistanceEnd;
+            _eye.multiplyScalar(factor);
+        } else {
+            factor = 1.0 + (_zoomEnd.y - _zoomStart.y) * self.zoomSpeed;
+            if (factor !== 1.0 && factor > 0.0) {
+                _eye.multiplyScalar(factor);
+                if (self.staticMoving) {
+                    _zoomStart.copy(_zoomEnd);
+                } else {
+                    _zoomStart.y += (_zoomEnd.y - _zoomStart.y) * this.dynamicDampingFactor;
+                }
+            }
+        }
+    };
+
+    return MultiController;
+
+}());
+;'use strict';
+
+var FOUR = FOUR || {};
+
+/**
  * Modified version of the THREE.OrbitController
  */
 FOUR.OrbitController = (function () {
@@ -1543,9 +2384,9 @@ FOUR.OrbitController = (function () {
 		this.zoom0 = this.camera.zoom;
 
 		// events
-		var changeEvent = { type: 'change' };
-		var startEvent = { type: 'start' };
-		var endEvent = { type: 'end' };
+		scope.changeEvent = { type: 'change' };
+		scope.startEvent = { type: 'start' };
+		scope.endEvent = { type: 'end' };
 
 
 		function contextmenu(event) {
@@ -1588,7 +2429,7 @@ FOUR.OrbitController = (function () {
 			if (state !== STATE.NONE) {
 				scope.domElement.addEventListener('mousemove', onMouseMove.bind(scope), false);
 				scope.domElement.addEventListener('mouseup', onMouseUp.bind(scope), false);
-				scope.dispatchEvent(startEvent);
+				scope.dispatchEvent(scope.startEvent);
 			}
 		}
 
@@ -1641,13 +2482,9 @@ FOUR.OrbitController = (function () {
 			}
 			scope.domElement.removeEventListener('mousemove', onMouseMove, false);
 			scope.domElement.removeEventListener('mouseup', onMouseUp, false);
-			scope.dispatchEvent(endEvent);
+			scope.dispatchEvent(scope.endEvent);
 			state = STATE.NONE;
 		}
-
-
-
-
 		// force an update at start
 		this.listen();
 		this.update();
@@ -2053,29 +2890,6 @@ FOUR.TrackballController = function (object, domElement) {
     var endEvent = { type: 'end' };
 
     // methods
-    this.handleResize = function () {
-        if (this.domElement === document) {
-            this.screen.left = 0;
-            this.screen.top = 0;
-            this.screen.width = window.innerWidth;
-            this.screen.height = window.innerHeight;
-        } else {
-            var box = this.domElement.getBoundingClientRect();
-            // adjustments come from similar code in the jquery offset() function
-            var d = this.domElement.ownerDocument.documentElement;
-            this.screen.left = box.left + window.pageXOffset - d.clientLeft;
-            this.screen.top = box.top + window.pageYOffset - d.clientTop;
-            this.screen.width = box.width;
-            this.screen.height = box.height;
-        }
-    };
-
-    this.handleEvent = function (event) {
-        if (typeof this[event.type] === 'function') {
-            this[event.type](event);
-        }
-    };
-
     var getMouseOnScreen = (function () {
         var vector = new THREE.Vector2();
         return function getMouseOnScreen(pageX, pageY) {
@@ -2108,6 +2922,62 @@ FOUR.TrackballController = function (object, domElement) {
                 _this.object.position.addVectors(_this.target, _eye.setLength(_this.minDistance));
                 _zoomStart.copy(_zoomEnd);
             }
+        }
+    };
+
+    this.disable = function () {
+        this.enabled = false;
+        this.domElement.removeEventListener('contextmenu', contextmenu, false);
+        this.domElement.removeEventListener('mousedown', mousedown, false);
+        this.domElement.removeEventListener('mousewheel', mousewheel, false);
+        this.domElement.removeEventListener('DOMMouseScroll', mousewheel, false); // firefox
+
+        this.domElement.removeEventListener('touchstart', touchstart, false);
+        this.domElement.removeEventListener('touchend', touchend, false);
+        this.domElement.removeEventListener('touchmove', touchmove, false);
+
+        document.removeEventListener('mousemove', mousemove, false);
+        document.removeEventListener('mouseup', mouseup, false);
+
+        window.removeEventListener('keydown', keydown, false);
+        window.removeEventListener('keyup', keyup, false);
+    };
+
+    this.enable = function () {
+        this.enabled = true;
+        this.domElement.addEventListener('contextmenu', contextmenu, false);
+        this.domElement.addEventListener('mousedown', mousedown, false);
+        this.domElement.addEventListener('mousewheel', mousewheel, false);
+        this.domElement.addEventListener('DOMMouseScroll', mousewheel, false); // firefox
+
+        this.domElement.addEventListener('touchstart', touchstart, false);
+        this.domElement.addEventListener('touchend', touchend, false);
+        this.domElement.addEventListener('touchmove', touchmove, false);
+
+        window.addEventListener('keydown', keydown, false);
+        window.addEventListener('keyup', keyup, false);
+    };
+
+    this.handleEvent = function (event) {
+        if (typeof this[event.type] === 'function') {
+            this[event.type](event);
+        }
+    };
+
+    this.handleResize = function () {
+        if (this.domElement === document) {
+            this.screen.left = 0;
+            this.screen.top = 0;
+            this.screen.width = window.innerWidth;
+            this.screen.height = window.innerHeight;
+        } else {
+            var box = this.domElement.getBoundingClientRect();
+            // adjustments come from similar code in the jquery offset() function
+            var d = this.domElement.ownerDocument.documentElement;
+            this.screen.left = box.left + window.pageXOffset - d.clientLeft;
+            this.screen.top = box.top + window.pageYOffset - d.clientTop;
+            this.screen.width = box.width;
+            this.screen.height = box.height;
         }
     };
 
@@ -2257,6 +3127,10 @@ FOUR.TrackballController = function (object, domElement) {
     };
 
     // listeners
+    function contextmenu(event) {
+        event.preventDefault();
+    }
+
     function keydown(event) {
         if (_this.enabled === false) {
             return;
@@ -2442,44 +3316,9 @@ FOUR.TrackballController = function (object, domElement) {
         _this.dispatchEvent(endEvent);
     }
 
-    function contextmenu(event) {
-        event.preventDefault();
-    }
-
-    this.dispose = function() {
-        this.domElement.removeEventListener('contextmenu', contextmenu, false);
-        this.domElement.removeEventListener('mousedown', mousedown, false);
-        this.domElement.removeEventListener('mousewheel', mousewheel, false);
-        this.domElement.removeEventListener('DOMMouseScroll', mousewheel, false); // firefox
-
-        this.domElement.removeEventListener('touchstart', touchstart, false);
-        this.domElement.removeEventListener('touchend', touchend, false);
-        this.domElement.removeEventListener('touchmove', touchmove, false);
-
-        document.removeEventListener('mousemove', mousemove, false);
-        document.removeEventListener('mouseup', mouseup, false);
-
-        window.removeEventListener('keydown', keydown, false);
-        window.removeEventListener('keyup', keyup, false);
-    };
-
-    this.domElement.addEventListener('contextmenu', contextmenu, false);
-    this.domElement.addEventListener('mousedown', mousedown, false);
-    this.domElement.addEventListener('mousewheel', mousewheel, false);
-    this.domElement.addEventListener('DOMMouseScroll', mousewheel, false); // firefox
-
-    this.domElement.addEventListener('touchstart', touchstart, false);
-    this.domElement.addEventListener('touchend', touchend, false);
-    this.domElement.addEventListener('touchmove', touchmove, false);
-
-    window.addEventListener('keydown', keydown, false);
-    window.addEventListener('keyup', keyup, false);
-
-    this.handleResize();
-
     // force an update at start
-    this.update();
-
+    //this.enable();
+    //this.update();
 };
 
 FOUR.TrackballController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -2490,7 +3329,7 @@ var FOUR = FOUR || {};
 
 /**
  * First person navigation controller. Uses U-I-O-J-K-L keys for navigation
- * and the mouse point for look control.
+ * and the mouse pointer for look control. Assumes that +Z is up.
  */
 FOUR.WalkController = (function () {
 
@@ -2499,40 +3338,29 @@ FOUR.WalkController = (function () {
         var self = this;
 
         self.KEY = {
-            I: 73,
-            J: 74,
-            K: 75,
-            L: 76,
-            U: 85,
-            O: 79
+            CANCEL: 27,
+            MOVE_FORWARD: 73,
+            MOVE_LEFT: 74,
+            MOVE_BACK: 75,
+            MOVE_RIGHT: 76,
+            MOVE_UP: 85,
+            MOVE_DOWN: 79
         };
 
-        self.MODIFIERS = {
-            ALT: 'ALT',
-            CTRL: 'CTRL',
-            SHIFT: 'SHIFT'
-        };
-
-        self.actions = {};
         self.camera = camera;
         self.domElement = domElement;
         self.enabled = false;
-        self.look = {
-            up: false,
-            down: false,
-            left: false,
-            right: false
-        };
-        self.lookSpeed = 0.005;
-        self.lookVertical = true;
+        self.lookChange = false;
+        self.lookSpeed = 0.85;
         self.modifiers = {
             'ALT': false,
             'CTRL': false,
             'SHIFT': false
         };
         self.mouse = {
-            start: { x: 0, y: 0 },
-            end: { x: 0, y: 0 }
+            direction: new THREE.Vector2(),
+            end: { x: 0, y: 0 },
+            start: { x: 0, y: 0 }
         };
         self.move = {
             forward: false,
@@ -2544,11 +3372,7 @@ FOUR.WalkController = (function () {
         };
         self.movementSpeed = 100.0;
         self.enforceWalkHeight = false;
-
-        self.lat = 0;
-        self.lon = 0;
-        self.phi = 0;
-        self.theta = 0;
+        self.walkHeight = null;
 
         self.viewHalfX = self.domElement.offsetWidth / 2;
         self.viewHalfY = self.domElement.offsetHeight / 2;
@@ -2581,30 +3405,37 @@ FOUR.WalkController = (function () {
         }
     };
 
+    /**
+     * Get the walking height at the specified position.
+     * @param {THREE.Vector3} position Camera position
+     * @returns {THREE.Vector3} Position
+     */
+    WalkController.prototype.getWalkHeight = function (position) {
+        return 0;
+    };
+
     WalkController.prototype.onKeyDown = function (event) {
-        // ALT key changes controller to look mode
         var self = this;
         if (!self.enabled) {
             return;
         }
         switch(event.keyCode) {
-            case self.KEY.I:
+            case self.KEY.MOVE_FORWARD:
                 self.move.forward = true;
-                //self.actions['forward'] = self.translate(self.camera, self.modifiers);
                 break;
-            case self.KEY.K:
+            case self.KEY.MOVE_BACK:
                 self.move.backward = true;
                 break;
-            case self.KEY.J:
+            case self.KEY.MOVE_LEFT:
                 self.move.left = true;
                 break;
-            case self.KEY.L:
+            case self.KEY.MOVE_RIGHT:
                 self.move.right = true;
                 break;
-            case self.KEY.U:
+            case self.KEY.MOVE_UP:
                 self.move.up = true;
                 break;
-            case self.KEY.O:
+            case self.KEY.MOVE_DOWN:
                 self.move.down = true;
                 break;
         }
@@ -2613,32 +3444,34 @@ FOUR.WalkController = (function () {
     WalkController.prototype.onKeyUp = function (event) {
         var self = this;
         switch(event.keyCode) {
-            case self.KEY.I:
+            case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
-                //if (self.actions.hasOwnProperty('forward')) {
-                //    delete self.actions.forward;
-                //}
                 break;
-            case self.KEY.K:
+            case self.KEY.MOVE_BACK:
                 self.move.backward = false;
                 break;
-            case self.KEY.J:
+            case self.KEY.MOVE_LEFT:
                 self.move.left = false;
                 break;
-            case self.KEY.L:
+            case self.KEY.MOVE_RIGHT:
                 self.move.right = false;
                 break;
-            case self.KEY.U:
+            case self.KEY.MOVE_UP:
                 self.move.up = false;
                 break;
-            case self.KEY.O:
+            case self.KEY.MOVE_DOWN:
                 self.move.down = false;
+                break;
+            case self.KEY.CANCEL:
+                Object.keys(self.move).forEach(function (key) {
+                    self.move[key] = false;
+                });
+                self.lookChange = false;
                 break;
         }
     };
 
     WalkController.prototype.onMouseDown = function (event) {
-        console.log('mouse down');
         var self = this;
         // get mouse coordinates
         self.mouse.start = new THREE.Vector2(
@@ -2648,27 +3481,28 @@ FOUR.WalkController = (function () {
         // bind mousemove, mouseup handlers
         self.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
         self.domElement.addEventListener('mouseup', self.onMouseUp.bind(self), false);
+        self.lookChange = true;
     };
 
     WalkController.prototype.onMouseMove = function (event) {
-        console.log('mouse move');
         var self = this;
         // get mouse coordinates
         self.mouse.end = new THREE.Vector2(
             event.pageX - self.domElement.offsetLeft - self.viewHalfX,
             event.pageY - self.domElement.offsetTop - self.viewHalfY
         );
+        self.mouse.direction = new THREE.Vector2(
+            (self.mouse.end.x / self.domElement.clientWidth) * 2,
+            (self.mouse.end.y / self.domElement.clientHeight) * 2
+        );
     };
 
     WalkController.prototype.onMouseUp = function (event) {
-        console.log('mouse up');
         // detatch mousemove, mouseup handlers
         var self = this;
         self.domElement.removeEventListener('mousemove', self.onMouseMove);
         self.domElement.removeEventListener('mouseup', self.onMouseUp);
-        Object.keys(self.look).forEach(function (key) {
-            self.look[key] = false;
-        });
+        self.lookChange = false;
     };
 
     WalkController.prototype.onResize = function () {
@@ -2676,7 +3510,6 @@ FOUR.WalkController = (function () {
     };
 
     WalkController.prototype.setWalkHeight = function () {
-        console.log('set starting height');
         var self = this;
         return self.camera.setPositionAndTarget(
             self.camera.position.x,
@@ -2689,6 +3522,9 @@ FOUR.WalkController = (function () {
 
     WalkController.prototype.update = function (delta) {
         var self = this;
+        if (!self.enabled) {
+            return;
+        }
         var distance = delta * self.movementSpeed;
         var change = false;
 
@@ -2719,41 +3555,20 @@ FOUR.WalkController = (function () {
         }
 
         // change the camera lookat direction
-        var cameraDirection = self.camera.getWorldDirection();
-        var mouseDirection = new THREE.Vector2().subVectors(self.mouse.end, self.mouse.start);
-
-        if (self.look.up) {
-            console.log('look up');
+        if (self.lookChange) {
+            self.camera.rotateOnAxis(
+                new THREE.Vector3(0,1,0),
+                Math.PI * 2 / 360 * -self.mouse.direction.x * self.lookSpeed);
+            // TODO clamp the amount of vertical rotation
+            //self.camera.rotateOnAxis(
+            //    new THREE.Vector3(1,0,0),
+            //    Math.PI * 2 / 360 * -self.mouse.direction.y * self.lookSpeed * 0.5);
+            change = true;
         }
-        if (self.look.down) {
-            console.log('look down');
-        }
-        if (self.look.left) {
-            console.log('look left');
-        }
-        if (self.look.right) {
-            console.log('look right');
-        }
-
         if (change) {
             self.dispatchEvent({'type':'change'});
         }
     };
-
-    //WalkController.prototype.update = function (delta) {
-    //    var self = this;
-    //    // execute all walk actions
-    //    var actions = Object.keys(self.actions);
-    //    if (actions.length > 0) {
-    //        var direction = self.camera.getWorldDirection();
-    //        var distance = delta * self.movementSpeed;
-    //        var offset = new THREE.Vector3().copy(direction).setLength(distance);
-    //        actions.forEach(function (key) {
-    //            self.actions[key].apply(self, [delta, offset]);
-    //        });
-    //        self.dispatchEvent({'type':'change'});
-    //    }
-    //};
 
     return WalkController;
 
@@ -5097,356 +5912,4 @@ var TravellingSalesman = (function () {
     };
 
     return TravellingSalesman;
-}());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
- * Renders the view from a scene camera to the DOM.
- */
-FOUR.Viewport3D = (function () {
-
-    function Viewport3D(elementId, scene) {
-        THREE.EventDispatcher.call(this);
-        this.COLORS = {
-            SELECTED: 0xffa500
-        };
-        this.CONTROLLERS = {
-            ORBIT: 'orbit',
-            SELECT: 'select',
-            TRACKBALL: 'trackball',
-            WALK: 'walk'
-        };
-        this.MODES = {
-            INSPECT: -1,
-            ORBIT: 0,
-            SELECT: 1,
-            TRACKBALL: 2,
-            WALK: 3
-        };
-        this.MODIFIERS = {
-            ALT: 'ALT',
-            CTRL: 'CTRL',
-            SHIFT: 'SHIFT'
-        };
-        this.WALK_HEIGHT = 7.5;
-
-        this.backgroundColor = new THREE.Color(0x000, 1.0);
-        this.camera = null;
-        this.clock = new THREE.Clock();
-        this.controller = {};
-        this.domElement = null;
-        this.domElementId = elementId;
-        this.mode = this.MODES.SELECT;
-        this.modifiers = {
-            'ALT': false,
-            'CTRL': false,
-            'SHIFT': false
-        };
-        this.renderContinuous = false;
-        this.renderer = null;
-        this.scene = scene;
-
-        this.walk = {
-            index: 0,
-            path: []
-        };
-    }
-
-    Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-    Viewport3D.prototype.constructor = Viewport3D;
-
-    Viewport3D.prototype.getViewBoundingBox = function () {
-        var self = this;
-        if (self.scene.selection.count > 0) {
-            return self.scene.selection.getBoundingBox();
-        } else {
-            var bbox = new FOUR.BoundingBox('scene-bounding-box');
-            bbox.update(self.scene.model.children);
-            return bbox;
-        }
-    };
-
-    /**
-     * Initialize the viewport.
-     */
-    Viewport3D.prototype.init = function () {
-        var self = this;
-        self.domElement = document.getElementById(self.domElementId);
-        // renderer
-        self.renderer = new THREE.WebGLRenderer({antialias: true});
-        self.renderer.setClearColor(self.backgroundColor);
-        self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
-        self.renderer.shadowMap.enabled = true;
-        self.domElement.appendChild(self.renderer.domElement);
-        // set the camera
-        self.setCamera(self.scene.DEFAULT_CAMERA_NAME);
-        // setup interactions
-        self.setupKeyboardBindings();
-        self.setupControllers();
-        // listen for events
-        //window.addEventListener('keydown', function () {
-        //    self.renderContinuous = true;
-        //    self.render();
-        //});
-        //window.addEventListener('keyup', function () { self.renderContinuous = false; });
-        window.addEventListener('resize', function () {
-            self.onWindowResize().bind(self);
-        }, true);
-        self.domElement.addEventListener('mousemove', function () {
-            requestAnimationFrame(self.render.bind(self));
-        });
-        self.scene.addEventListener('continuous-update-end', self.onStopContinuousRendering.bind(self));
-        self.scene.addEventListener('continuous-update-start', self.onStartContinuousRendering.bind(self));
-        self.scene.addEventListener('update', self.render.bind(self));
-        // draw the first frame
-        self.render();
-    };
-
-    Viewport3D.prototype.onStartContinuousRendering = function () {
-        this.renderContinuous = true;
-    };
-
-    Viewport3D.prototype.onStopContinuousRendering = function () {
-        this.renderContinuous = false;
-    };
-
-    Viewport3D.prototype.onWindowResize = function () {
-        var self = this;
-        var height = self.domElement.clientHeight;
-        var width = self.domElement.clientWidth;
-        self.camera.aspect = width / height;
-        self.camera.updateProjectionMatrix();
-        self.renderer.setSize(width, height);
-        self.update();
-    };
-
-    /**
-     * Render the viewport once.
-     */
-    Viewport3D.prototype.render = function () {
-        var self = this;
-        // update scene state
-        TWEEN.update();
-        var delta = self.clock.getDelta();
-        if (self.mode === self.MODES.ORBIT) {
-            self.controller[self.CONTROLLERS.ORBIT].update(delta);
-        }
-        if (self.mode === self.MODES.TRACKBALL) {
-            self.controller[self.CONTROLLERS.TRACKBALL].update(delta);
-        } else if (self.mode === self.MODES.WALK) {
-            self.controller[self.CONTROLLERS.WALK].update(delta);
-        }
-        // render the scene to the DOM
-        self.renderer.render(self.scene, self.camera);
-        // enqueue the next rendering task
-        if (self.renderContinuous) {
-            requestAnimationFrame(self.render.bind(self));
-        }
-    };
-
-    /**
-     * Set the viewport camera
-     * @param {String} name Camera name
-     */
-    Viewport3D.prototype.setCamera = function (name) {
-        var self = this;
-        self.camera = self.scene.getCamera(name);
-        self.render();
-    };
-
-    Viewport3D.prototype.setMode = function (mode) {
-        var self = this;
-        self.mode = mode;
-        // disable the existing controller
-        Object.keys(self.controller).forEach(function (key) {
-            var controller = self.controller[key];
-            if (controller && controller.hasOwnProperty('disable')) {
-                controller.disable();
-            }
-        });
-        // enable the new controller
-        if (self.mode === self.MODES.SELECT) {
-            console.log('select mode');
-            self.controller.selection.enable();
-        } else if (self.mode === self.MODES.ORBIT) {
-            console.log('orbit mode');
-            self.controller.orbit.enable();
-        } else if (self.mode === self.MODES.TRACKBALL) {
-            console.log('trackball mode');
-            //self.controller.trackball.enable();
-        } else if (self.mode === self.MODES.WALK) {
-            console.log('walk mode');
-            self.controller.walk.enable();
-        } else if (self.mode === self.MODES.INSPECT) {
-            // center the camera on the bounding box, zoom to fit, then enable the orbit controller
-            console.log('INSPECT mode');
-        }
-    };
-
-    Viewport3D.prototype.setupControllers = function () {
-        // TODO this code should be outside of the viewport
-        var self = this;
-
-        // selection controller
-        self.controller.selection = new FOUR.SelectionControl({viewport: self});
-        self.controller.selection.addEventListener('update', self.render.bind(self), false);
-
-        // trackball controller
-        self.controller.trackball = new FOUR.TrackballController(self.camera, self.domElement);
-        self.controller.trackball.rotateSpeed = 1.0;
-        self.controller.trackball.zoomSpeed = 1.2;
-        self.controller.trackball.panSpeed = 0.8;
-        self.controller.trackball.noZoom = false;
-        self.controller.trackball.noPan = false;
-        self.controller.trackball.staticMoving = true;
-        self.controller.trackball.dynamicDampingFactor = 0.3;
-        self.controller.trackball.keys = [65, 83, 68];
-        //self.controller.trackball.addEventListener('change', self.render.bind(self));
-        //self.controller.trackball.disable();
-
-        //// first person navigation controller
-        //self.controller.walk = new THREE.FirstPersonControls(self.camera, document);
-        //self.controller.walk.constrainVertical = true;
-        //self.controller.walk.lookSpeed = 0.2;
-        //self.controller.walk.activeLook = false;
-        //self.controller.walk.lookVertical = true;
-        //self.controller.walk.movementSpeed = 10;
-        //self.controller.walk.noFly = true;
-        //self.controller.walk.verticalMax = 2.0;
-        //self.controller.walk.verticalMin = 1.0;
-        //self.controller.walk.lon = -150;
-        //self.controller.walk.lat = 120;
-        //self.controller.walk.phi = 0;
-        //self.controller.walk.theta = 1;
-        //self.controller.walk.moveBackward = true;
-        //self.controller.walk.moveForward = true;
-        //self.controller.walk.target.set(0,0,0);
-        ////self.controller.walk.disable();
-
-        self.controller.walk = new FOUR.WalkController(self.camera, self.domElement);
-        self.controller.walk.disable();
-
-        // orbit controller
-        //self.controller.orbit = new THREE.OrbitControls(self.camera, self.domElement);
-        //self.controller.orbit.dampingFactor = 0.25;
-        //self.controller.orbit.enableDamping = true;
-        //self.controller.orbit.enablePan = true;
-        //self.controller.orbit.enableZoom = true;
-        //self.controller.orbit.target.set(0,0,0);
-        //self.controller.orbit.disable();
-
-        // keystate controller
-        self.controller.keystate = new FOUR.KeyStateController();
-        self.controller.keystate.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
-        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
-
-        // set the navigation mode
-        this.setMode(this.mode);
-    };
-
-    Viewport3D.prototype.setupKeyboardBindings = function () {
-        var self = this;
-
-        // bounding box
-        Mousetrap.bind('b', function () {
-            console.log('toggle bounding box visibility');
-            self.scene.boundingBox.toggleVisibility();
-            self.render();
-        });
-
-        // viewport mode
-        // TODO modify the cursor depending on the mode
-        Mousetrap.bind('q', function () {
-            self.setMode(self.MODES.SELECT);
-        });
-        Mousetrap.bind('w', function () {
-            self.setMode(self.MODES.TRACKBALL);
-        });
-        Mousetrap.bind('e', function () {
-            self.setMode(self.MODES.WALK);
-        });
-        Mousetrap.bind('r', function () {
-            self.setMode(self.MODES.ORBIT);
-        });
-
-        // view controls
-        Mousetrap.bind('f', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.zoomToFit(bbox).then(function () {});
-        });
-
-        Mousetrap.bind('5', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.TOP, bbox);
-        });
-        Mousetrap.bind('6', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.FRONT, bbox);
-        });
-        Mousetrap.bind('7', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.LEFT,bbox);
-        });
-        Mousetrap.bind('8', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.RIGHT, bbox);
-        });
-        Mousetrap.bind('9', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.BACK, bbox);
-        });
-        Mousetrap.bind('0', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.PERSPECTIVE, bbox);
-        });
-
-        // walk controls
-        Mousetrap.bind('g', function () {
-            self.generateWalkPath();
-        });
-        Mousetrap.bind(',', function () {
-            self.walkToPreviousPoint();
-        });
-        Mousetrap.bind('.', function () {
-            self.walkToNextPoint();
-        });
-        Mousetrap.bind('/', function () {
-            console.log('switch object focus');
-            self.moveToNextWaypointFeature();
-        });
-
-        // camera controls
-        Mousetrap.bind('t', function () {
-            console.log('toggle camera target visibility');
-            if (self.camera.target.visible) {
-                self.camera.hideTarget();
-            } else {
-                self.camera.showTarget();
-            }
-        });
-        Mousetrap.bind('y', function () {
-            console.log('toggle camera frustrum visibility');
-            if (self.camera.frustrum.visible) {
-                self.camera.hideFrustrum();
-            } else {
-                self.camera.showFrustrum();
-            }
-        });
-        Mousetrap.bind('=', function () {
-            self.camera.zoomIn();
-        });
-
-        Mousetrap.bind('-', function () {
-            self.camera.zoomOut();
-        });
-
-    };
-
-    return Viewport3D;
-
 }());

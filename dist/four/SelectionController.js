@@ -16,6 +16,17 @@ FOUR.SelectionControl = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
+    self.KEY = {
+      SHIFT: 16, // SHIFT
+      CTRL: 17,
+      ALT: 18 // ALT
+    };
+    self.MODE = {
+      POINT: 0,
+      FACE: 1,
+      MESH: 2,
+      OBJECT: 3
+    };
     self.MODIFIERS = {
       ALT: 'alt',
       CTRL: 'ctrl',
@@ -66,17 +77,19 @@ FOUR.SelectionControl = (function () {
   };
 
   SelectionControl.prototype.onKeyDown = function (event) {
-    if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
-      this.modifiers[event.value] = true;
+    var self = this;
+    if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = true;
     }
   };
 
   SelectionControl.prototype.onKeyUp = function (event) {
-    if (event.value === 'alt' || event.value === 'ctrl' || event.value === 'shift') {
-      this.modifiers[event.value] = false;
-    } else if (event.value === 'ctrl+a') {
+    var self = this;
+    if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = false;
+    } else if (event.key === 'ctrl+a') {
       this.selectAll();
-    } else if (event.value === 'ctrl+n') {
+    } else if (event.key === 'ctrl+n') {
       this.selectNone();
     }
   };
@@ -112,11 +125,11 @@ FOUR.SelectionControl = (function () {
       // update the selection set using only the nearest selected object
       var objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
       // add objects
-      if (self.modifiers.shift === true) {
+      if (self.modifiers[self.KEY.SHIFT] === true) {
         self.selection.addAll(objs);
       }
       // remove objects
-      else if (self.modifiers.alt === true) {
+      else if (self.modifiers[self.KEY.ALT] === true) {
         self.selection.removeAll(objs);
       }
       // toggle selection state

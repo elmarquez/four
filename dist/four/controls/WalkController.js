@@ -4,7 +4,7 @@ var FOUR = FOUR || {};
 
 /**
  * First person navigation controller. Uses U-I-O-J-K-L keys for navigation
- * and the mouse point for look control.
+ * and the mouse pointer for look control. Assumes that +Z is up.
  */
 FOUR.WalkController = (function () {
 
@@ -13,40 +13,29 @@ FOUR.WalkController = (function () {
         var self = this;
 
         self.KEY = {
-            I: 73,
-            J: 74,
-            K: 75,
-            L: 76,
-            U: 85,
-            O: 79
+            CANCEL: 27,
+            MOVE_FORWARD: 73,
+            MOVE_LEFT: 74,
+            MOVE_BACK: 75,
+            MOVE_RIGHT: 76,
+            MOVE_UP: 85,
+            MOVE_DOWN: 79
         };
 
-        self.MODIFIERS = {
-            ALT: 'ALT',
-            CTRL: 'CTRL',
-            SHIFT: 'SHIFT'
-        };
-
-        self.actions = {};
         self.camera = camera;
         self.domElement = domElement;
         self.enabled = false;
-        self.look = {
-            up: false,
-            down: false,
-            left: false,
-            right: false
-        };
-        self.lookSpeed = 0.005;
-        self.lookVertical = true;
+        self.lookChange = false;
+        self.lookSpeed = 0.85;
         self.modifiers = {
             'ALT': false,
             'CTRL': false,
             'SHIFT': false
         };
         self.mouse = {
-            start: { x: 0, y: 0 },
-            end: { x: 0, y: 0 }
+            direction: new THREE.Vector2(),
+            end: { x: 0, y: 0 },
+            start: { x: 0, y: 0 }
         };
         self.move = {
             forward: false,
@@ -58,11 +47,7 @@ FOUR.WalkController = (function () {
         };
         self.movementSpeed = 100.0;
         self.enforceWalkHeight = false;
-
-        self.lat = 0;
-        self.lon = 0;
-        self.phi = 0;
-        self.theta = 0;
+        self.walkHeight = null;
 
         self.viewHalfX = self.domElement.offsetWidth / 2;
         self.viewHalfY = self.domElement.offsetHeight / 2;
@@ -95,30 +80,37 @@ FOUR.WalkController = (function () {
         }
     };
 
+    /**
+     * Get the walking height at the specified position.
+     * @param {THREE.Vector3} position Camera position
+     * @returns {THREE.Vector3} Position
+     */
+    WalkController.prototype.getWalkHeight = function (position) {
+        return 0;
+    };
+
     WalkController.prototype.onKeyDown = function (event) {
-        // ALT key changes controller to look mode
         var self = this;
         if (!self.enabled) {
             return;
         }
         switch(event.keyCode) {
-            case self.KEY.I:
+            case self.KEY.MOVE_FORWARD:
                 self.move.forward = true;
-                //self.actions['forward'] = self.translate(self.camera, self.modifiers);
                 break;
-            case self.KEY.K:
+            case self.KEY.MOVE_BACK:
                 self.move.backward = true;
                 break;
-            case self.KEY.J:
+            case self.KEY.MOVE_LEFT:
                 self.move.left = true;
                 break;
-            case self.KEY.L:
+            case self.KEY.MOVE_RIGHT:
                 self.move.right = true;
                 break;
-            case self.KEY.U:
+            case self.KEY.MOVE_UP:
                 self.move.up = true;
                 break;
-            case self.KEY.O:
+            case self.KEY.MOVE_DOWN:
                 self.move.down = true;
                 break;
         }
@@ -127,32 +119,34 @@ FOUR.WalkController = (function () {
     WalkController.prototype.onKeyUp = function (event) {
         var self = this;
         switch(event.keyCode) {
-            case self.KEY.I:
+            case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
-                //if (self.actions.hasOwnProperty('forward')) {
-                //    delete self.actions.forward;
-                //}
                 break;
-            case self.KEY.K:
+            case self.KEY.MOVE_BACK:
                 self.move.backward = false;
                 break;
-            case self.KEY.J:
+            case self.KEY.MOVE_LEFT:
                 self.move.left = false;
                 break;
-            case self.KEY.L:
+            case self.KEY.MOVE_RIGHT:
                 self.move.right = false;
                 break;
-            case self.KEY.U:
+            case self.KEY.MOVE_UP:
                 self.move.up = false;
                 break;
-            case self.KEY.O:
+            case self.KEY.MOVE_DOWN:
                 self.move.down = false;
+                break;
+            case self.KEY.CANCEL:
+                Object.keys(self.move).forEach(function (key) {
+                    self.move[key] = false;
+                });
+                self.lookChange = false;
                 break;
         }
     };
 
     WalkController.prototype.onMouseDown = function (event) {
-        console.log('mouse down');
         var self = this;
         // get mouse coordinates
         self.mouse.start = new THREE.Vector2(
@@ -162,27 +156,28 @@ FOUR.WalkController = (function () {
         // bind mousemove, mouseup handlers
         self.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
         self.domElement.addEventListener('mouseup', self.onMouseUp.bind(self), false);
+        self.lookChange = true;
     };
 
     WalkController.prototype.onMouseMove = function (event) {
-        console.log('mouse move');
         var self = this;
         // get mouse coordinates
         self.mouse.end = new THREE.Vector2(
             event.pageX - self.domElement.offsetLeft - self.viewHalfX,
             event.pageY - self.domElement.offsetTop - self.viewHalfY
         );
+        self.mouse.direction = new THREE.Vector2(
+            (self.mouse.end.x / self.domElement.clientWidth) * 2,
+            (self.mouse.end.y / self.domElement.clientHeight) * 2
+        );
     };
 
     WalkController.prototype.onMouseUp = function (event) {
-        console.log('mouse up');
         // detatch mousemove, mouseup handlers
         var self = this;
         self.domElement.removeEventListener('mousemove', self.onMouseMove);
         self.domElement.removeEventListener('mouseup', self.onMouseUp);
-        Object.keys(self.look).forEach(function (key) {
-            self.look[key] = false;
-        });
+        self.lookChange = false;
     };
 
     WalkController.prototype.onResize = function () {
@@ -190,7 +185,6 @@ FOUR.WalkController = (function () {
     };
 
     WalkController.prototype.setWalkHeight = function () {
-        console.log('set starting height');
         var self = this;
         return self.camera.setPositionAndTarget(
             self.camera.position.x,
@@ -203,6 +197,9 @@ FOUR.WalkController = (function () {
 
     WalkController.prototype.update = function (delta) {
         var self = this;
+        if (!self.enabled) {
+            return;
+        }
         var distance = delta * self.movementSpeed;
         var change = false;
 
@@ -233,41 +230,20 @@ FOUR.WalkController = (function () {
         }
 
         // change the camera lookat direction
-        var cameraDirection = self.camera.getWorldDirection();
-        var mouseDirection = new THREE.Vector2().subVectors(self.mouse.end, self.mouse.start);
-
-        if (self.look.up) {
-            console.log('look up');
+        if (self.lookChange) {
+            self.camera.rotateOnAxis(
+                new THREE.Vector3(0,1,0),
+                Math.PI * 2 / 360 * -self.mouse.direction.x * self.lookSpeed);
+            // TODO clamp the amount of vertical rotation
+            //self.camera.rotateOnAxis(
+            //    new THREE.Vector3(1,0,0),
+            //    Math.PI * 2 / 360 * -self.mouse.direction.y * self.lookSpeed * 0.5);
+            change = true;
         }
-        if (self.look.down) {
-            console.log('look down');
-        }
-        if (self.look.left) {
-            console.log('look left');
-        }
-        if (self.look.right) {
-            console.log('look right');
-        }
-
         if (change) {
             self.dispatchEvent({'type':'change'});
         }
     };
-
-    //WalkController.prototype.update = function (delta) {
-    //    var self = this;
-    //    // execute all walk actions
-    //    var actions = Object.keys(self.actions);
-    //    if (actions.length > 0) {
-    //        var direction = self.camera.getWorldDirection();
-    //        var distance = delta * self.movementSpeed;
-    //        var offset = new THREE.Vector3().copy(direction).setLength(distance);
-    //        actions.forEach(function (key) {
-    //            self.actions[key].apply(self, [delta, offset]);
-    //        });
-    //        self.dispatchEvent({'type':'change'});
-    //    }
-    //};
 
     return WalkController;
 

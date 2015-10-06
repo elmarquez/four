@@ -292,9 +292,9 @@ FOUR.OrbitController = (function () {
 		this.zoom0 = this.camera.zoom;
 
 		// events
-		var changeEvent = { type: 'change' };
-		var startEvent = { type: 'start' };
-		var endEvent = { type: 'end' };
+		scope.changeEvent = { type: 'change' };
+		scope.startEvent = { type: 'start' };
+		scope.endEvent = { type: 'end' };
 
 
 		function contextmenu(event) {
@@ -337,7 +337,7 @@ FOUR.OrbitController = (function () {
 			if (state !== STATE.NONE) {
 				scope.domElement.addEventListener('mousemove', onMouseMove.bind(scope), false);
 				scope.domElement.addEventListener('mouseup', onMouseUp.bind(scope), false);
-				scope.dispatchEvent(startEvent);
+				scope.dispatchEvent(scope.startEvent);
 			}
 		}
 
@@ -390,13 +390,9 @@ FOUR.OrbitController = (function () {
 			}
 			scope.domElement.removeEventListener('mousemove', onMouseMove, false);
 			scope.domElement.removeEventListener('mouseup', onMouseUp, false);
-			scope.dispatchEvent(endEvent);
+			scope.dispatchEvent(scope.endEvent);
 			state = STATE.NONE;
 		}
-
-
-
-
 		// force an update at start
 		this.listen();
 		this.update();

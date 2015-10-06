@@ -33,49 +33,44 @@ FOUR.KeyStateController = (function () {
     });
 
     // modifier keys
-    Mousetrap.bind('alt', function () { self.keydown(self.KEYS.ALT); }, 'keydown');
-    Mousetrap.bind('alt', function () { self.keyup(self.KEYS.ALT); }, 'keyup');
-    Mousetrap.bind('ctrl', function () { self.keydown(self.KEYS.CTRL); }, 'keydown');
-    Mousetrap.bind('ctrl', function () { self.keyup(self.KEYS.CTRL); }, 'keyup');
-    //Mousetrap.bind('shift+space', function () { console.log('shift space'); });
-    Mousetrap.bind('shift', function () { self.keydown(self.KEYS.SHIFT); }, 'keydown');
-    Mousetrap.bind('shift', function () { self.keyup(self.KEYS.SHIFT); }, 'keyup');
+    Mousetrap.bind('alt', function (evt) { self.keydown(self.KEYS.ALT, evt); }, 'keydown');
+    Mousetrap.bind('alt', function (evt) { self.keyup(self.KEYS.ALT, evt); }, 'keyup');
+    Mousetrap.bind('ctrl', function (evt) { self.keydown(self.KEYS.CTRL, evt); }, 'keydown');
+    Mousetrap.bind('ctrl', function (evt) { self.keyup(self.KEYS.CTRL, evt); }, 'keyup');
+    Mousetrap.bind('shift', function (evt) { self.keydown(self.KEYS.SHIFT, evt); }, 'keydown');
+    Mousetrap.bind('shift', function (evt) { self.keyup(self.KEYS.SHIFT, evt); }, 'keyup');
 
     // selection
-    Mousetrap.bind('ctrl+a', function () { self.keyup(self.KEYS.CTRL_A); });
-    Mousetrap.bind('ctrl+n', function () { self.keyup(self.KEYS.CTRL_N); });
+    Mousetrap.bind('ctrl+a', function (evt) { self.keyup(self.KEYS.CTRL_A, evt); });
+    Mousetrap.bind('ctrl+n', function (evt) { self.keyup(self.KEYS.CTRL_N, evt); });
 
     // arrow keys
-    //Mousetrap.bind('up', function () { self.keydown(self.KEYS.UP); }, 'keydown');
-    //Mousetrap.bind('up', function () { self.keyup(self.KEYS.UP); }, 'keyup');
-    //Mousetrap.bind('down', function () { self.keydown(self.KEYS.DOWN); }, 'keydown');
-    //Mousetrap.bind('down', function () { self.keyup(self.KEYS.DOWN); }, 'keyup');
-    //Mousetrap.bind('left', function () { self.keydown(self.KEYS.LEFT); }, 'keydown');
-    //Mousetrap.bind('left', function () { self.keyup(self.KEYS.LEFT); }, 'keyup');
-    //Mousetrap.bind('right', function () { self.keydown(self.KEYS.RIGHT); }, 'keydown');
-    //Mousetrap.bind('right', function () { self.keyup(self.KEYS.RIGHT); }, 'keyup');
-    Mousetrap.bind('i', function () { self.keydown(self.KEYS.UP); }, 'keydown');
-    Mousetrap.bind('i', function () { self.keyup(self.KEYS.UP); }, 'keyup');
-    Mousetrap.bind('k', function () { self.keydown(self.KEYS.DOWN); }, 'keydown');
-    Mousetrap.bind('k', function () { self.keyup(self.KEYS.DOWN); }, 'keyup');
-    Mousetrap.bind('j', function () { self.keydown(self.KEYS.LEFT); }, 'keydown');
-    Mousetrap.bind('j', function () { self.keyup(self.KEYS.LEFT); }, 'keyup');
-    Mousetrap.bind('l', function () { self.keydown(self.KEYS.RIGHT); }, 'keydown');
-    Mousetrap.bind('l', function () { self.keyup(self.KEYS.RIGHT); }, 'keyup');
+    Mousetrap.bind('i', function (evt) { self.keydown(self.KEYS.UP, evt); }, 'keydown');
+    Mousetrap.bind('i', function (evt) { self.keyup(self.KEYS.UP, evt); }, 'keyup');
+    Mousetrap.bind('k', function (evt) { self.keydown(self.KEYS.DOWN, evt); }, 'keydown');
+    Mousetrap.bind('k', function (evt) { self.keyup(self.KEYS.DOWN, evt); }, 'keyup');
+    Mousetrap.bind('j', function (evt) { self.keydown(self.KEYS.LEFT, evt); }, 'keydown');
+    Mousetrap.bind('j', function (evt) { self.keyup(self.KEYS.LEFT, evt); }, 'keyup');
+    Mousetrap.bind('l', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
+    Mousetrap.bind('l', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
+    Mousetrap.bind('u', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
+    Mousetrap.bind('u', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
+    Mousetrap.bind('o', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
+    Mousetrap.bind('o', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
   }
 
   KeyStateController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
   KeyStateController.prototype.constructor = KeyStateController;
 
-  KeyStateController.prototype.keydown = function (key) {
+  KeyStateController.prototype.keydown = function (key, evt) {
     this.modifiers[key] = true;
-    this.dispatchEvent({'type': 'keydown', value: key});
+    this.dispatchEvent({'type': 'keydown', key: key, keyCode: evt ? evt.keyCode : null});
   };
 
-  KeyStateController.prototype.keyup = function (key) {
+  KeyStateController.prototype.keyup = function (key, evt) {
     this.modifiers[key] = false;
-    this.dispatchEvent({'type': 'keyup', value: key});
+    this.dispatchEvent({'type': 'keyup', key: key, keyCode: evt ? evt.keyCode : null});
   };
 
   /**
