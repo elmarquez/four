@@ -10,7 +10,7 @@
     <script src="../vendor/tweenjs/src/Tween.js"></script>
 
     <!-- lib -->
-    <script src="../lib/controls/TrackballController.js"></script>
+    <script src="../lib/controls/TourController.js"></script>
     <style>
         body {
             margin:0;
@@ -34,7 +34,7 @@
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var container, camera, clock, controls, scene, renderer;
+        var container, camera, clock, selectionControl, tourControl, scene, renderer;
 
         init();
         animate();
@@ -46,9 +46,14 @@
             camera.position.z = 500;
 
             container = document.getElementById('webgl');
-            controls = new FOUR.TrackballController(camera, container);
-            controls.addEventListener('change', render);
-            controls.enable();
+
+            selectionControl = new FOUR.SelectionController();
+            selectionControl.addEventListener('change', render);
+            selectionControl.enable();
+
+            tourControl = new FOUR.TourController(camera, container);
+            tourControl.addEventListener('change', render);
+            tourControl.enable();
 
             // world
             scene = new THREE.Scene();
@@ -113,14 +118,14 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            controls.handleResize();
+            tourControl.handleResize();
             render();
         }
 
         function animate() {
             TWEEN.update();
             requestAnimationFrame(animate);
-            controls.update(clock.getDelta());
+            tourControl.update(clock.getDelta());
         }
 
         function render() {

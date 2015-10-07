@@ -1,7 +1,7 @@
-Threejs Scene Navigator
-=======================
+Threejs CAD Components
+======================
 
-Multi-mode scene navigation experiment.
+Components for threejs computer aided design applications.
 
 
 Dependencies
