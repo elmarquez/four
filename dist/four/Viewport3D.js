@@ -153,8 +153,10 @@ FOUR.Viewport3D = (function () {
         // update tween state
         TWEEN.update();
         // update the current controller if it has an update() function
-        var delta = self.clock.getDelta();
-        self.controller[self.mode].update(delta);
+        if (self.controller) {
+            var delta = self.clock.getDelta();
+            self.controller[self.mode].update(delta);
+        }
     };
 
     return Viewport3D;

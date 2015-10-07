@@ -3,7 +3,7 @@
 module.exports = {
   release: {
     files: {
-      src: ['**/*.*']
+      src: ['**/*','!.git/**/*']
     },
     options: {}
   }
