@@ -395,8 +395,10 @@
 //        };
 
 
+        var camera = scene.getCamera(scene.DEFAULT_CAMERA_NAME);
+
         // viewport
-        var viewport = window.viewport = new FOUR.Viewport3D('webgl', scene);
+        var viewport = window.viewport = new FOUR.Viewport3D(element, scene, camera);
         viewport.init();
         viewport.render();
     });
