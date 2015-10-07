@@ -7,8 +7,8 @@ var FOUR = FOUR || {};
 FOUR.SelectionController = (function () {
 
   /**
-   * Scene object selection control. Emits 'update' events when the selection
-   * set changes.
+   * Mouse based selection controller. Emits 'update' event when the associated
+   * selection set changes.
    * @param {Object} config Configuration
    * @constructor
    */
@@ -16,38 +16,30 @@ FOUR.SelectionController = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
-    self.KEY = {
-      SHIFT: 16, // SHIFT
-      CTRL: 17,
-      ALT: 18 // ALT
-    };
-    self.MODE = {
+
+    self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+    self.SELECTION_MODE = {
       POINT: 0,
       FACE: 1,
       MESH: 2,
-      OBJECT: 3
-    };
-    self.MODIFIERS = {
-      ALT: 'alt',
-      CTRL: 'ctrl',
-      META: 'meta',
-      SHIFT: 'shift'
+      OBJECT: 3,
+      CAMERA: 4,
+      LIGHT: 5
     };
 
-    self.enabled = config.enabled || false;
+    self.enabled = config.enabled || true;
     self.modifiers = {};
     self.mouse = new THREE.Vector2();
     self.raycaster = new THREE.Raycaster();
     self.selection = config.selection;
     self.viewport = config.viewport;
 
-    Object.keys(self.MODIFIERS).forEach(function (key) {
-      self.modifiers[self.MODIFIERS[key]] = false;
+    Object.keys(self.KEY).forEach(function (key) {
+      self.modifiers[self.KEY[key]] = false;
     });
 
     // listen for mouse events
     self.selection.addEventListener('update', self.update.bind(self), false);
-    self.viewport.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self), false);
     self.viewport.domElement.addEventListener('mousedown', self.onMouseDown.bind(self), false);
     self.viewport.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
     self.viewport.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
@@ -59,7 +51,6 @@ FOUR.SelectionController = (function () {
   SelectionController.prototype.constructor = SelectionController;
 
   SelectionController.prototype.count = function () {
-    // TODO consider implementing this as a property
     return this.selection.getObjects().length;
   };
 
@@ -69,11 +60,6 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.enable = function () {
     this.enabled = true;
-  };
-
-  SelectionController.prototype.onContextMenu = function (event) {
-    event.preventDefault();
-    event.stopPropagation();
   };
 
   SelectionController.prototype.onKeyDown = function (event) {
@@ -91,10 +77,6 @@ FOUR.SelectionController = (function () {
       return;
     } else if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
       this.modifiers[event.keyCode] = false;
-    } else if (event.key === 'ctrl+a') {
-      this.selectAll();
-    } else if (event.key === 'ctrl+n') {
-      this.selectNone();
     }
   };
 
@@ -104,10 +86,6 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.onMouseMove = function (event) {
     //console.log('mouse move');
-    //var self = this;
-    //// calculate mouse position in normalized device coordinates (-1 to +1)
-    //self.mouse.x = (event.clientX / self.viewport.domElement.clientWidth) * 2 - 1;
-    //self.mouse.y = -(event.clientY / self.viewport.domElement.clientHeight) * 2 + 1;
   };
 
   SelectionController.prototype.onMouseOver = function (event) {
@@ -123,9 +101,9 @@ FOUR.SelectionController = (function () {
       self.mouse.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
       self.mouse.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
       // update the picking ray with the camera and mouse position
-      self.raycaster.setFromCamera(self.mouse, self.viewport.camera);
+      self.raycaster.setFromCamera(self.mouse, self.viewport.camera); // TODO this is FOUR specific
       // calculate objects intersecting the picking ray
-      var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true) || [];
+      var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true) || []; // TODO this is FOUR specific use of children
       // update the selection set using only the nearest selected object
       var objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
       // add objects
@@ -143,11 +121,6 @@ FOUR.SelectionController = (function () {
     }
   };
 
-  SelectionController.prototype.selectAll = function () {
-    console.log('select all');
-    this.selection.addAll(this.viewport.scene.model.children);
-  };
-
   SelectionController.prototype.selectByFilter = function (filter) {
     console.log('select by filter');
     var objs = [], self = this;
@@ -162,11 +135,6 @@ FOUR.SelectionController = (function () {
   SelectionController.prototype.selectByMarquee = function (event) {
     console.log('select by marquee');
     throw new Error('not implemented');
-  };
-
-  SelectionController.prototype.selectNone = function () {
-    console.log('select none');
-    this.selection.removeAll();
   };
 
   SelectionController.prototype.update = function () {

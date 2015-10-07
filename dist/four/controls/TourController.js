@@ -6,14 +6,13 @@ FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
-     * @param camera
-     * @param domElement
+     * @param {Object} config Configuration
      */
-    function TourController (camera, domElement) {
+    function TourController (config) {
         THREE.EventDispatcher.call(this);
+        config = config || {};
 
         var self = this;
-
         self.EVENTS = {
             CHANGE: { type: 'change' },
             END: { type: 'end' },
@@ -26,17 +25,38 @@ FOUR.TourController = (function () {
             PREVIOUS: 2,
             UPDATE: 3
         };
+        self.PLANNING_STRATEGY = {
+            GENETIC: 0,
+            SIMULATED_ANNEALING: 1
+        };
 
-        self.camera = camera;
+        self.camera = config.camera;
         self.current = -1; // index of the tour feature
-        self.domElement = domElement;
+        self.domElement = config.domElement;
+        self.enabled = config.enabled || true;
+        self.offset = 100; // distance between camera and feature when visiting
         self.path = [];
         self.planner = new FOUR.PathPlanner();
+        self.planningStrategy = self.PLANNING_STRATEGY.GENETIC;
+        self.selection = config.selection;
+
+        if (self.enabled) {
+            self.enable();
+        }
     }
 
     TourController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
     TourController.prototype.constructor = TourController;
+
+    /**
+     * Disable the controller.
+     */
+    TourController.prototype.disable = function () {
+        var self = this;
+        self.enabled = false;
+        self.selection.removeEventListener('update', self.update);
+    };
 
     /**
      * Calculate the distance between points.
@@ -51,12 +71,52 @@ FOUR.TourController = (function () {
         return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
     };
 
-    TourController.prototype.init = function () {};
+    /**
+     * Enable the controller.
+     */
+    TourController.prototype.enable = function () {
+        var self = this;
+        // listen for updates on the selection set
+        self.selection.addEventListener('update', self.update.bind(self), false);
+        // listen for key input events
+        // TODO
+        this.enabled = true;
+    };
 
     /**
-     * Navigate to the current tour feature.
+     * Get the tour path.
+     * @returns {Array|*}
      */
-    TourController.prototype.navigate = function () {};
+    TourController.prototype.getPath = function () {
+        return this.path;
+    };
+
+    /**
+     * Navigate to the i-th feature.
+     * @param {Integer} i Path index
+     * @returns {Promise}
+     */
+    TourController.prototype.navigate = function (i) {
+        var self = this;
+        // the feature to visit
+        var feature = self.path[i];
+        // the offset from the current camera position to the new camera position
+        // TODO what is 10??
+        var dist = (10 / Math.tan(Math.PI * self.camera.fov / 360)) + self.offset;
+        var target = new THREE.Vector3(0, 0, -dist);
+        target.applyQuaternion(self.camera.quaternion);
+        target.add(self.camera.position);
+        var diff = new THREE.Vector3().subVectors(new THREE.Vector3(feature.x, feature.y, feature.z), target);
+        // the next camera position
+        var camera = new THREE.Vector3().add(self.camera.position, diff);
+        // move the camera to the next position
+        return self.planner.tweenToPosition(
+          self.camera,
+          new THREE.Vector3(camera.x, camera.y, camera.z),
+          new THREE.Vector3(feature.x, feature.y, feature.z),
+          self.noop
+        );
+    };
 
     /**
      * Find the tour feature nearest to position P.
@@ -64,29 +124,69 @@ FOUR.TourController = (function () {
      * @returns {THREE.Vector3} Position of nearest tour feature.
      */
     TourController.prototype.nearest = function (p) {
-        var self = this;
-        var nearest = self.path.reduce(function (last, current) {
-            var dist = self.distanceBetween(p, current);
+        var dist, nearest, self = this;
+        nearest = self.path.reduce(function (last, current, index) {
+            dist = self.distanceBetween(p, current);
             if (dist <= last.dist) {
-                last = {x: current.x, y: current.y, z: current.z, dist: dist};
+                last = {x: current.x, y: current.y, z: current.z, dist: dist, index: index};
             }
             return last;
-        }, {x: p.x, y: p.y, z: p.z, dist: Infinity }); // TODO include the feature identifier
+        }, {x: p.x, y: p.y, z: p.z, dist: Infinity, index: -1 }); // TODO include the feature identifier
         return nearest;
     };
 
-    TourController.prototype.next = function () {};
+    /**
+     * Navigate to the next feature.
+     * @returns {Promise}
+     */
+    TourController.prototype.next = function () {
+        var self = this;
+        if (self.current === -1) {
+            // get the nearest feature to the camera
+            var nearest = self.nearest(self.camera.position);
+            self.current = nearest.index;
+        } else if (self.current < self.path.length) {
+            self.current++;
+        } else {
+            self.current = 0;
+        }
+        return self.navigate(self.current);
+    };
 
-    TourController.prototype.previous = function () {};
+    /**
+     * Empty function.
+     */
+    TourController.prototype.noop = function () {};
+
+    /**
+     * Navigate to the previous feature.
+     * @returns {Promise}
+     */
+    TourController.prototype.previous = function () {
+        var self = this;
+        if (self.current === -1) {
+            // get the nearest feature to the camera
+            var nearest = self.nearest(self.camera.position);
+            self.current = nearest.index;
+        } else if (self.current === 0) {
+            self.current = self.path.length - 1;
+        } else {
+            self.current--;
+        }
+        return self.navigate(self.current);
+    };
 
     /**
      * Update the tour itinerary.
+     * @returns {Promise}
      */
     TourController.prototype.update = function () {
         var self = this;
+        // reset the current feature index
+        self.current = -1;
         // get the list of features
         var features = [];
-        self.planner
+        return self.planner
           .generateTourSequence(features)
           .then(function (path) {
               self.path = path;

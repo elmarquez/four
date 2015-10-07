@@ -1085,6 +1085,671 @@ FOUR.TargetCamera = (function () {
 
 var FOUR = FOUR || {};
 
+FOUR.Viewcube = (function () {
+
+    function Viewcube (elementId) {
+        THREE.EventDispatcher.call(this);
+
+        this.FACES = {
+            TOP: 0,
+            FRONT: 1,
+            RIGHT: 2,
+            BACK: 3,
+            LEFT: 4,
+            BOTTOM: 5,
+
+            TOP_FRONT_EDGE: 6,
+            TOP_RIGHT_EDGE: 7,
+            TOP_BACK_EDGE: 8,
+            TOP_LEFT_EDGE: 9,
+
+            FRONT_RIGHT_EDGE: 10,
+            BACK_RIGHT_EDGE: 11,
+            BACK_LEFT_EDGE: 12,
+            FRONT_LEFT_EDGE: 13,
+
+            BOTTOM_FRONT_EDGE: 14,
+            BOTTOM_RIGHT_EDGE: 15,
+            BOTTOM_BACK_EDGE: 16,
+            BOTTOM_LEFT_EDGE: 17,
+
+            TOP_FRONT_RIGHT_CORNER: 18,
+            TOP_BACK_RIGHT_CORNER: 19,
+            TOP_BACK_LEFT_CORNER: 20,
+            TOP_FRONT_LEFT_CORNER: 21,
+
+            BOTTOM_FRONT_RIGHT_CORNER: 22,
+            BOTTOM_BACK_RIGHT_CORNER: 23,
+            BOTTOM_BACK_LEFT_CORNER: 24,
+            BOTTOM_FRONT_LEFT_CORNER: 25
+        };
+        this.MODES = {
+            SELECT: 0,
+            READONLY: 1
+        };
+        this.OFFSET = 250;
+        this.ROTATION_0   = 0;
+        this.ROTATION_90  = Math.PI / 2;
+        this.ROTATION_180 = Math.PI;
+        this.ROTATION_270 = Math.PI * 1.5;
+        this.ROTATION_360 = Math.PI * 2;
+
+        this.COMPASS_COLOR = 0x666666;
+        this.COMPASS_OPACITY = 0.8;
+        this.FACE_COLOUR = 0x4a5f70;
+        this.FACE_OPACITY_MOUSE_OFF = 0.0;
+        this.FACE_OPACITY_MOUSE_OVER = 0.8;
+
+        this.backgroundColor = new THREE.Color(0x000000, 0);
+        this.camera = null;
+        this.compass = null;
+        this.control = null;
+        this.cube = null;
+        this.domElement = document.getElementById(elementId);
+        this.elementId = elementId;
+        this.fov = 60; // 50
+        this.mouse = new THREE.Vector2();
+        this.raycaster = new THREE.Raycaster();
+        this.renderer = null;
+        this.scene = new THREE.Scene();
+    }
+
+    Viewcube.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+    Viewcube.prototype.constructor = Viewcube;
+
+    Viewcube.prototype.init = function () {
+        var self = this;
+        // renderer
+        self.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+        //self.renderer.setClearColor(self.backgroundColor);
+        self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
+        self.renderer.shadowMap.enabled = true;
+        // add the output of the renderer to the html element
+        self.domElement.appendChild(self.renderer.domElement);
+        // setup scene
+        self.setupCamera();
+        self.setupGeometry();
+        self.setupLights();
+        // setup interactions
+        self.setupNavigation();
+        self.setupSelection();
+        // start rendering
+        self.render();
+    };
+
+    Viewcube.prototype.makeCompass = function (name, x, y, z, radius, segments, color, opacity) {
+        var obj = new THREE.Object3D();
+        var material = new THREE.MeshBasicMaterial({color: color});
+        var circleGeometry = new THREE.CircleGeometry(radius, segments);
+        var circle = new THREE.Mesh(circleGeometry, material);
+        obj.add(circle);
+        obj.name = name;
+        obj.opacity = opacity;
+        obj.position.x = x;
+        obj.position.y = y;
+        obj.position.z = z;
+        return obj;
+    };
+
+    Viewcube.prototype.makeCorner = function (name, w, x, y, z, rotations, color) {
+        var face1, face2, face3, geometry, material, obj, self = this;
+        obj = new THREE.Object3D();
+
+        geometry = new THREE.PlaneGeometry(w, w);
+        material = new THREE.MeshBasicMaterial({color: color, opacity: self.FACE_OPACITY_MOUSE_OFF, transparent: true});
+        face1 = new THREE.Mesh(geometry, material);
+        face1.material.side = THREE.DoubleSide;
+        face1.name = name;
+        face1.position.setX(w / 2);
+        face1.position.setY(w / 2);
+
+        geometry = new THREE.PlaneGeometry(w, w);
+        face2 = new THREE.Mesh(geometry, material);
+        face2.material.side = THREE.DoubleSide;
+        face2.name = name;
+        face2.position.setX(w / 2);
+        face2.position.setZ(-w / 2);
+        face2.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI / 2);
+
+        geometry = new THREE.PlaneGeometry(w, w);
+        face3 = new THREE.Mesh(geometry, material);
+        face3.material.side = THREE.DoubleSide;
+        face3.name = name;
+        face3.position.setY(w / 2);
+        face3.position.setZ(-w / 2);
+        face3.rotateOnAxis(new THREE.Vector3(0,1,0), Math.PI / 2);
+
+        obj.add(face1);
+        obj.add(face2);
+        obj.add(face3);
+        obj.name = name;
+        obj.position.x = x;
+        obj.position.y = y;
+        obj.position.z = z;
+        rotations.forEach(function (rotation) {
+            obj.rotateOnAxis(rotation.axis, rotation.rad);
+        });
+        return obj;
+    };
+
+    Viewcube.prototype.makeEdge = function (name, w, h, x, y, z, rotations, color) {
+        var face1, face2, geometry, material, obj, self = this;
+        obj = new THREE.Object3D();
+
+        geometry = new THREE.PlaneGeometry(w, h);
+        material = new THREE.MeshBasicMaterial({color: color, opacity: self.FACE_OPACITY_MOUSE_OFF, transparent: true});
+        face1 = new THREE.Mesh(geometry, material);
+        face1.material.side = THREE.DoubleSide;
+        face1.name = name;
+        face1.position.setY(h / 2);
+
+        geometry = new THREE.PlaneGeometry(w, h);
+        face2 = new THREE.Mesh(geometry, material);
+        face2.material.side = THREE.DoubleSide;
+        face2.name = name;
+        face2.position.setZ(-h / 2);
+        face2.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI / 2);
+
+        obj.add(face1);
+        obj.add(face2);
+        obj.name = name;
+        obj.position.x = x;
+        obj.position.y = y;
+        obj.position.z = z;
+        rotations.forEach(function (rotation) {
+            obj.rotateOnAxis(rotation.axis, rotation.rad);
+        });
+        return obj;
+    };
+
+    Viewcube.prototype.makeFace = function (name, w, x, y, z, rotations, color) {
+        var self = this;
+        var geometry = new THREE.PlaneGeometry(w, w);
+        var material = new THREE.MeshBasicMaterial({color: color, opacity: self.FACE_OPACITY_MOUSE_OFF, transparent: true});
+        var face = new THREE.Mesh(geometry, material);
+        face.material.side = THREE.DoubleSide;
+        face.name = name;
+        face.position.setX(x);
+        face.position.setY(y);
+        face.position.setZ(z);
+        rotations.forEach(function (rotation) {
+            face.rotateOnAxis(rotation.axis, rotation.rad);
+        });
+        return face;
+    };
+
+    Viewcube.prototype.onMouseMove = function (event) {
+        var self = this;
+        // calculate mouse position in normalized device coordinates
+        // (-1 to +1) for both components
+        self.mouse.x = (event.offsetX / self.domElement.clientWidth) * 2 - 1;
+        self.mouse.y = - (event.offsetY / self.domElement.clientHeight) * 2 + 1;
+        // update the picking ray with the camera and mouse position
+        self.raycaster.setFromCamera(self.mouse, self.camera);
+        // reset opacity for all scene objects
+        self.scene.traverse(function (obj) {
+            if (obj.name !== 'labels' && obj.material) {
+                obj.material.opacity = self.FACE_OPACITY_MOUSE_OFF;
+            }
+        });
+        // calculate objects intersecting the picking ray
+        var intersects = self.raycaster.intersectObjects(self.scene.children, true);
+        if (intersects.length > 0 && intersects[0].object.name !== 'labels') {
+            intersects[0].object.material.opacity = self.FACE_OPACITY_MOUSE_OVER;
+        }
+    };
+
+    Viewcube.prototype.onMouseOver = function (event) {
+        var self = this;
+        requestAnimationFrame(self.render.bind(self));
+    };
+
+    Viewcube.prototype.onMouseUp = function (event) {
+        var self = this;
+        // calculate mouse position in normalized device coordinates
+        // (-1 to +1) for both components
+        self.mouse.x = (event.offsetX / self.domElement.clientWidth) * 2 - 1;
+        self.mouse.y = - (event.offsetX / self.domElement.clientWidth) * 2 + 1;
+        // update the picking ray with the camera and mouse position
+        self.raycaster.setFromCamera(self.mouse, self.camera);
+        // calculate objects intersecting the picking ray
+        self.selection = [];
+        var intersects = self.raycaster.intersectObjects(self.scene.children, true);
+        if (intersects.length > 0) {
+            self.setView(intersects[0].object.name);
+        }
+    };
+
+    Viewcube.prototype.render = function () {
+        var self = this;
+        TWEEN.update();
+        self.renderer.render(self.scene, self.camera);
+    };
+
+    Viewcube.prototype.setupCamera = function () {
+        var self = this;
+        // position and point the camera to the center of the scene
+        self.camera = new THREE.PerspectiveCamera(self.fov, self.domElement.clientWidth / self.domElement.clientHeight, 0.1, 1000);
+        self.camera.position.x = 150;
+        self.camera.position.y = 150;
+        self.camera.position.z = 90;
+        self.camera.up = new THREE.Vector3(0, 0, 1);
+        self.camera.lookAt(new THREE.Vector3(0, 0, 0));
+    };
+
+    Viewcube.prototype.setupGeometry = function () {
+        var self = this;
+
+        var ROTATE_0 = 0;
+        var ROTATE_90 = Math.PI / 2;
+        var ROTATE_180 = Math.PI;
+        var ROTATE_270 = Math.PI * 1.5;
+        var ROTATE_360 = Math.PI * 2;
+
+        var X_AXIS = new THREE.Vector3(1, 0, 0);
+        var Y_AXIS = new THREE.Vector3(0, 1, 0);
+        var Z_AXIS = new THREE.Vector3(0, 0, 1);
+
+        self.control = new THREE.Object3D();
+        self.cube = new THREE.Object3D();
+
+        // labels
+        var material1 = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            map: THREE.ImageUtils.loadTexture('/lib/img/top.png'),
+            opacity: 1.0,
+            transparent: true
+        });
+        var material2 = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            map: THREE.ImageUtils.loadTexture('/lib/img/front.png'),
+            opacity: 1.0,
+            transparent: true
+        });
+        var material3 = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            map: THREE.ImageUtils.loadTexture('/lib/img/right.png'),
+            opacity: 1.0,
+            transparent: true
+        });
+        var material4 = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            map: THREE.ImageUtils.loadTexture('/lib/img/back.png'),
+            opacity: 1.0,
+            transparent: true
+        });
+        var material5 = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            map: THREE.ImageUtils.loadTexture('/lib/img/left.png'),
+            opacity: 1.0,
+            transparent: true
+        });
+        var material6 = new THREE.MeshPhongMaterial({
+            color: 0xAAAAAA,
+            map: THREE.ImageUtils.loadTexture('/lib/img/bottom.png'),
+            opacity: 1.0,
+            transparent: true
+        });
+        var materials = [
+            material2, material5, material3,
+            material4, material1, material6
+        ];
+
+        var geometry = new THREE.BoxGeometry(99, 99, 99);
+        var material = new THREE.MeshFaceMaterial(materials);
+        var labels = new THREE.Mesh(geometry, material);
+        labels.name = 'labels';
+        self.scene.add(labels);
+
+        // faces
+        var topFace    = self.makeFace(self.FACES.TOP,    70,   0,   0,  50, [{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var frontFace  = self.makeFace(self.FACES.FRONT,  70,  50,   0,   0, [{axis:Y_AXIS, rad:ROTATE_90},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var rightFace  = self.makeFace(self.FACES.RIGHT,  70,   0,  50,   0, [{axis:X_AXIS, rad:ROTATE_270},{axis:Z_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+        var leftFace   = self.makeFace(self.FACES.LEFT,   70,   0, -50,   0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Z_AXIS, rad:ROTATE_360}], self.FACE_COLOUR);
+        var backFace   = self.makeFace(self.FACES.BACK,   70, -50,   0,   0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_270}], self.FACE_COLOUR);
+        var bottomFace = self.makeFace(self.FACES.BOTTOM, 70,   0,   0, -50, [{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+
+        // edges
+        var topFrontEdge    = self.makeEdge(self.FACES.TOP_FRONT_EDGE, 70, 15,  50,   0, 50, [{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var topRightEdge    = self.makeEdge(self.FACES.TOP_RIGHT_EDGE, 70, 15,   0,  50, 50, [{axis:Z_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+        var topBackEdge     = self.makeEdge(self.FACES.TOP_BACK_EDGE, 70, 15, -50,   0, 50, [{axis:Z_AXIS, rad:ROTATE_270}], self.FACE_COLOUR);
+        var topLeftEdge     = self.makeEdge(self.FACES.TOP_LEFT_EDGE, 70, 15,   0, -50, 50, [{axis:Z_AXIS, rad:ROTATE_360}], self.FACE_COLOUR);
+
+        var bottomFrontEdge = self.makeEdge(self.FACES.BOTTOM_FRONT_EDGE, 70, 15,  50,   0, -50, [{axis:Z_AXIS, rad:ROTATE_90}, {axis:Y_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+        var bottomRightEdge = self.makeEdge(self.FACES.BOTTOM_RIGHT_EDGE, 70, 15,   0,  50, -50, [{axis:Z_AXIS, rad:ROTATE_180},{axis:Y_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+        var bottomBackEdge  = self.makeEdge(self.FACES.BOTTOM_BACK_EDGE, 70, 15, -50,   0, -50, [{axis:Z_AXIS, rad:ROTATE_270},{axis:Y_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+        var bottomLeftEdge  = self.makeEdge(self.FACES.BOTTOM_LEFT_EDGE, 70, 15,   0, -50, -50, [{axis:Z_AXIS, rad:ROTATE_360},{axis:Y_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+
+        var frontRightEdge  = self.makeEdge(self.FACES.FRONT_RIGHT_EDGE, 70, 15,  50,  50, 0, [{axis:X_AXIS, rad:ROTATE_180},{axis:Y_AXIS, rad:ROTATE_90},{axis:Z_AXIS, rad:0}], self.FACE_COLOUR);
+        var backRightEdge   = self.makeEdge(self.FACES.BACK_RIGHT_EDGE, 70, 15, -50,  50, 0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var backLeftEdge    = self.makeEdge(self.FACES.BACK_LEFT_EDGE, 70, 15, -50, -50, 0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_270},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var frontLeftEdge   = self.makeEdge(self.FACES.FRONT_LEFT_EDGE, 70, 15,  50, -50, 0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_360},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+
+        // corners
+        var topFrontLeftCorner  = self.makeCorner(self.FACES.TOP_FRONT_LEFT_CORNER, 15,  50, -50, 50, [{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var topFrontRightCorner = self.makeCorner(self.FACES.TOP_FRONT_RIGHT_CORNER, 15,  50,  50, 50, [{axis:Z_AXIS, rad:ROTATE_180}], self.FACE_COLOUR);
+        var topBackRightCorner  = self.makeCorner(self.FACES.TOP_BACK_RIGHT_CORNER, 15, -50,  50, 50, [{axis:Z_AXIS, rad:ROTATE_270}], self.FACE_COLOUR);
+        var topBackLeftCorner   = self.makeCorner(self.FACES.TOP_BACK_LEFT_CORNER, 15, -50, -50, 50, [{axis:Z_AXIS, rad:ROTATE_360}], self.FACE_COLOUR);
+
+        var bottomFrontLeftCorner  = self.makeCorner(self.FACES.BOTTOM_FRONT_LEFT_CORNER, 15,  50, -50, -50, [{axis:X_AXIS, rad:ROTATE_0},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_0}], self.FACE_COLOUR);
+        var bottomFrontRightCorner = self.makeCorner(self.FACES.BOTTOM_FRONT_RIGHT_CORNER, 15,  50,  50, -50, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_0}], self.FACE_COLOUR);
+        var bottomBackRightCorner  = self.makeCorner(self.FACES.BOTTOM_BACK_RIGHT_CORNER, 15, -50,  50, -50, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+        var bottomBackLeftCorner   = self.makeCorner(self.FACES.BOTTOM_BACK_LEFT_CORNER, 15, -50, -50, -50, [{axis:X_AXIS, rad:ROTATE_0},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}], self.FACE_COLOUR);
+
+        self.cube.add(topFace);
+        self.cube.add(frontFace);
+        self.cube.add(rightFace);
+        self.cube.add(backFace);
+        self.cube.add(leftFace);
+        self.cube.add(bottomFace);
+
+        self.cube.add(topFrontEdge);
+        self.cube.add(topRightEdge);
+        self.cube.add(topBackEdge);
+        self.cube.add(topLeftEdge);
+
+        self.cube.add(bottomFrontEdge);
+        self.cube.add(bottomRightEdge);
+        self.cube.add(bottomBackEdge);
+        self.cube.add(bottomLeftEdge);
+
+        self.cube.add(frontRightEdge);
+        self.cube.add(backRightEdge);
+        self.cube.add(backLeftEdge);
+        self.cube.add(frontLeftEdge);
+
+        self.cube.add(topFrontLeftCorner);
+        self.cube.add(topFrontRightCorner);
+        self.cube.add(topBackRightCorner);
+        self.cube.add(topBackLeftCorner);
+
+        self.cube.add(bottomFrontLeftCorner);
+        self.cube.add(bottomFrontRightCorner);
+        self.cube.add(bottomBackRightCorner);
+        self.cube.add(bottomBackLeftCorner);
+
+        // compass
+        self.compass = new THREE.Object3D();
+        var circle = self.makeCompass('compass', 0, 0, -55, 90, 64, self.COMPASS_COLOR, self.COMPASS_OPACITY);
+
+        self.compass.add(circle);
+
+        // add
+        self.scene.add(self.cube);
+        self.scene.add(self.compass);
+    };
+
+    Viewcube.prototype.setupLights = function () {
+        var ambientLight = new THREE.AmbientLight(0x383838);
+        this.scene.add(ambientLight);
+
+        // add spotlight for the shadows
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(100, 140, 130);
+        spotLight.intensity = 2;
+        this.scene.add(spotLight);
+    };
+
+    Viewcube.prototype.setupNavigation = function () {
+        // bind click events to views
+    };
+
+    Viewcube.prototype.setupSelection = function () {
+        var self = this;
+        self.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
+        self.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
+        self.domElement.addEventListener('mouseup', self.onMouseUp.bind(self), false);
+    };
+
+    Viewcube.prototype.setView = function (view) {
+        var self = this;
+        switch (view) {
+            case self.FACES.TOP:
+                self.tweenCameraToPosition(0,0,self.OFFSET);
+                break;
+            case self.FACES.FRONT:
+                self.tweenCameraToPosition(self.OFFSET,0,0);
+                break;
+            case self.FACES.LEFT:
+                self.tweenCameraToPosition(0,0,self.OFFSET);
+                break;
+            case self.FACES.RIGHT:
+                self.tweenCameraToPosition(self.OFFSET,0,0);
+                break;
+            case self.FACES.BACK:
+                self.tweenCameraToPosition(-self.OFFSET,0,0);
+                break;
+            case self.FACES.BOTTOM:
+                self.tweenCameraToPosition(0,0,-self.OFFSET);
+                break;
+            case self.FACES.TOP_FRONT_EDGE:
+                self.tweenCameraToPosition(0,0,self.OFFSET,0);
+                break;
+            case self.FACES.TOP_BACK_EDGE:
+                console.log(view); // TODO
+                break;
+            case self.FACES.TOP_RIGHT_EDGE:
+                console.log(view); // TODO
+                break;
+            case self.FACES.TOP_LEFT_EDGE:
+                console.log(view); // TODO
+                break;
+            default:
+                console.dir(view);
+        }
+    };
+
+    Viewcube.prototype.tweenCameraToPosition = function (x, y, z, rx, ry, rz) {
+        var self = this;
+        return new Promise(function (resolve) {
+            var start = {
+                x: self.camera.position.x,
+                y: self.camera.position.y,
+                z: self.camera.position.z
+            };
+            var finish = {x: x, y: y, z: z};
+            var tween = new TWEEN.Tween(start).to(finish, 2000);
+            tween.easing(TWEEN.Easing.Cubic.InOut);
+            tween.onComplete(resolve);
+            tween.onUpdate(function () {
+                self.camera.lookAt(new THREE.Vector3(0, 0, 0));
+                self.camera.position.set(this.x, this.y, this.z);
+            });
+            tween.start();
+            self.render();
+        });
+    };
+
+    Viewcube.prototype.tweenControlRotation = function (rx, ry, rz) {
+        var self = this;
+        return new Promise(function (resolve) {
+            var start = {
+                rx: self.control.rotation.x,
+                ry: self.control.rotation.y,
+                rz: self.control.rotation.z
+            };
+            var finish = {rx: rx, ry: ry, rz: rz};
+            var tween = new TWEEN.Tween(start).to(finish, 1000);
+            tween.easing(TWEEN.Easing.Cubic.InOut);
+            tween.onComplete(resolve);
+            tween.onUpdate(function () {
+                self.control.rotation.set(this.rx, this.ry, this.rz, 'XYZ');
+            });
+            tween.start();
+            self.render();
+        });
+    };
+
+    return Viewcube;
+
+}());
+;'use strict';
+
+var FOUR = FOUR || {};
+
+/**
+ * Renders the view from a scene camera to a canvas element in the DOM.
+ */
+FOUR.Viewport3D = (function () {
+
+    /**
+     * Viewport3D constructor.
+     * @param {Element} domElement DOM element
+     * @param {THREE.Scene|FOUR.Scene} scene Scene
+     * @param {THREE.Camera} camera Camera
+     * @constructor
+     */
+    function Viewport3D(domElement, scene, camera) {
+        THREE.EventDispatcher.call(this);
+        this.backgroundColor = new THREE.Color(0x000, 1.0);
+        this.camera = camera;
+        this.clock = new THREE.Clock();
+        this.controller = null; // the active controller
+        this.controllers = {};
+        this.domElement = domElement;
+        this.renderer = null;
+        this.scene = scene || new THREE.Scene();
+    }
+
+    Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+    Viewport3D.prototype.constructor = Viewport3D;
+
+    /**
+     * Add controller to viewport.
+     * @param {FOUR.Controller} controller Controller
+     * @param {String} name Name
+     */
+    Viewport3D.prototype.addController = function (controller, name) {
+        this.controllers[name] = controller;
+    };
+
+    /**
+     * Get the viewport camera.
+     * @returns {THREE.Camera}
+     */
+    Viewport3D.prototype.getCamera = function () {
+        return this.camera;
+    };
+
+    /**
+     * Get the viewport scene.
+     * @returns {THREE.Scene|FOUR.Scene}
+     */
+    Viewport3D.prototype.getScene = function () {
+        return this.scene;
+    };
+
+    /**
+     * Handle window resize event.
+     */
+    Viewport3D.prototype.handleResize = function () {
+        var self = this;
+        var height = self.domElement.clientHeight;
+        var width = self.domElement.clientWidth;
+        self.camera.aspect = width / height;
+        self.camera.updateProjectionMatrix();
+        self.renderer.setSize(width, height);
+        self.render();
+    };
+
+    /**
+     * Initialize the viewport.
+     */
+    Viewport3D.prototype.init = function () {
+        var self = this;
+        // renderer
+        self.renderer = new THREE.WebGLRenderer({antialias: true});
+        self.renderer.setClearColor(self.backgroundColor);
+        self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
+        self.renderer.shadowMap.enabled = true;
+        self.domElement.appendChild(self.renderer.domElement);
+        // listen for events
+        window.addEventListener('resize', self.handleResize.bind(self), false);
+        self.scene.addEventListener('update', self.render.bind(self), false);
+        // draw the first frame
+        self.render();
+        // start updating controllers
+        self.update();
+    };
+
+    /**
+     * Render the viewport once.
+     */
+    Viewport3D.prototype.render = function () {
+        var self = this;
+        self.renderer.render(self.scene, self.camera);
+    };
+
+    /**
+     * Set viewport background color.
+     * @param {THREE.Color} color Color
+     */
+    Viewport3D.prototype.setBackgroundColor = function (color) {
+        var self = this;
+        self.background = color;
+        self.renderer.setClearColor(self.backgroundColor);
+        self.render();
+    };
+
+    /**
+     * Set the viewport camera.
+     * @param {String} name Camera name
+     */
+    Viewport3D.prototype.setCamera = function (name) {
+        var found = false, i, obj, self = this;
+        if (typeof self.scene === FOUR.Scene3D) {
+            self.camera = self.scene.getCamera(name);
+        } else {
+            for (i = 0;i < self.scene.children && !found; i++) {
+                obj = self.scene.children[i];
+                if (typeof obj === THREE.Camera) {
+                    if (obj.name === name) {
+                        self.camera = obj;
+                        found = true;
+                    }
+                }
+            }
+            if (!found) {
+                console.error('Camera "' + name + '" not found');
+            }
+        }
+        self.render();
+    };
+
+    /**
+     * Set the active viewport controller.
+     * @param {String} mode Controller key
+     */
+    Viewport3D.prototype.setMode = function (mode) {
+        var self = this;
+        self.controller[self.mode].disable();
+        self.mode = mode;
+        self.controller[self.mode].enable();
+    };
+
+    /**
+     * Update the controller and global tween state.
+     */
+    Viewport3D.prototype.update = function () {
+        var self = this;
+        // enqueue next update
+        requestAnimationFrame(self.update.bind(self));
+        // update tween state
+        TWEEN.update();
+        // update the current controller if it has an update() function
+        var delta = self.clock.getDelta();
+        self.controller[self.mode].update(delta);
+    };
+
+    return Viewport3D;
+
+}());
+;'use strict';
+
+var FOUR = FOUR || {};
+
 /**
  * Hybrid selection, editing, trackball, orbit, first person controller.
  * Emits the following events:
@@ -1891,8 +2556,8 @@ var FOUR = FOUR || {};
 FOUR.SelectionController = (function () {
 
   /**
-   * Scene object selection control. Emits 'update' events when the selection
-   * set changes.
+   * Mouse based selection controller. Emits 'update' event when the associated
+   * selection set changes.
    * @param {Object} config Configuration
    * @constructor
    */
@@ -1900,38 +2565,30 @@ FOUR.SelectionController = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
-    self.KEY = {
-      SHIFT: 16, // SHIFT
-      CTRL: 17,
-      ALT: 18 // ALT
-    };
-    self.MODE = {
+
+    self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+    self.SELECTION_MODE = {
       POINT: 0,
       FACE: 1,
       MESH: 2,
-      OBJECT: 3
-    };
-    self.MODIFIERS = {
-      ALT: 'alt',
-      CTRL: 'ctrl',
-      META: 'meta',
-      SHIFT: 'shift'
+      OBJECT: 3,
+      CAMERA: 4,
+      LIGHT: 5
     };
 
-    self.enabled = config.enabled || false;
+    self.enabled = config.enabled || true;
     self.modifiers = {};
     self.mouse = new THREE.Vector2();
     self.raycaster = new THREE.Raycaster();
     self.selection = config.selection;
     self.viewport = config.viewport;
 
-    Object.keys(self.MODIFIERS).forEach(function (key) {
-      self.modifiers[self.MODIFIERS[key]] = false;
+    Object.keys(self.KEY).forEach(function (key) {
+      self.modifiers[self.KEY[key]] = false;
     });
 
     // listen for mouse events
     self.selection.addEventListener('update', self.update.bind(self), false);
-    self.viewport.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self), false);
     self.viewport.domElement.addEventListener('mousedown', self.onMouseDown.bind(self), false);
     self.viewport.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
     self.viewport.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
@@ -1943,7 +2600,6 @@ FOUR.SelectionController = (function () {
   SelectionController.prototype.constructor = SelectionController;
 
   SelectionController.prototype.count = function () {
-    // TODO consider implementing this as a property
     return this.selection.getObjects().length;
   };
 
@@ -1953,11 +2609,6 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.enable = function () {
     this.enabled = true;
-  };
-
-  SelectionController.prototype.onContextMenu = function (event) {
-    event.preventDefault();
-    event.stopPropagation();
   };
 
   SelectionController.prototype.onKeyDown = function (event) {
@@ -1975,10 +2626,6 @@ FOUR.SelectionController = (function () {
       return;
     } else if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
       this.modifiers[event.keyCode] = false;
-    } else if (event.key === 'ctrl+a') {
-      this.selectAll();
-    } else if (event.key === 'ctrl+n') {
-      this.selectNone();
     }
   };
 
@@ -1988,10 +2635,6 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.onMouseMove = function (event) {
     //console.log('mouse move');
-    //var self = this;
-    //// calculate mouse position in normalized device coordinates (-1 to +1)
-    //self.mouse.x = (event.clientX / self.viewport.domElement.clientWidth) * 2 - 1;
-    //self.mouse.y = -(event.clientY / self.viewport.domElement.clientHeight) * 2 + 1;
   };
 
   SelectionController.prototype.onMouseOver = function (event) {
@@ -2007,9 +2650,9 @@ FOUR.SelectionController = (function () {
       self.mouse.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
       self.mouse.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
       // update the picking ray with the camera and mouse position
-      self.raycaster.setFromCamera(self.mouse, self.viewport.camera);
+      self.raycaster.setFromCamera(self.mouse, self.viewport.camera); // TODO this is FOUR specific
       // calculate objects intersecting the picking ray
-      var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true) || [];
+      var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true) || []; // TODO this is FOUR specific use of children
       // update the selection set using only the nearest selected object
       var objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
       // add objects
@@ -2025,11 +2668,6 @@ FOUR.SelectionController = (function () {
         self.selection.toggle(objs);
       }
     }
-  };
-
-  SelectionController.prototype.selectAll = function () {
-    console.log('select all');
-    this.selection.addAll(this.viewport.scene.model.children);
   };
 
   SelectionController.prototype.selectByFilter = function (filter) {
@@ -2048,11 +2686,6 @@ FOUR.SelectionController = (function () {
     throw new Error('not implemented');
   };
 
-  SelectionController.prototype.selectNone = function () {
-    console.log('select none');
-    this.selection.removeAll();
-  };
-
   SelectionController.prototype.update = function () {
     this.dispatchEvent({type: 'update'});
   };
@@ -2068,14 +2701,13 @@ FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
-     * @param camera
-     * @param domElement
+     * @param {Object} config Configuration
      */
-    function TourController (camera, domElement) {
+    function TourController (config) {
         THREE.EventDispatcher.call(this);
+        config = config || {};
 
         var self = this;
-
         self.EVENTS = {
             CHANGE: { type: 'change' },
             END: { type: 'end' },
@@ -2088,17 +2720,38 @@ FOUR.TourController = (function () {
             PREVIOUS: 2,
             UPDATE: 3
         };
+        self.PLANNING_STRATEGY = {
+            GENETIC: 0,
+            SIMULATED_ANNEALING: 1
+        };
 
-        self.camera = camera;
+        self.camera = config.camera;
         self.current = -1; // index of the tour feature
-        self.domElement = domElement;
+        self.domElement = config.domElement;
+        self.enabled = config.enabled || true;
+        self.offset = 100; // distance between camera and feature when visiting
         self.path = [];
         self.planner = new FOUR.PathPlanner();
+        self.planningStrategy = self.PLANNING_STRATEGY.GENETIC;
+        self.selection = config.selection;
+
+        if (self.enabled) {
+            self.enable();
+        }
     }
 
     TourController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
     TourController.prototype.constructor = TourController;
+
+    /**
+     * Disable the controller.
+     */
+    TourController.prototype.disable = function () {
+        var self = this;
+        self.enabled = false;
+        self.selection.removeEventListener('update', self.update);
+    };
 
     /**
      * Calculate the distance between points.
@@ -2113,12 +2766,52 @@ FOUR.TourController = (function () {
         return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
     };
 
-    TourController.prototype.init = function () {};
+    /**
+     * Enable the controller.
+     */
+    TourController.prototype.enable = function () {
+        var self = this;
+        // listen for updates on the selection set
+        self.selection.addEventListener('update', self.update.bind(self), false);
+        // listen for key input events
+        // TODO
+        this.enabled = true;
+    };
 
     /**
-     * Navigate to the current tour feature.
+     * Get the tour path.
+     * @returns {Array|*}
      */
-    TourController.prototype.navigate = function () {};
+    TourController.prototype.getPath = function () {
+        return this.path;
+    };
+
+    /**
+     * Navigate to the i-th feature.
+     * @param {Integer} i Path index
+     * @returns {Promise}
+     */
+    TourController.prototype.navigate = function (i) {
+        var self = this;
+        // the feature to visit
+        var feature = self.path[i];
+        // the offset from the current camera position to the new camera position
+        // TODO what is 10??
+        var dist = (10 / Math.tan(Math.PI * self.camera.fov / 360)) + self.offset;
+        var target = new THREE.Vector3(0, 0, -dist);
+        target.applyQuaternion(self.camera.quaternion);
+        target.add(self.camera.position);
+        var diff = new THREE.Vector3().subVectors(new THREE.Vector3(feature.x, feature.y, feature.z), target);
+        // the next camera position
+        var camera = new THREE.Vector3().add(self.camera.position, diff);
+        // move the camera to the next position
+        return self.planner.tweenToPosition(
+          self.camera,
+          new THREE.Vector3(camera.x, camera.y, camera.z),
+          new THREE.Vector3(feature.x, feature.y, feature.z),
+          self.noop
+        );
+    };
 
     /**
      * Find the tour feature nearest to position P.
@@ -2126,29 +2819,69 @@ FOUR.TourController = (function () {
      * @returns {THREE.Vector3} Position of nearest tour feature.
      */
     TourController.prototype.nearest = function (p) {
-        var self = this;
-        var nearest = self.path.reduce(function (last, current) {
-            var dist = self.distanceBetween(p, current);
+        var dist, nearest, self = this;
+        nearest = self.path.reduce(function (last, current, index) {
+            dist = self.distanceBetween(p, current);
             if (dist <= last.dist) {
-                last = {x: current.x, y: current.y, z: current.z, dist: dist};
+                last = {x: current.x, y: current.y, z: current.z, dist: dist, index: index};
             }
             return last;
-        }, {x: p.x, y: p.y, z: p.z, dist: Infinity }); // TODO include the feature identifier
+        }, {x: p.x, y: p.y, z: p.z, dist: Infinity, index: -1 }); // TODO include the feature identifier
         return nearest;
     };
 
-    TourController.prototype.next = function () {};
+    /**
+     * Navigate to the next feature.
+     * @returns {Promise}
+     */
+    TourController.prototype.next = function () {
+        var self = this;
+        if (self.current === -1) {
+            // get the nearest feature to the camera
+            var nearest = self.nearest(self.camera.position);
+            self.current = nearest.index;
+        } else if (self.current < self.path.length) {
+            self.current++;
+        } else {
+            self.current = 0;
+        }
+        return self.navigate(self.current);
+    };
 
-    TourController.prototype.previous = function () {};
+    /**
+     * Empty function.
+     */
+    TourController.prototype.noop = function () {};
+
+    /**
+     * Navigate to the previous feature.
+     * @returns {Promise}
+     */
+    TourController.prototype.previous = function () {
+        var self = this;
+        if (self.current === -1) {
+            // get the nearest feature to the camera
+            var nearest = self.nearest(self.camera.position);
+            self.current = nearest.index;
+        } else if (self.current === 0) {
+            self.current = self.path.length - 1;
+        } else {
+            self.current--;
+        }
+        return self.navigate(self.current);
+    };
 
     /**
      * Update the tour itinerary.
+     * @returns {Promise}
      */
     TourController.prototype.update = function () {
         var self = this;
+        // reset the current feature index
+        self.current = -1;
         // get the list of features
         var features = [];
-        self.planner
+        return self.planner
           .generateTourSequence(features)
           .then(function (path) {
               self.path = path;
@@ -5274,156 +6007,4 @@ var TravellingSalesman = (function () {
     };
 
     return TravellingSalesman;
-}());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
- * Renders the view from a scene camera to a canvas element in the DOM.
- */
-FOUR.Viewport3D = (function () {
-
-    /**
-     * Viewport3D constructor.
-     * @param {Element} domElement DOM element
-     * @param {THREE.Scene|FOUR.Scene} scene Scene
-     * @param {THREE.Camera} camera Camera
-     * @constructor
-     */
-    function Viewport3D(domElement, scene, camera) {
-        THREE.EventDispatcher.call(this);
-        this.backgroundColor = new THREE.Color(0x000, 1.0);
-        this.camera = camera;
-        this.clock = new THREE.Clock();
-        this.controllers = {};
-        this.domElement = domElement;
-        this.renderer = null;
-        this.scene = scene || new THREE.Scene();
-    }
-
-    Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-    Viewport3D.prototype.constructor = Viewport3D;
-
-    /**
-     * Get the viewport camera.
-     * @returns {THREE.Camera}
-     */
-    Viewport3D.prototype.getCamera = function () {
-        return this.camera;
-    };
-
-    /**
-     * Get the viewport scene.
-     * @returns {THREE.Scene|FOUR.Scene}
-     */
-    Viewport3D.prototype.getScene = function () {
-        return this.scene;
-    };
-
-    /**
-     * Handle window resize event.
-     */
-    Viewport3D.prototype.handleResize = function () {
-        var self = this;
-        var height = self.domElement.clientHeight;
-        var width = self.domElement.clientWidth;
-        self.camera.aspect = width / height;
-        self.camera.updateProjectionMatrix();
-        self.renderer.setSize(width, height);
-        self.render();
-    };
-
-    /**
-     * Initialize the viewport.
-     */
-    Viewport3D.prototype.init = function () {
-        var self = this;
-        // renderer
-        self.renderer = new THREE.WebGLRenderer({antialias: true});
-        self.renderer.setClearColor(self.backgroundColor);
-        self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
-        self.renderer.shadowMap.enabled = true;
-        self.domElement.appendChild(self.renderer.domElement);
-        // listen for events
-        window.addEventListener('resize', self.handleResize.bind(self), false);
-        self.scene.addEventListener('update', self.render.bind(self), false);
-        // draw the first frame
-        self.render();
-        // start updating controllers
-        self.update();
-    };
-
-    /**
-     * Render the viewport once.
-     */
-    Viewport3D.prototype.render = function () {
-        var self = this;
-        self.renderer.render(self.scene, self.camera);
-    };
-
-    /**
-     * Set viewport background color.
-     * @param {THREE.Color} color Color
-     */
-    Viewport3D.prototype.setBackgroundColor = function (color) {
-        var self = this;
-        self.background = color;
-        self.renderer.setClearColor(self.backgroundColor);
-        self.render();
-    };
-
-    /**
-     * Set the viewport camera.
-     * @param {String} name Camera name
-     */
-    Viewport3D.prototype.setCamera = function (name) {
-        var found = false, i, obj, self = this;
-        if (typeof self.scene === FOUR.Scene3D) {
-            self.camera = self.scene.getCamera(name);
-        } else {
-            for (i = 0;i < self.scene.children && !found; i++) {
-                obj = self.scene.children[i];
-                if (typeof obj === THREE.Camera) {
-                    if (obj.name === name) {
-                        self.camera = obj;
-                        found = true;
-                    }
-                }
-            }
-            if (!found) {
-                console.error('Camera "' + name + '" not found');
-            }
-        }
-        self.render();
-    };
-
-    /**
-     * Set the active viewport controller.
-     * @param {String} mode Controller key
-     */
-    Viewport3D.prototype.setMode = function (mode) {
-        var self = this;
-        self.controller[self.mode].disable();
-        self.mode = mode;
-        self.controller[self.mode].enable();
-    };
-
-    /**
-     * Update the controller and global tween state.
-     */
-    Viewport3D.prototype.update = function () {
-        var self = this;
-        // enqueue next update
-        requestAnimationFrame(self.update.bind(self));
-        // update tween state
-        TWEEN.update();
-        // update the current controller if it has an update() function
-        var delta = self.clock.getDelta();
-        self.controller[self.mode].update(delta);
-    };
-
-    return Viewport3D;
-
 }());
