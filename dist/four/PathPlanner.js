@@ -25,7 +25,9 @@ FOUR.PathPlanner = (function () {
 
     function PathPlanner () {}
 
-    PathPlanner.prototype.generateWalkPath = function () {
+    PathPlanner.prototype.generateTourSequence = function (features) {
+        // TODO return a promise
+        // TODO execute computation in a worker
         var material, geometry, i, line, self = this;
         var ts = new TravellingSalesman(50);
         // Add points to itinerary

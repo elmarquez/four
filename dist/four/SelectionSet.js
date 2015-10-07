@@ -6,18 +6,17 @@ var FOUR = FOUR || {};
 FOUR.SelectionSet = (function () {
 
   /**
-   * Selection set. Emits 'update' events.
+   * Selection set. Emits 'update' event when the selection set changes.
    * @param {Object} config Configuration
    * @constructor
    */
   function SelectionSet (config) {
     THREE.EventDispatcher.call(this);
-    var self = this;
     config = config || {};
+    var self = this;
     self.count = 0;
     self.name = 'selection-set';
     self.selectedColor = 0xff5a00;
-    self.scene = {};
     self.selection = {};
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
@@ -30,7 +29,7 @@ FOUR.SelectionSet = (function () {
 
   /**
    * Add object to the selection set.
-   * @param {Object3D} obj Scene object
+   * @param {THREE.Object3D} obj Scene object
    * @param {Function} filter Selection filter
    * @param {Boolean} update Emit update event
    */
@@ -64,7 +63,7 @@ FOUR.SelectionSet = (function () {
 
   /**
    * Default object filter.
-   * @returns {boolean} True
+   * @returns {Boolean} True
    */
   SelectionSet.prototype.defaultFilter = function () {
     return true;
@@ -73,6 +72,7 @@ FOUR.SelectionSet = (function () {
   /**
    * Change the object's visual state to deselected.
    * @param {Object3D} obj Scene object
+   * TODO remove this or provide a user definable function
    */
   SelectionSet.prototype.deselect = function (obj) {
     if (obj.userData.hasOwnProperty('color')) {
@@ -147,6 +147,7 @@ FOUR.SelectionSet = (function () {
   /**
    * Change the object's visual state to selected.
    * @param {Object3D} obj Scene object
+   * TODO remove this or provide a user definable function
    */
   SelectionSet.prototype.select = function (obj) {
     var self = this;

@@ -234,7 +234,9 @@ FOUR.PathPlanner = (function () {
 
     function PathPlanner () {}
 
-    PathPlanner.prototype.generateWalkPath = function () {
+    PathPlanner.prototype.generateTourSequence = function (features) {
+        // TODO return a promise
+        // TODO execute computation in a worker
         var material, geometry, i, line, self = this;
         var ts = new TravellingSalesman(50);
         // Add points to itinerary
@@ -567,18 +569,17 @@ var FOUR = FOUR || {};
 FOUR.SelectionSet = (function () {
 
   /**
-   * Selection set. Emits 'update' events.
+   * Selection set. Emits 'update' event when the selection set changes.
    * @param {Object} config Configuration
    * @constructor
    */
   function SelectionSet (config) {
     THREE.EventDispatcher.call(this);
-    var self = this;
     config = config || {};
+    var self = this;
     self.count = 0;
     self.name = 'selection-set';
     self.selectedColor = 0xff5a00;
-    self.scene = {};
     self.selection = {};
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
@@ -591,7 +592,7 @@ FOUR.SelectionSet = (function () {
 
   /**
    * Add object to the selection set.
-   * @param {Object3D} obj Scene object
+   * @param {THREE.Object3D} obj Scene object
    * @param {Function} filter Selection filter
    * @param {Boolean} update Emit update event
    */
@@ -625,7 +626,7 @@ FOUR.SelectionSet = (function () {
 
   /**
    * Default object filter.
-   * @returns {boolean} True
+   * @returns {Boolean} True
    */
   SelectionSet.prototype.defaultFilter = function () {
     return true;
@@ -634,6 +635,7 @@ FOUR.SelectionSet = (function () {
   /**
    * Change the object's visual state to deselected.
    * @param {Object3D} obj Scene object
+   * TODO remove this or provide a user definable function
    */
   SelectionSet.prototype.deselect = function (obj) {
     if (obj.userData.hasOwnProperty('color')) {
@@ -708,6 +710,7 @@ FOUR.SelectionSet = (function () {
   /**
    * Change the object's visual state to selected.
    * @param {Object3D} obj Scene object
+   * TODO remove this or provide a user definable function
    */
   SelectionSet.prototype.select = function (obj) {
     var self = this;
@@ -1919,7 +1922,7 @@ FOUR.SelectionController = (function () {
     self.modifiers = {};
     self.mouse = new THREE.Vector2();
     self.raycaster = new THREE.Raycaster();
-    self.selection = config.viewport.scene.selection;
+    self.selection = config.selection;
     self.viewport = config.viewport;
 
     Object.keys(self.MODIFIERS).forEach(function (key) {
@@ -2061,11 +2064,13 @@ FOUR.SelectionController = (function () {
 
 var FOUR = FOUR || {};
 
-/**
- * Tour controller provides automated navigation between selected features.
- */
 FOUR.TourController = (function () {
 
+    /**
+     * Tour controller provides automated navigation between selected features.
+     * @param camera
+     * @param domElement
+     */
     function TourController (camera, domElement) {
         THREE.EventDispatcher.call(this);
 
@@ -2085,7 +2090,9 @@ FOUR.TourController = (function () {
         };
 
         self.camera = camera;
+        self.current = -1; // index of the tour feature
         self.domElement = domElement;
+        self.path = [];
         self.planner = new FOUR.PathPlanner();
     }
 
@@ -2093,9 +2100,42 @@ FOUR.TourController = (function () {
 
     TourController.prototype.constructor = TourController;
 
+    /**
+     * Calculate the distance between points.
+     * @param {THREE.Vector3} p1 Point
+     * @param {THREE.Vector3} p2 Point
+     * @returns {number} Distance
+     */
+    TourController.prototype.distanceBetween = function (p1, p2) {
+        var dx = Math.abs(p2.x - p1.x);
+        var dy = Math.abs(p2.y - p1.y);
+        var dz = Math.abs(p2.z - p1.z);
+        return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
+    };
+
     TourController.prototype.init = function () {};
 
-    TourController.prototype.nearest = function () {};
+    /**
+     * Navigate to the current tour feature.
+     */
+    TourController.prototype.navigate = function () {};
+
+    /**
+     * Find the tour feature nearest to position P.
+     * @param {THREE.Vector3} p Point
+     * @returns {THREE.Vector3} Position of nearest tour feature.
+     */
+    TourController.prototype.nearest = function (p) {
+        var self = this;
+        var nearest = self.path.reduce(function (last, current) {
+            var dist = self.distanceBetween(p, current);
+            if (dist <= last.dist) {
+                last = {x: current.x, y: current.y, z: current.z, dist: dist};
+            }
+            return last;
+        }, {x: p.x, y: p.y, z: p.z, dist: Infinity }); // TODO include the feature identifier
+        return nearest;
+    };
 
     TourController.prototype.next = function () {};
 
@@ -2105,7 +2145,14 @@ FOUR.TourController = (function () {
      * Update the tour itinerary.
      */
     TourController.prototype.update = function () {
-
+        var self = this;
+        // get the list of features
+        var features = [];
+        self.planner
+          .generateTourSequence(features)
+          .then(function (path) {
+              self.path = path;
+          });
     };
 
     return TourController;
@@ -5233,52 +5280,51 @@ var TravellingSalesman = (function () {
 var FOUR = FOUR || {};
 
 /**
- * Renders the view from a scene camera to the DOM.
+ * Renders the view from a scene camera to a canvas element in the DOM.
  */
 FOUR.Viewport3D = (function () {
 
-    function Viewport3D(elementId, scene) {
+    /**
+     * Viewport3D constructor.
+     * @param {Element} domElement DOM element
+     * @param {THREE.Scene|FOUR.Scene} scene Scene
+     * @param {THREE.Camera} camera Camera
+     * @constructor
+     */
+    function Viewport3D(domElement, scene, camera) {
         THREE.EventDispatcher.call(this);
-        this.MODES = {
-            ORBIT: 'orbit',
-            SELECTION: 'selection',
-            TRACKBALL: 'trackball',
-            WALK: 'walk'
-        };
-        this.WALK_HEIGHT = 7.5;
-
         this.backgroundColor = new THREE.Color(0x000, 1.0);
-        this.camera = null;
+        this.camera = camera;
         this.clock = new THREE.Clock();
-        this.controller = {};
-        this.domElement = null;
-        this.domElementId = elementId;
-        this.mode = this.MODES.SELECTION;
-        this.renderContinuous = false;
+        this.controllers = {};
+        this.domElement = domElement;
         this.renderer = null;
         this.scene = scene || new THREE.Scene();
-
-        this.walk = {
-            index: 0,
-            path: []
-        };
     }
 
     Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
 
     Viewport3D.prototype.constructor = Viewport3D;
 
-    Viewport3D.prototype.getViewBoundingBox = function () {
-        var self = this;
-        if (self.scene.selection.count > 0) {
-            return self.scene.selection.getBoundingBox();
-        } else {
-            var bbox = new FOUR.BoundingBox('scene-bounding-box');
-            bbox.update(self.scene.model.children);
-            return bbox;
-        }
+    /**
+     * Get the viewport camera.
+     * @returns {THREE.Camera}
+     */
+    Viewport3D.prototype.getCamera = function () {
+        return this.camera;
     };
 
+    /**
+     * Get the viewport scene.
+     * @returns {THREE.Scene|FOUR.Scene}
+     */
+    Viewport3D.prototype.getScene = function () {
+        return this.scene;
+    };
+
+    /**
+     * Handle window resize event.
+     */
     Viewport3D.prototype.handleResize = function () {
         var self = this;
         var height = self.domElement.clientHeight;
@@ -5294,23 +5340,15 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.init = function () {
         var self = this;
-        self.domElement = document.getElementById(self.domElementId);
         // renderer
         self.renderer = new THREE.WebGLRenderer({antialias: true});
         self.renderer.setClearColor(self.backgroundColor);
         self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
         self.renderer.shadowMap.enabled = true;
         self.domElement.appendChild(self.renderer.domElement);
-        // set the camera
-        self.setCamera(self.scene.DEFAULT_CAMERA_NAME);
-        // setup interactions
-        self.setupKeyboardBindings();
-        self.setupControllers();
         // listen for events
-        window.addEventListener('resize', function () {
-            self.handleResize();
-        }, true);
-        self.scene.addEventListener('update', self.render.bind(self));
+        window.addEventListener('resize', self.handleResize.bind(self), false);
+        self.scene.addEventListener('update', self.render.bind(self), false);
         // draw the first frame
         self.render();
         // start updating controllers
@@ -5326,182 +5364,55 @@ FOUR.Viewport3D = (function () {
     };
 
     /**
+     * Set viewport background color.
+     * @param {THREE.Color} color Color
+     */
+    Viewport3D.prototype.setBackgroundColor = function (color) {
+        var self = this;
+        self.background = color;
+        self.renderer.setClearColor(self.backgroundColor);
+        self.render();
+    };
+
+    /**
      * Set the viewport camera.
      * @param {String} name Camera name
      */
     Viewport3D.prototype.setCamera = function (name) {
-        var self = this;
-        self.camera = self.scene.getCamera(name);
+        var found = false, i, obj, self = this;
+        if (typeof self.scene === FOUR.Scene3D) {
+            self.camera = self.scene.getCamera(name);
+        } else {
+            for (i = 0;i < self.scene.children && !found; i++) {
+                obj = self.scene.children[i];
+                if (typeof obj === THREE.Camera) {
+                    if (obj.name === name) {
+                        self.camera = obj;
+                        found = true;
+                    }
+                }
+            }
+            if (!found) {
+                console.error('Camera "' + name + '" not found');
+            }
+        }
         self.render();
     };
 
+    /**
+     * Set the active viewport controller.
+     * @param {String} mode Controller key
+     */
     Viewport3D.prototype.setMode = function (mode) {
         var self = this;
-        // disable the existing controller
         self.controller[self.mode].disable();
-        // enable the new controller
         self.mode = mode;
-        if (self.mode === self.MODES.SELECTION) {
-            console.log('select mode');
-            self.controller.selection.enable();
-        } else if (self.mode === self.MODES.ORBIT) {
-            console.log('orbit mode');
-            self.controller.orbit.enable();
-        } else if (self.mode === self.MODES.TRACKBALL) {
-            console.log('trackball mode');
-            self.controller.trackball.enable();
-        } else if (self.mode === self.MODES.WALK) {
-            console.log('walk mode');
-            self.controller.walk.enable();
-        }
+        self.controller[self.mode].enable();
     };
 
-    Viewport3D.prototype.setupControllers = function () {
-        // TODO this code should possibly be located outside of the viewport
-        var self = this;
-
-        // selection controller
-        self.controller.selection = new FOUR.SelectionController({viewport: self});
-        self.controller.selection.addEventListener('update', self.render.bind(self));
-
-        // trackball controller
-        self.controller.trackball = new FOUR.TrackballController(self.camera, self.domElement);
-        self.controller.trackball.rotateSpeed = 1.0;
-        self.controller.trackball.zoomSpeed = 1.2;
-        self.controller.trackball.panSpeed = 0.8;
-        self.controller.trackball.noZoom = false;
-        self.controller.trackball.noPan = false;
-        self.controller.trackball.staticMoving = true;
-        self.controller.trackball.dynamicDampingFactor = 0.3;
-        self.controller.trackball.keys = [65, 83, 68];
-        self.controller.trackball.disable();
-        self.controller.trackball.addEventListener('change', self.render.bind(self));
-
-        // first person navigation controller
-        self.controller.walk = new FOUR.WalkController(self.camera, self.domElement);
-        self.controller.walk.enforceWalkHeight = true;
-        self.controller.walk.disable();
-        self.controller.walk.addEventListener('change', self.render.bind(self));
-
-        // orbit controller
-        self.controller.orbit = new FOUR.OrbitController(self.camera, self.domElement);
-        self.controller.orbit.dampingFactor = 0.25;
-        self.controller.orbit.enableDamping = true;
-        self.controller.orbit.enablePan = true;
-        self.controller.orbit.enableZoom = true;
-        self.controller.orbit.target.set(0,0,0);
-        self.controller.orbit.disable();
-        self.controller.orbit.addEventListener('change', self.render.bind(self));
-
-        // keystate controller
-        self.controller.keystate = new FOUR.KeyStateController();
-        self.controller.keystate.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
-        self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
-        self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
-
-        // set the viewport mode
-        self.setMode(self.mode);
-    };
-
-    Viewport3D.prototype.setupKeyboardBindings = function () {
-        var self = this;
-
-        // bounding box
-        Mousetrap.bind('b', function () {
-            console.log('toggle bounding box visibility');
-            self.scene.boundingBox.toggleVisibility();
-            self.render();
-        });
-
-        // viewport mode
-        // TODO modify the cursor depending on the mode
-        Mousetrap.bind('q', function () {
-            self.setMode(self.MODES.SELECTION);
-        });
-        Mousetrap.bind('w', function () {
-            self.setMode(self.MODES.TRACKBALL);
-        });
-        Mousetrap.bind('e', function () {
-            self.setMode(self.MODES.WALK);
-        });
-        Mousetrap.bind('r', function () {
-            self.setMode(self.MODES.ORBIT);
-        });
-
-        // view controls
-        Mousetrap.bind('f', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.zoomToFit(bbox).then(function () {});
-        });
-
-        Mousetrap.bind('5', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.TOP, bbox);
-        });
-        Mousetrap.bind('6', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.FRONT, bbox);
-        });
-        Mousetrap.bind('7', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.LEFT,bbox);
-        });
-        Mousetrap.bind('8', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.RIGHT, bbox);
-        });
-        Mousetrap.bind('9', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.BACK, bbox);
-        });
-        Mousetrap.bind('0', function () {
-            var bbox = self.getViewBoundingBox();
-            self.camera.setView(self.camera.VIEWS.PERSPECTIVE, bbox);
-        });
-
-        // walk controls
-        Mousetrap.bind('g', function () {
-            self.generateWalkPath();
-        });
-        Mousetrap.bind(',', function () {
-            self.walkToPreviousPoint();
-        });
-        Mousetrap.bind('.', function () {
-            self.walkToNextPoint();
-        });
-        Mousetrap.bind('/', function () {
-            console.log('switch object focus');
-            self.moveToNextWaypointFeature();
-        });
-
-        // camera controls
-        Mousetrap.bind('t', function () {
-            console.log('toggle camera target visibility');
-            if (self.camera.target.visible) {
-                self.camera.hideTarget();
-            } else {
-                self.camera.showTarget();
-            }
-        });
-        Mousetrap.bind('y', function () {
-            console.log('toggle camera frustrum visibility');
-            if (self.camera.frustrum.visible) {
-                self.camera.hideFrustrum();
-            } else {
-                self.camera.showFrustrum();
-            }
-        });
-        Mousetrap.bind('=', function () {
-            self.camera.zoomIn();
-        });
-
-        Mousetrap.bind('-', function () {
-            self.camera.zoomOut();
-        });
-
-    };
-
+    /**
+     * Update the controller and global tween state.
+     */
     Viewport3D.prototype.update = function () {
         var self = this;
         // enqueue next update
