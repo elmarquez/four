@@ -1,7 +1,7 @@
 {
-  "name": "threejs-navigator",
+  "name": "threejs-cad",
   "version": "0.1.12",
-  "description": "Threejs multi-mode scene navigator",
+  "description": "Threejs CAD application components",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
