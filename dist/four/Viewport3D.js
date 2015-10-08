@@ -138,9 +138,13 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.setMode = function (mode) {
         var self = this;
-        self.controller[self.mode].disable();
+        if (self.mode && self.controller) {
+            self.controller.disable();
+        }
+        console.info('set viewport mode to ' + mode);
         self.mode = mode;
-        self.controller[self.mode].enable();
+        self.controller = self.controllers[self.mode];
+        self.controller.enable();
     };
 
     /**
@@ -155,7 +159,7 @@ FOUR.Viewport3D = (function () {
         // update the current controller if it has an update() function
         if (self.controller) {
             var delta = self.clock.getDelta();
-            self.controller[self.mode].update(delta);
+            self.controller.update(delta);
         }
     };
 

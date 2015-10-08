@@ -23,107 +23,59 @@ FOUR.PathPlanner = (function () {
         return Math.sqrt(dx + dy + dz);
     }
 
-    function PathPlanner () {}
-
-    PathPlanner.prototype.generateTourSequence = function (features) {
-        // TODO return a promise
-        // TODO execute computation in a worker
-        var material, geometry, i, line, self = this;
-        var ts = new TravellingSalesman(50);
-        // Add points to itinerary
-        var selected = self.selection.getObjects();
-        if (selected.length > 0) {
-            selected.forEach(function (obj) {
-                ts.addPoint({
-                    focus: 0,
-                    obj: obj,
-                    radius: obj.geometry.boundingSphere.radius,
-                    x: obj.position.x,
-                    y: obj.position.y,
-                    z: obj.position.z
-                });
-            });
-        } else {
-            // TODO filter entities
-            self.scene.traverse(function (obj) {
-                ts.addPoint({
-                    focus: 0,
-                    obj: obj,
-                    radius: obj.geometry.boundingSphere.radius,
-                    x: obj.position.x,
-                    y: obj.position.y,
-                    z: obj.position.z
-                });
-            });
-        }
-        // Initialize population
-        ts.init();
-        console.log('Initial distance: ' + ts.getPopulation().getFittest().getDistance());
-        // Evolve the population
-        ts.evolve(100);
-        // Print final results
-        console.log('Final distance: ' + ts.getPopulation().getFittest().getDistance());
-        console.log(ts.getPopulation().getFittest());
-
-        self.walk.path = ts.getSolution();
-        var lastpoint = self.walk.path[0];
-        for (i = 1; i < self.walk.path.length; i++) {
-            var point = self.walk.path[i];
-            // line geometry
-            material = new THREE.LineBasicMaterial({color: 0x0000cc});
-            geometry = new THREE.Geometry();
-            geometry.vertices.push(
-                new THREE.Vector3(lastpoint.x, lastpoint.y, lastpoint.z),
-                new THREE.Vector3(point.x, point.y, point.z)
-            );
-            line = new THREE.Line(geometry, material);
-            self.scene.add(line);
-            lastpoint = point;
-        }
-        // select the nearest point and set the walk index to that item
-        self.walk.index = 0;
-    };
-
-    PathPlanner.prototype.moveToNextWaypointFeature = function () {
-        console.log('move to next bounding box focal point');
+    function PathPlanner () {
         var self = this;
-        var waypoint = self.walk.path[self.walk.index];
-        var obj = waypoint.obj;
-        var x, y, z;
-        // if entity is a pole, then move to middle, top, bottom
-        if (obj.userData.type === 'pole') {
-            console.log('pole');
-            if (waypoint.focus === 0) {
-                z = obj.geometry.boundingSphere.radius;
-                waypoint.focus = 1;
-            } else if (waypoint.focus === 1) {
-                z = -(obj.geometry.boundingSphere.radius * 2);
-                waypoint.focus = 2;
-            } else if (waypoint.focus === 2) {
-                z = obj.geometry.boundingSphere.radius;
-                waypoint.focus = 0;
+        self.PLANNING_STRATEGY = {
+            GENETIC: 0,
+            SIMULATED_ANNEALING: 1
+        };
+    }
+
+    /**
+     * Generate tour sequence for a collection of features.
+     * @param {Array} features Features
+     * @param {*} strategy Planning strategy ID
+     * @returns {Promise}
+     */
+    PathPlanner.prototype.generateTourSequence = function (features, strategy) {
+        // TODO execute computation in a worker
+        return new Promise(function (resolve, reject) {
+            var path = [];
+            if (features.length > 0) {
+                var ts = new TravellingSalesman(50);
+                // Add points to itinerary
+                features.forEach(function (obj) {
+                    ts.addPoint({
+                        focus: 0,
+                        obj: obj,
+                        radius: obj.geometry.boundingSphere.radius,
+                        x: obj.position.x,
+                        y: obj.position.y,
+                        z: obj.position.z
+                    });
+                });
+                // Initialize the population
+                ts.init();
+                console.info('Initial distance: ' + ts.getPopulation().getFittest().getDistance());
+                // Evolve the population
+                try {
+                    ts.evolve(100);
+                    console.info('Final distance: ' + ts.getPopulation().getFittest().getDistance());
+                    path = ts.getSolution();
+                } catch (e) {
+                    reject(e);
+                }
             }
-            self.tweenCameraToPosition(
-                self.camera.position.x,
-                self.camera.position.y,
-                self.camera.position.z + z,
-                obj.position.x,
-                obj.position.y,
-                obj.position.z + z
-            );
-        }
-        // if entity is a catenary, then move to middle, end, start
-        else if (obj.userData.type === 'catenary') {
-            console.log('catenary');
-        }
+            resolve(path);
+        });
     };
 
-    PathPlanner.prototype.tweenToLevelOrientation = function (camera, progress) {
+    PathPlanner.prototype.tweenToOrientation = function (camera, orientation, progress) {
         // TODO animation time needs to be relative to the distance traversed
         return new Promise(function (resolve) {
             var emit = progress;
             var start = { x: camera.up.x, y: camera.up.y, z: camera.up.z };
-            var finish = { x: 0, y: 1, z: 0 };
+            var finish = { x: orientation.x, y: orientation.y, z: orientation.z };
             var tween = new TWEEN.Tween(start).to(finish, 1000);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {

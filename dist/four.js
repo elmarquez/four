@@ -232,107 +232,59 @@ FOUR.PathPlanner = (function () {
         return Math.sqrt(dx + dy + dz);
     }
 
-    function PathPlanner () {}
-
-    PathPlanner.prototype.generateTourSequence = function (features) {
-        // TODO return a promise
-        // TODO execute computation in a worker
-        var material, geometry, i, line, self = this;
-        var ts = new TravellingSalesman(50);
-        // Add points to itinerary
-        var selected = self.selection.getObjects();
-        if (selected.length > 0) {
-            selected.forEach(function (obj) {
-                ts.addPoint({
-                    focus: 0,
-                    obj: obj,
-                    radius: obj.geometry.boundingSphere.radius,
-                    x: obj.position.x,
-                    y: obj.position.y,
-                    z: obj.position.z
-                });
-            });
-        } else {
-            // TODO filter entities
-            self.scene.traverse(function (obj) {
-                ts.addPoint({
-                    focus: 0,
-                    obj: obj,
-                    radius: obj.geometry.boundingSphere.radius,
-                    x: obj.position.x,
-                    y: obj.position.y,
-                    z: obj.position.z
-                });
-            });
-        }
-        // Initialize population
-        ts.init();
-        console.log('Initial distance: ' + ts.getPopulation().getFittest().getDistance());
-        // Evolve the population
-        ts.evolve(100);
-        // Print final results
-        console.log('Final distance: ' + ts.getPopulation().getFittest().getDistance());
-        console.log(ts.getPopulation().getFittest());
-
-        self.walk.path = ts.getSolution();
-        var lastpoint = self.walk.path[0];
-        for (i = 1; i < self.walk.path.length; i++) {
-            var point = self.walk.path[i];
-            // line geometry
-            material = new THREE.LineBasicMaterial({color: 0x0000cc});
-            geometry = new THREE.Geometry();
-            geometry.vertices.push(
-                new THREE.Vector3(lastpoint.x, lastpoint.y, lastpoint.z),
-                new THREE.Vector3(point.x, point.y, point.z)
-            );
-            line = new THREE.Line(geometry, material);
-            self.scene.add(line);
-            lastpoint = point;
-        }
-        // select the nearest point and set the walk index to that item
-        self.walk.index = 0;
-    };
-
-    PathPlanner.prototype.moveToNextWaypointFeature = function () {
-        console.log('move to next bounding box focal point');
+    function PathPlanner () {
         var self = this;
-        var waypoint = self.walk.path[self.walk.index];
-        var obj = waypoint.obj;
-        var x, y, z;
-        // if entity is a pole, then move to middle, top, bottom
-        if (obj.userData.type === 'pole') {
-            console.log('pole');
-            if (waypoint.focus === 0) {
-                z = obj.geometry.boundingSphere.radius;
-                waypoint.focus = 1;
-            } else if (waypoint.focus === 1) {
-                z = -(obj.geometry.boundingSphere.radius * 2);
-                waypoint.focus = 2;
-            } else if (waypoint.focus === 2) {
-                z = obj.geometry.boundingSphere.radius;
-                waypoint.focus = 0;
+        self.PLANNING_STRATEGY = {
+            GENETIC: 0,
+            SIMULATED_ANNEALING: 1
+        };
+    }
+
+    /**
+     * Generate tour sequence for a collection of features.
+     * @param {Array} features Features
+     * @param {*} strategy Planning strategy ID
+     * @returns {Promise}
+     */
+    PathPlanner.prototype.generateTourSequence = function (features, strategy) {
+        // TODO execute computation in a worker
+        return new Promise(function (resolve, reject) {
+            var path = [];
+            if (features.length > 0) {
+                var ts = new TravellingSalesman(50);
+                // Add points to itinerary
+                features.forEach(function (obj) {
+                    ts.addPoint({
+                        focus: 0,
+                        obj: obj,
+                        radius: obj.geometry.boundingSphere.radius,
+                        x: obj.position.x,
+                        y: obj.position.y,
+                        z: obj.position.z
+                    });
+                });
+                // Initialize the population
+                ts.init();
+                console.info('Initial distance: ' + ts.getPopulation().getFittest().getDistance());
+                // Evolve the population
+                try {
+                    ts.evolve(100);
+                    console.info('Final distance: ' + ts.getPopulation().getFittest().getDistance());
+                    path = ts.getSolution();
+                } catch (e) {
+                    reject(e);
+                }
             }
-            self.tweenCameraToPosition(
-                self.camera.position.x,
-                self.camera.position.y,
-                self.camera.position.z + z,
-                obj.position.x,
-                obj.position.y,
-                obj.position.z + z
-            );
-        }
-        // if entity is a catenary, then move to middle, end, start
-        else if (obj.userData.type === 'catenary') {
-            console.log('catenary');
-        }
+            resolve(path);
+        });
     };
 
-    PathPlanner.prototype.tweenToLevelOrientation = function (camera, progress) {
+    PathPlanner.prototype.tweenToOrientation = function (camera, orientation, progress) {
         // TODO animation time needs to be relative to the distance traversed
         return new Promise(function (resolve) {
             var emit = progress;
             var start = { x: camera.up.x, y: camera.up.y, z: camera.up.z };
-            var finish = { x: 0, y: 1, z: 0 };
+            var finish = { x: orientation.x, y: orientation.y, z: orientation.z };
             var tween = new TWEEN.Tween(start).to(finish, 1000);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
@@ -816,9 +768,12 @@ FOUR.TargetCamera = (function () {
         this.emit('update');
     };
 
+    /**
+     * Reset camera orientation so that camera.up aligns with +Z.
+     */
     TargetCamera.prototype.resetOrientation = function () {
         var self = this;
-        return self.planner.tweenToLevelOrientation(self, self.emit.bind(self));
+        return self.planner.tweenToOrientation(self, new THREE.Vector3(0,0,1), self.emit.bind(self));
     };
 
     TargetCamera.prototype.setDistance = function (dist) {
@@ -1674,9 +1629,13 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.setMode = function (mode) {
         var self = this;
-        self.controller[self.mode].disable();
+        if (self.mode && self.controller) {
+            self.controller.disable();
+        }
+        console.info('set viewport mode to ' + mode);
         self.mode = mode;
-        self.controller[self.mode].enable();
+        self.controller = self.controllers[self.mode];
+        self.controller.enable();
     };
 
     /**
@@ -1691,7 +1650,7 @@ FOUR.Viewport3D = (function () {
         // update the current controller if it has an update() function
         if (self.controller) {
             var delta = self.clock.getDelta();
-            self.controller[self.mode].update(delta);
+            self.controller.update(delta);
         }
     };
 
@@ -2730,12 +2689,20 @@ FOUR.TourController = (function () {
     };
 
     /**
+     * Emit event.
+     * @param {String} type Event type
+     */
+    TourController.prototype.emit = function (type) {
+        this.dispatchEvent({type: type});
+    };
+
+    /**
      * Enable the controller.
      */
     TourController.prototype.enable = function () {
         var self = this;
         // listen for updates on the selection set
-        self.selection.addEventListener('update', self.update.bind(self), false);
+        self.selection.addEventListener('update', self.plan.bind(self), false);
         // listen for key input events
         // TODO
         this.enabled = true;
@@ -2766,13 +2733,13 @@ FOUR.TourController = (function () {
         target.add(self.camera.position);
         var diff = new THREE.Vector3().subVectors(new THREE.Vector3(feature.x, feature.y, feature.z), target);
         // the next camera position
-        var camera = new THREE.Vector3().add(self.camera.position, diff);
+        var camera = new THREE.Vector3().addVectors(self.camera.position, diff);
         // move the camera to the next position
         return self.planner.tweenToPosition(
           self.camera,
           new THREE.Vector3(camera.x, camera.y, camera.z),
           new THREE.Vector3(feature.x, feature.y, feature.z),
-          self.noop
+          self.emit.bind(self)
         );
     };
 
@@ -2817,6 +2784,27 @@ FOUR.TourController = (function () {
     TourController.prototype.noop = function () {};
 
     /**
+     * Generate a tour plan.
+     * @returns {Promise}
+     */
+    TourController.prototype.plan = function () {
+        var self = this;
+        // reset the current feature index
+        self.current = -1;
+        self.path = [];
+        // get the list of features
+        var features = self.selection.getObjects();
+        // generate the tour path
+        return self.planner
+          .generateTourSequence(features)
+          .then(function (path) {
+              self.path = path;
+          }, function (err) {
+              console.error(err);
+          });
+    };
+
+    /**
      * Navigate to the previous feature.
      * @returns {Promise}
      */
@@ -2835,21 +2823,9 @@ FOUR.TourController = (function () {
     };
 
     /**
-     * Update the tour itinerary.
-     * @returns {Promise}
+     * Update the controller state.
      */
-    TourController.prototype.update = function () {
-        var self = this;
-        // reset the current feature index
-        self.current = -1;
-        // get the list of features
-        var features = [];
-        return self.planner
-          .generateTourSequence(features)
-          .then(function (path) {
-              self.path = path;
-          });
-    };
+    TourController.prototype.update = function () {};
 
     return TourController;
 

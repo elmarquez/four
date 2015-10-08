@@ -72,12 +72,20 @@ FOUR.TourController = (function () {
     };
 
     /**
+     * Emit event.
+     * @param {String} type Event type
+     */
+    TourController.prototype.emit = function (type) {
+        this.dispatchEvent({type: type});
+    };
+
+    /**
      * Enable the controller.
      */
     TourController.prototype.enable = function () {
         var self = this;
         // listen for updates on the selection set
-        self.selection.addEventListener('update', self.update.bind(self), false);
+        self.selection.addEventListener('update', self.plan.bind(self), false);
         // listen for key input events
         // TODO
         this.enabled = true;
@@ -108,13 +116,13 @@ FOUR.TourController = (function () {
         target.add(self.camera.position);
         var diff = new THREE.Vector3().subVectors(new THREE.Vector3(feature.x, feature.y, feature.z), target);
         // the next camera position
-        var camera = new THREE.Vector3().add(self.camera.position, diff);
+        var camera = new THREE.Vector3().addVectors(self.camera.position, diff);
         // move the camera to the next position
         return self.planner.tweenToPosition(
           self.camera,
           new THREE.Vector3(camera.x, camera.y, camera.z),
           new THREE.Vector3(feature.x, feature.y, feature.z),
-          self.noop
+          self.emit.bind(self)
         );
     };
 
@@ -159,6 +167,27 @@ FOUR.TourController = (function () {
     TourController.prototype.noop = function () {};
 
     /**
+     * Generate a tour plan.
+     * @returns {Promise}
+     */
+    TourController.prototype.plan = function () {
+        var self = this;
+        // reset the current feature index
+        self.current = -1;
+        self.path = [];
+        // get the list of features
+        var features = self.selection.getObjects();
+        // generate the tour path
+        return self.planner
+          .generateTourSequence(features)
+          .then(function (path) {
+              self.path = path;
+          }, function (err) {
+              console.error(err);
+          });
+    };
+
+    /**
      * Navigate to the previous feature.
      * @returns {Promise}
      */
@@ -177,21 +206,9 @@ FOUR.TourController = (function () {
     };
 
     /**
-     * Update the tour itinerary.
-     * @returns {Promise}
+     * Update the controller state.
      */
-    TourController.prototype.update = function () {
-        var self = this;
-        // reset the current feature index
-        self.current = -1;
-        // get the list of features
-        var features = [];
-        return self.planner
-          .generateTourSequence(features)
-          .then(function (path) {
-              self.path = path;
-          });
-    };
+    TourController.prototype.update = function () {};
 
     return TourController;
 

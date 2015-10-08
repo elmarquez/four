@@ -111,9 +111,12 @@ FOUR.TargetCamera = (function () {
         this.emit('update');
     };
 
+    /**
+     * Reset camera orientation so that camera.up aligns with +Z.
+     */
     TargetCamera.prototype.resetOrientation = function () {
         var self = this;
-        return self.planner.tweenToLevelOrientation(self, self.emit.bind(self));
+        return self.planner.tweenToOrientation(self, new THREE.Vector3(0,0,1), self.emit.bind(self));
     };
 
     TargetCamera.prototype.setDistance = function (dist) {
