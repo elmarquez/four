@@ -82,7 +82,7 @@ FOUR.BoundingBox = (function () {
    * @param {Array} objects List of scene objects
    */
   BoundingBox.prototype.update = function (objects) {
-    console.log('bounding box update');
+    //console.log('bounding box update');
     var self = this;
     // reset values to base case
     self.reset();

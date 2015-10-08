@@ -2,14 +2,14 @@
 
 var FOUR = FOUR || {};
 
-FOUR.KeyStateController = (function () {
+FOUR.KeyInputController = (function () {
 
   /**
-   * Key state controller. Maintains the state of some key combinations and
+   * Key input controller. Maintains the state of some key combinations and
    * otherwise dispatches key events to listeners.
    * @constructor
    */
-  function KeyStateController (config) {
+  function KeyInputController (config) {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
@@ -59,16 +59,16 @@ FOUR.KeyStateController = (function () {
     Mousetrap.bind('o', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
   }
 
-  KeyStateController.prototype = Object.create(THREE.EventDispatcher.prototype);
+  KeyInputController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-  KeyStateController.prototype.constructor = KeyStateController;
+  KeyInputController.prototype.constructor = KeyInputController;
 
-  KeyStateController.prototype.keydown = function (key, evt) {
+  KeyInputController.prototype.keydown = function (key, evt) {
     this.modifiers[key] = true;
     this.dispatchEvent({'type': 'keydown', key: key, keyCode: evt ? evt.keyCode : null});
   };
 
-  KeyStateController.prototype.keyup = function (key, evt) {
+  KeyInputController.prototype.keyup = function (key, evt) {
     this.modifiers[key] = false;
     this.dispatchEvent({'type': 'keyup', key: key, keyCode: evt ? evt.keyCode : null});
   };
@@ -78,10 +78,10 @@ FOUR.KeyStateController = (function () {
    * @param {String} command Key command
    * @param {Function} callback Callback
    */
-  KeyStateController.prototype.register = function (command, callback) {
+  KeyInputController.prototype.register = function (command, callback) {
     throw new Error('not implemented');
   };
 
-  return KeyStateController;
+  return KeyInputController;
 
 }());

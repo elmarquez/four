@@ -41,9 +41,9 @@ FOUR.TrackballController = (function () {
 
       _key = null;
 
-    function TrackballController (camera, domElement) {
+    function TrackballController (config) {
         THREE.EventDispatcher.call(this);
-
+        config = config || {};
         var self = this;
 
         self.EPS = 0.000001;
@@ -85,10 +85,10 @@ FOUR.TrackballController = (function () {
         self.allowZoom = true;
         self.allowPan = true;
         self.allowRotate = true;
-        self.camera = camera;
-        self.domElement = (domElement !== undefined) ? domElement : document;
+        self.camera = config.camera;
+        self.domElement = config.domElement;
         self.dynamicDampingFactor = 0.2;
-        self.enabled = true;
+        self.enabled = false;
         self.keys = [
             65 /*A*/, 83 /*S*/, 68 /*D*/,
             73 /*I*/, 74 /*J*/, 75 /*K*/, 76 /*L*/
@@ -108,6 +108,10 @@ FOUR.TrackballController = (function () {
         self.target0 = self.target.clone();
         self.position0 = self.camera.position.clone();
         self.up0 = self.camera.up.clone();
+
+        Object.keys(config).forEach(function (key) {
+           self[key] = config[key];
+        });
     }
 
     TrackballController.prototype = Object.create(THREE.EventDispatcher.prototype);

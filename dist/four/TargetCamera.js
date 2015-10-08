@@ -111,6 +111,11 @@ FOUR.TargetCamera = (function () {
         this.emit('update');
     };
 
+    TargetCamera.prototype.resetOrientation = function () {
+        var self = this;
+        return self.planner.tweenToLevelOrientation(self, self.emit.bind(self));
+    };
+
     TargetCamera.prototype.setDistance = function (dist) {
         console.log('update the camera distance from target');
         var offset, distance, next, self = this;
@@ -140,6 +145,7 @@ FOUR.TargetCamera = (function () {
 
     TargetCamera.prototype.setPositionAndTarget = function (x, y, z, tx ,ty, tz) {
         var self = this;
+        self.distance = distance(new THREE.Vector3(x,y,z), new THREE.Vector3(tx, ty, tz));
         return self.planner.tweenToPosition(
             self,
             new THREE.Vector3(x, y, z),
@@ -164,8 +170,9 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Move the camera to the predefined view position.
-     * @param {Number} view View
+     * Move the camera to the predefined view position. Ensure that the entire
+     * bounding box is visible within the camera view.
+     * @param {String} view View
      * @param {BoundingBox} bbox View bounding box
      */
     TargetCamera.prototype.setView = function (view, bbox) {
@@ -251,7 +258,7 @@ FOUR.TargetCamera = (function () {
      * Zoom in incrementally.
      */
     TargetCamera.prototype.zoomIn = function () {
-        console.log('zoom in');
+        //console.log('zoom in');
         var offset, distance, next, self = this;
         // get the direction and current distance from the target to the camera
         offset = new THREE.Vector3().subVectors(self.position, self.target);
@@ -271,7 +278,7 @@ FOUR.TargetCamera = (function () {
      * Zoom out incrementally.
      */
     TargetCamera.prototype.zoomOut = function () {
-        console.log('zoom out');
+        //console.log('zoom out');
         var offset, distance, next, self = this;
         // get the direction and current distance from the target to the camera
         offset = new THREE.Vector3().subVectors(self.position, self.target);
@@ -292,7 +299,7 @@ FOUR.TargetCamera = (function () {
      * @param {BoundingBox} bbox Bounding box
      */
     TargetCamera.prototype.zoomToFit = function (bbox) {
-        console.log('zoom to fit all or selected items');
+        //console.log('zoom to fit all or selected items');
         var direction, distance, next, self = this;
         // get the direction from the target to the camera
         direction = new THREE.Vector3().subVectors(self.position, self.target);

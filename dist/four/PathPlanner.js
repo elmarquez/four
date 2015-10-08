@@ -118,6 +118,26 @@ FOUR.PathPlanner = (function () {
         }
     };
 
+    PathPlanner.prototype.tweenToLevelOrientation = function (camera, progress) {
+        // TODO animation time needs to be relative to the distance traversed
+        return new Promise(function (resolve) {
+            var emit = progress;
+            var start = { x: camera.up.x, y: camera.up.y, z: camera.up.z };
+            var finish = { x: 0, y: 1, z: 0 };
+            var tween = new TWEEN.Tween(start).to(finish, 1000);
+            tween.easing(TWEEN.Easing.Cubic.InOut);
+            tween.onComplete(function () {
+                resolve();
+            });
+            tween.onUpdate(function () {
+                camera.up = new THREE.Vector3(this.x, this.y, this.z);
+                emit('update');
+            });
+            tween.start();
+            emit('update');
+        });
+    };
+
     /**
      * Tween the camera to the specified position.
      * @param {THREE.Camera} camera Camera
@@ -127,6 +147,7 @@ FOUR.PathPlanner = (function () {
      * @returns {Promise}
      */
     PathPlanner.prototype.tweenToPosition = function (camera, position, target, progress) {
+        // TODO animation time needs to be relative to the distance traversed
         // TODO need better path planning ... there is too much rotation happening right now
         return new Promise(function (resolve) {
             var emit = progress;
@@ -141,7 +162,7 @@ FOUR.PathPlanner = (function () {
             var tween = new TWEEN.Tween(start).to(finish, 1500);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
-                emit('continuous-update-end');
+                //console.info('tween done');
                 resolve();
             });
             tween.onUpdate(function () {
@@ -150,90 +171,12 @@ FOUR.PathPlanner = (function () {
                 camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.position.set(tweened.x, tweened.y, tweened.z);
                 camera.target.set(tweened.tx, tweened.ty, tweened.tz);
+                //console.log('tween');
                 emit('update');
             });
             tween.start();
-            emit('continuous-update-start');
             emit('update');
         });
-    };
-
-    //PathPlanner.prototype.tweenToPositionAndRotation = function (camera, position, target, rotation, progress) {
-    //    // TODO need better path planning ... there is too much rotation happening right now
-    //    return new Promise(function (resolve) {
-    //        var emit = progress;
-    //        var start = {
-    //            x: camera.position.x, y: camera.position.y, z: camera.position.z,
-    //            tx: camera.target.x, ty: camera.target.y, tz: camera.target.z,
-    //            rx: camera.rotation.x, ry: camera.rotation.y, rz: camera.rotation.z
-    //        };
-    //        var finish = {
-    //            x: position.x, y: position.y, z: position.z,
-    //            tx: target.x, ty: target.y, tz: target.z,
-    //            rx: rotation.x, ry: rotation.y, rz: rotation.z
-    //        };
-    //        var tween = new TWEEN.Tween(start).to(finish, 1500);
-    //        tween.easing(TWEEN.Easing.Cubic.InOut);
-    //        tween.onComplete(function () {
-    //            emit('continuous-update-end');
-    //            resolve();
-    //        });
-    //        tween.onUpdate(function () {
-    //            var tweened = this;
-    //            camera.distance = distance(camera.position, camera.target);
-    //            camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
-    //            camera.position.set(tweened.x, tweened.y, tweened.z);
-    //            camera.target.set(tweened.tx, tweened.ty, tweened.tz);
-    //            camera.rotation.set(tweened.rx, tweened.ry, tweened.rz, 'XYZ');
-    //        });
-    //        tween.start();
-    //        emit('continuous-update-start');
-    //        emit('update');
-    //    });
-    //};
-
-    PathPlanner.prototype.walkToNextPoint = function () {
-        console.log('walk to next point');
-        var self = this;
-        if (self.walk.index >= self.walk.path.length - 1) {
-            self.walk.index = 0;
-        } else {
-            self.walk.index += 1;
-        }
-        var point = self.walk.path[self.walk.index];
-        var offset = 0;
-        // the offset from the current camera position to the new camera position
-        var dist = 10 / Math.tan(Math.PI * self.camera.fov / 360);
-        var target = new THREE.Vector3(0, 0, -(dist + offset)); // 100 is the distance from the camera to the target, measured along the Z axis
-        target.applyQuaternion(self.camera.quaternion);
-        target.add(self.camera.position);
-        var diff = new THREE.Vector3().subVectors(new THREE.Vector3(point.x, point.y, point.z), target);
-        // the next camera position
-        var next = new THREE.Vector3().add(self.camera.position, diff);
-        // move the camera to the next position
-        self.tweenCameraToPosition(next.x, next.y, next.z, point.x, point.y, 2);
-    };
-
-    PathPlanner.prototype.walkToPreviousPoint = function () {
-        console.log('walk to previous point');
-        var self = this;
-        if (self.walk.index <= 0) {
-            self.walk.index = self.walk.path.length - 1;
-        } else {
-            self.walk.index -= 1;
-        }
-        var point = self.walk.path[self.walk.index];
-        var offset = 0;
-        // the offset from the current camera position to the new camera position
-        var dist = 10 / Math.tan(Math.PI * self.camera.fov / 360);
-        var target = new THREE.Vector3(0, 0, -(dist + offset)); // 100 is the distance from the camera to the target, measured along the Z axis
-        target.applyQuaternion(self.camera.quaternion);
-        target.add(self.camera.position);
-        var diff = new THREE.Vector3().subVectors(new THREE.Vector3(point.x, point.y, point.z), target);
-        // the next camera position
-        var next = new THREE.Vector3().add(self.camera.position, diff);
-        // move the camera to the next position
-        self.tweenCameraToPosition(next.x, next.y, next.z, point.x, point.y, 2);
     };
 
     return PathPlanner;

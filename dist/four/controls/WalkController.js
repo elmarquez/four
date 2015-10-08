@@ -8,7 +8,7 @@ var FOUR = FOUR || {};
  */
 FOUR.WalkController = (function () {
 
-    function WalkController (camera, domElement) {
+    function WalkController (config) {
         THREE.EventDispatcher.call(this);
         var self = this;
 
@@ -22,8 +22,8 @@ FOUR.WalkController = (function () {
             MOVE_DOWN: 79
         };
 
-        self.camera = camera;
-        self.domElement = domElement;
+        self.camera = config.camera;
+        self.domElement = config.domElement;
         self.enabled = false;
         self.lookChange = false;
         self.lookSpeed = 0.85;
@@ -52,6 +52,10 @@ FOUR.WalkController = (function () {
         self.viewHalfX = self.domElement.offsetWidth / 2;
         self.viewHalfY = self.domElement.offsetHeight / 2;
         self.domElement.setAttribute('tabindex', -1);
+
+        Object.keys(config).forEach(function (key) {
+            self[key] = config[key];
+        });
     }
 
     WalkController.prototype = Object.create(THREE.EventDispatcher.prototype);

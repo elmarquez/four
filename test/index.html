@@ -17,12 +17,12 @@
     <script src="../lib/controls/WalkController.js"></script>
     <script src="../lib/path/TravellingSalesman.js"></script>
     <script src="../lib/BoundingBox.js"></script>
-    <script src="../lib/KeyStateController.js"></script>
+    <script src="../lib/KeyInputController.js"></script>
     <script src="../lib/PathPlanner.js"></script>
     <script src="../lib/Scene.js"></script>
     <script src="../lib/SelectionSet.js"></script>
     <script src="../lib/TargetCamera.js"></script>
-    <script src="../lib/viewport3d.js"></script>
+    <script src="../lib/Viewport3D.js"></script>
 
     <!-- demo application -->
     <script src="app.js"></script>
@@ -156,7 +156,7 @@
 </div>
 <script>
     $(document).ready(function () {
-        var keystate = window.keystate = new FOUR.KeyStateController();
+        var keyinput = window.keyinput = new FOUR.KeyInputController();
 
         var element = document.getElementById('webgl');
         var scene = window.scene = new FOUR.Scene3D();
@@ -285,12 +285,12 @@
 //            self.controller.orbit.disable();
 //            self.controller.orbit.addEventListener('change', self.render.bind(self));
 //
-//            // keystate controller
-//            self.controller.keystate = new FOUR.KeyStateController();
-//            self.controller.keystate.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
-//            self.controller.keystate.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
-//            self.controller.keystate.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
-//            self.controller.keystate.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
+//            // keyinput controller
+//            self.controller.keyinput = new FOUR.KeyStateController();
+//            self.controller.keyinput.addEventListener('keydown', self.controller.selection.onKeyDown.bind(self.controller.selection));
+//            self.controller.keyinput.addEventListener('keyup', self.controller.selection.onKeyUp.bind(self.controller.selection));
+//            self.controller.keyinput.addEventListener('keydown', self.controller.walk.onKeyDown.bind(self.controller.walk));
+//            self.controller.keyinput.addEventListener('keyup', self.controller.walk.onKeyUp.bind(self.controller.walk));
 //
 //            // set the viewport mode
 //            self.setMode(self.mode);
