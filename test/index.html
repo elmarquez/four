@@ -252,6 +252,7 @@
 
     // viewport
     var viewport = window.viewport = new FOUR.Viewport3D(domElement, scene, camera);
+    viewport.addEventListener('update', viewport.render.bind(viewport), false);
 
     setupKeyboardBindings();
     setupControllers();
@@ -319,6 +320,18 @@
       // tour controls
       Mousetrap.bind('m', function () {
         console.log('toggle tour path visibility');
+        var material = new THREE.LineDashedMaterial({color: 0xFFD700, dashSize: 2, gapSize: 1});
+        var geometry = new THREE.Geometry();
+        var path = viewport.controllers.tour.path;
+        var p;
+        for (var i=0;i<path.length;i++) {
+          p = path[i];
+          geometry.vertices.push(new THREE.Vector3(p.x, p.y, p.z));
+        }
+        var line = new THREE.LineSegments(geometry, material);
+        line.name = 'path';
+        scene.add(line);
+        viewport.render();
       });
       Mousetrap.bind('g', function () {
         viewport.controllers.tour.plan();
@@ -363,10 +376,15 @@
 
       // selection controller
       viewport.controllers.selection = new FOUR.SelectionController({viewport: viewport, selection: scene.selection});
+      viewport.controllers.selection.addEventListener('navigate', function (event) {
+        console.info('navigate to ', event.position);
+        camera.setTarget(event.position.x, event.position.y, event.position.z);
+      }, false);
       viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
 
       // trackball controller
       viewport.controllers.trackball = new FOUR.TrackballController({camera:camera, domElement:domElement});
+      viewport.controllers.trackball.dynamicDampingFactor = 0.5;
       viewport.controllers.trackball.addEventListener('change', viewport.render.bind(viewport));
 
       // first person navigation controller
@@ -380,14 +398,16 @@
 
       // tour controller
       viewport.controllers.tour = new FOUR.TourController({camera:camera, domElement:domElement, selection:scene.selection});
-      viewport.controllers.tour.addEventListener('change', viewport.render.bind(viewport));
+      viewport.controllers.tour.addEventListener('update', function () {
+        viewport.render.bind(viewport);
+      });
 
       // keyinput controller
       viewport.controllers.keyinput = new FOUR.KeyInputController();
       viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.selection.onKeyDown.bind(viewport.controllers.selection));
       viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.selection.onKeyUp.bind(viewport.controllers.selection));
-      viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
-      viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
+//      viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
+//      viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
 
       // set the viewport controller mode
       viewport.setMode('selection');
