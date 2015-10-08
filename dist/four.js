@@ -312,6 +312,7 @@ FOUR.PathPlanner = (function () {
         // TODO need better path planning ... there is too much rotation happening right now
         return new Promise(function (resolve) {
             var emit = progress;
+            // start and end tween values
             var start = {
                 x: camera.position.x, y: camera.position.y, z: camera.position.z,
                 tx: camera.target.x, ty: camera.target.y, tz: camera.target.z
@@ -320,10 +321,15 @@ FOUR.PathPlanner = (function () {
                 x: position.x, y: position.y, z: position.z,
                 tx: target.x, ty: target.y, tz: target.z
             };
+            // calculate the animation duration
+            var cameraDistance = distance(camera.position, position);
+            var targetDistance = distance(camera.target, target);
+            var dist = cameraDistance > targetDistance ? cameraDistance : targetDistance;
+
+            // animate
             var tween = new TWEEN.Tween(start).to(finish, 1500);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
-                //console.info('tween done');
                 resolve();
             });
             tween.onUpdate(function () {
@@ -332,7 +338,6 @@ FOUR.PathPlanner = (function () {
                 camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.position.set(tweened.x, tweened.y, tweened.z);
                 camera.target.set(tweened.tx, tweened.ty, tweened.tz);
-                //console.log('tween');
                 emit('update');
             });
             tween.start();
@@ -678,7 +683,7 @@ FOUR.TargetCamera = (function () {
         return Math.sqrt(dx + dy + dz);
     }
 
-    var TargetCamera = function (fov, aspect, near, far) {
+    function TargetCamera (fov, aspect, near, far) {
         THREE.PerspectiveCamera.call(this);
         var geometry, material, self = this;
 
@@ -726,7 +731,7 @@ FOUR.TargetCamera = (function () {
         self.lookAt(self.target); // TODO need to be able to intercept this call
 
         self.distance = self.getDistance(self.position, self.target);
-    };
+    }
 
     TargetCamera.prototype = Object.create(THREE.PerspectiveCamera.prototype);
 
@@ -779,6 +784,7 @@ FOUR.TargetCamera = (function () {
     TargetCamera.prototype.setDistance = function (dist) {
         console.log('update the camera distance from target');
         var offset, distance, next, self = this;
+        self.distance = dist;
         // get the direction and current distance from the target to the camera
         offset = new THREE.Vector3().subVectors(self.position, self.target);
         distance = offset.length();
@@ -793,6 +799,32 @@ FOUR.TargetCamera = (function () {
             self.emit.bind(self));
     };
 
+    /**
+     * Orient the camera to look at the specified position. Update the camera
+     * target and distance. Animate the camera to the new orientation.
+     * @param {Number} x X coordinate
+     * @param {Number} y Y coordinate
+     * @param {Number} z Z coordinate
+     * @returns {Promise}
+     */
+    TargetCamera.prototype.setLookAt = function (x, y, z) {
+        var self = this, target = new THREE.Vector3(x, y, z);
+        // update camera orientation
+        return self.planner.tweenToPosition(
+          self,
+          self.position,
+          target,
+          self.emit.bind(self));
+    };
+
+    /**
+     * Move the camera to the specified position. Maintain the current target
+     * position.
+     * @param {Number} x X coordinate
+     * @param {Number} y Y coordinate
+     * @param {Number} z Z coordinate
+     * @returns {Promise}
+     */
     TargetCamera.prototype.setPosition = function (x, y, z) {
         var self = this;
         // TODO need to update the target!!!
@@ -814,19 +846,26 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Set the camera target position. Animate the camera target to the new
-     * target position.
+     * Set the camera target. Maintain the distance from the camera to the
+     * target.
      * @param {Number} x X coordinate
      * @param {Number} y Y coordinate
      * @param {Number} z Z coordinate
+     * @returns {Promise}
      */
     TargetCamera.prototype.setTarget = function (x, y, z) {
-        var self = this;
+        var offset, next, self = this, target = new THREE.Vector3(x, y, z);
+        // get the current direction from the target to the camera
+        offset = new THREE.Vector3().subVectors(self.position, self.target);
+        offset.length(self.distance);
+        // compute the new camera position
+        next = new THREE.Vector3().addVectors(target, offset);
+        // move the camera to the new position
         return self.planner.tweenToPosition(
-            self,
-            self.position,
-            new THREE.Vector3(x, y, z),
-            self.emit.bind(self));
+          self,
+          new THREE.Vector3(next.x, next.y, next.z),
+          target,
+          self.emit.bind(self));
     };
 
     /**
@@ -1707,12 +1746,6 @@ FOUR.MultiController = (function () {
             ROTATE_LEFT: -1,
             ROTATE_RIGHT: -1
         };
-        self.MODE = {
-            SELECTION: 0,
-            TRACKBALL: 1,
-            FIRSTPERSON: 2,
-            ORBIT: 3
-        };
 
         self.controller = null;
         self.controllers = {};
@@ -1725,7 +1758,6 @@ FOUR.MultiController = (function () {
     MultiController.prototype.constructor = MultiController;
 
     MultiController.prototype.init = function () {
-        // Q, W, E, R
         var self = this;
         self.controllers.orbit = new FOUR.OrbitController();
         self.controllers.trackball = new FOUR.TrackballController();
@@ -2468,7 +2500,9 @@ FOUR.SelectionController = (function () {
 
   /**
    * Mouse based selection controller. Emits 'update' event when the associated
-   * selection set changes.
+   * selection set changes. Emits 'lookat' event when a lookat point is
+   * selected. Emits 'navigate' when a point is selected for the camera to
+   * navigate toward for close inspection.
    * @param {Object} config Configuration
    * @constructor
    */
@@ -2477,7 +2511,7 @@ FOUR.SelectionController = (function () {
     config = config || {};
     var self = this;
 
-    self.DOUBLE_CLICK_TIMEOUT = 500;
+    self.DOUBLE_CLICK_TIMEOUT = 500; // milliseconds
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.SELECTION_MODE = {
       POINT: 0,
@@ -2488,42 +2522,73 @@ FOUR.SelectionController = (function () {
       LIGHT: 5
     };
 
-    self.allow = {
-      doubleClick: false
-    };
     self.enabled = false;
     self.modifiers = {};
     self.mouse = new THREE.Vector2();
     self.raycaster = new THREE.Raycaster();
     self.selection = config.selection;
+    self.timeout = null;
     self.viewport = config.viewport;
 
     Object.keys(self.KEY).forEach(function (key) {
       self.modifiers[self.KEY[key]] = false;
     });
-
-    // listen for mouse events
-    self.selection.addEventListener('update', self.update.bind(self), false);
-    self.viewport.domElement.addEventListener('mousedown', self.onMouseDown.bind(self), false);
-    self.viewport.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
-    self.viewport.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
-    self.viewport.domElement.addEventListener('mouseup', self.onMouseUp.bind(self), false);
   }
 
   SelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-  SelectionController.prototype.constructor = SelectionController;
+  //SelectionController.prototype.constructor = SelectionController;
 
   SelectionController.prototype.count = function () {
     return this.selection.getObjects().length;
   };
 
   SelectionController.prototype.disable = function () {
-    this.enabled = false;
+    var self = this;
+    self.enabled = false;
+    self.selection.removeEventListener('update', self.update);
+    self.viewport.domElement.removeEventListener('mousedown', self.onMouseDown);
+    self.viewport.domElement.removeEventListener('mousemove', self.onMouseMove);
+    self.viewport.domElement.removeEventListener('mouseover', self.onMouseOver);
+    self.viewport.domElement.removeEventListener('mouseup', self.onMouseUp);
   };
 
   SelectionController.prototype.enable = function () {
-    this.enabled = true;
+    var self = this;
+    self.enabled = true;
+    self.selection.addEventListener('update', self.update.bind(self), false);
+    self.viewport.domElement.addEventListener('mousedown', self.onMouseDown.bind(self), false);
+    self.viewport.domElement.addEventListener('mousemove', self.onMouseMove.bind(self), false);
+    self.viewport.domElement.addEventListener('mouseover', self.onMouseOver.bind(self), false);
+    self.viewport.domElement.addEventListener('mouseup', self.onMouseUp.bind(self), false);
+  };
+
+  SelectionController.prototype.handleDoubleClick = function (obj) {
+    var self = this;
+    // CTRL double click rotates the camera toward the selected point
+    if (self.modifiers[self.KEY.CTRL]) {
+      self.dispatchEvent({type:'lookat', position:obj.point});
+    }
+    // double click navigates the camera to the selected point
+    else {
+      self.dispatchEvent({type:'navigate', position:obj.point});
+    }
+  };
+
+  SelectionController.prototype.handleSingleClick = function (objs) {
+    var self = this;
+    // add objects
+    if (self.modifiers[self.KEY.SHIFT] === true) {
+      self.selection.addAll(objs);
+    }
+    // remove objects
+    else if (self.modifiers[self.KEY.ALT] === true) {
+      self.selection.removeAll(objs);
+    }
+    // toggle selection state
+    else {
+      self.selection.toggle(objs);
+    }
   };
 
   SelectionController.prototype.onKeyDown = function (event) {
@@ -2531,7 +2596,8 @@ FOUR.SelectionController = (function () {
     if (!self.enabled) {
       return;
     } else if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
-      this.modifiers[event.keyCode] = true;
+      //console.info('key down', event.keyCode);
+      self.modifiers[event.keyCode] = true;
     }
   };
 
@@ -2540,54 +2606,52 @@ FOUR.SelectionController = (function () {
     if (!self.enabled) {
       return;
     } else if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
-      this.modifiers[event.keyCode] = false;
+      //console.info('key up', event.keyCode);
+      self.modifiers[event.keyCode] = false;
     }
   };
 
-  SelectionController.prototype.onMouseDown = function (event) {
-    //console.log('mouse down');
-  };
+  SelectionController.prototype.onMouseDown = function (event) {};
 
-  SelectionController.prototype.onMouseMove = function (event) {
-    //console.log('mouse move');
-  };
+  SelectionController.prototype.onMouseMove = function (event) {};
 
-  SelectionController.prototype.onMouseOver = function (event) {
-    //console.log('mouse over');
-  };
+  SelectionController.prototype.onMouseOver = function (event) {};
 
   SelectionController.prototype.onMouseUp = function (event) {
     event.preventDefault();
     event.stopPropagation();
-    var self = this;
-    function handleMouseUp () {
+    var intersects, objs, self = this;
+    if (self.enabled) {
       // calculate mouse position in normalized device coordinates (-1 to +1)
       self.mouse.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
       self.mouse.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
       // update the picking ray with the camera and mouse position
-      self.raycaster.setFromCamera(self.mouse, self.viewport.camera); // TODO this is FOUR specific
-      // calculate objects intersecting the picking ray
-      var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true) || []; // TODO this is FOUR specific use of children
-      // update the selection set using only the nearest selected object
-      var objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
-      // add objects
-      if (self.modifiers[self.KEY.SHIFT] === true) {
-        self.selection.addAll(objs);
-      }
-      // remove objects
-      else if (self.modifiers[self.KEY.ALT] === true) {
-        self.selection.removeAll(objs);
-      }
-      // toggle selection state
-      else {
-        self.selection.toggle(objs);
-      }
-    }
-    if (self.enabled) {
-      if (self.doubleclick) {
-        setTimeout(function () {}, self.DOUBLE_CLICK_TIMEOUT);
+      self.raycaster.setFromCamera(self.mouse, self.viewport.camera);
+      // handle double or single click event
+      if (self.timeout !== null) {
+        // if the user clicks twice within the timeout period then treat the
+        // event as a double click
+        clearTimeout(self.timeout);
+        self.timeout = null;
+        // FIXME find the nearest ground plane face
+        // calculate objects intersecting the picking ray
+        intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
+        // update the selection set using only the nearest selected object
+        if (intersects && intersects.length > 0) {
+          self.handleDoubleClick(intersects[0]);
+        }
       } else {
-        handleMouseUp();
+        // if the user does not click again within the timeout period then
+        // treat the event as a single click
+        self.timeout = setTimeout(function () {
+          clearTimeout(self.timeout);
+          self.timeout = null;
+          // calculate objects intersecting the picking ray
+          intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
+          // update the selection set using only the nearest selected object
+          objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
+          self.handleSingleClick(objs);
+        }, self.DOUBLE_CLICK_TIMEOUT);
       }
     }
   };
@@ -2770,7 +2834,7 @@ FOUR.TourController = (function () {
             // get the nearest feature to the camera
             var nearest = self.nearest(self.camera.position);
             self.current = nearest.index;
-        } else if (self.current < self.path.length) {
+        } else if (self.current < self.path.length - 1) {
             self.current++;
         } else {
             self.current = 0;
@@ -2948,7 +3012,7 @@ FOUR.TrackballController = (function () {
 
     TrackballController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-    TrackballController.prototype.constructor = TrackballController;
+    //TrackballController.prototype.constructor = TrackballController;
 
     TrackballController.prototype.checkDistances = function () {
         var self = this;

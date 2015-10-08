@@ -116,7 +116,7 @@ FOUR.TrackballController = (function () {
 
     TrackballController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-    TrackballController.prototype.constructor = TrackballController;
+    //TrackballController.prototype.constructor = TrackballController;
 
     TrackballController.prototype.checkDistances = function () {
         var self = this;

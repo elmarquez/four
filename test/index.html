@@ -372,12 +372,14 @@
     }
 
     function setupControllers() {
-      var self = this;
-
       // selection controller
       viewport.controllers.selection = new FOUR.SelectionController({viewport: viewport, selection: scene.selection});
+      viewport.controllers.selection.addEventListener('lookat', function (event) {
+        console.info('look at', event.position);
+        camera.setLookAt(event.position.x, event.position.y, event.position.z);
+      }, false);
       viewport.controllers.selection.addEventListener('navigate', function (event) {
-        console.info('navigate to ', event.position);
+        console.info('navigate to', event.position);
         camera.setTarget(event.position.x, event.position.y, event.position.z);
       }, false);
       viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
