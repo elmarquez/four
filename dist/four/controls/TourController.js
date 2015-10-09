@@ -19,11 +19,12 @@ FOUR.TourController = (function () {
             START: { type: 'start' }
         };
         self.KEY = {
+            CANCEL: 27,     // esc
+            NEXT: 190,      // .
+            PREVIOUS: 188,  // ,
             NONE: -1,
-            CANCEL: 0,
-            NEXT: 1,
-            PREVIOUS: 2,
-            UPDATE: 3
+            PLAN: -2,
+            UPDATE: -3
         };
         self.PLANNING_STRATEGY = {
             GENETIC: 0,
@@ -34,11 +35,13 @@ FOUR.TourController = (function () {
         self.current = -1; // index of the tour feature
         self.domElement = config.domElement;
         self.enabled = false;
+        self.listeners = {};
         self.offset = 100; // distance between camera and feature when visiting
         self.path = [];
         self.planner = new FOUR.PathPlanner();
         self.planningStrategy = self.PLANNING_STRATEGY.GENETIC;
         self.selection = config.selection;
+        self.viewport = config.viewport;
 
         if (self.enabled) {
             self.enable();
@@ -55,7 +58,10 @@ FOUR.TourController = (function () {
     TourController.prototype.disable = function () {
         var self = this;
         self.enabled = false;
-        self.selection.removeEventListener('update', self.update);
+        Object.keys(self.listeners).forEach(function (key) {
+            var listener = self.listeners[key];
+            listener.element.removeEventListener(listener.event, listener.fn);
+        });
     };
 
     /**
@@ -84,8 +90,17 @@ FOUR.TourController = (function () {
      */
     TourController.prototype.enable = function () {
         var self = this;
-        // listen for updates on the selection set
-        self.selection.addEventListener('update', self.plan.bind(self), false);
+        function addListener(element, event, fn) {
+            self.listeners[event] = {
+                element: element,
+                event: event,
+                fn: fn.bind(self)
+            };
+            element.addEventListener(event, self.listeners[event].fn, false);
+        }
+        addListener(self.selection, 'update', self.plan);
+        addListener(window, 'keyup', self.onKeyUp);
+
         // listen for key input events
         // TODO
         this.enabled = true;
@@ -165,6 +180,27 @@ FOUR.TourController = (function () {
      * Empty function.
      */
     TourController.prototype.noop = function () {};
+
+    TourController.prototype.onKeyDown = function () {};
+
+    TourController.prototype.onKeyUp = function () {
+        var self = this;
+        if (!self.enabled) {
+            return;
+        }
+        switch(event.keyCode) {
+            case self.KEY.CANCEL:
+                self.current = -1;
+                self.path = [];
+                break;
+            case self.KEY.NEXT:
+                self.next();
+                break;
+            case self.KEY.PREVIOUS:
+                self.previous();
+                break;
+        }
+    };
 
     /**
      * Generate a tour plan.

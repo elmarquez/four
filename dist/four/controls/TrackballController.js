@@ -5,7 +5,7 @@ var FOUR = FOUR || {};
 /**
  * Trackball controller.
  * @todo listen for camera change on the viewport
- * @todo listen for domelement resize events
+ * @todo listen for domElement resize events
  * @todo handle mouse position, sizing differences between document and domelements
  */
 FOUR.TrackballController = (function () {
@@ -94,6 +94,7 @@ FOUR.TrackballController = (function () {
             73 /*I*/, 74 /*J*/, 75 /*K*/, 76 /*L*/
         ];
         self.lastPosition = new THREE.Vector3();
+        self.listeners = {};
         self.maxDistance = Infinity;
         self.minDistance = 0;
         self.mouse = self.MOUSE_STATE.UP;
@@ -132,43 +133,42 @@ FOUR.TrackballController = (function () {
         }
     };
 
-    TrackballController.prototype.contextmenu = function (event) {
+    TrackballController.prototype.contextMenu = function (event) {
         event.preventDefault();
     };
 
     TrackballController.prototype.disable = function () {
         var self = this;
         self.enabled = false;
-        self.domElement.removeEventListener('contextmenu', self.contextmenu, false);
-        self.domElement.removeEventListener('mousedown', self.mousedown, false);
-        self.domElement.removeEventListener('mousemove', self.mousemove, false);
-        self.domElement.removeEventListener('mouseup', self.mouseup, false);
-        self.domElement.removeEventListener('mousewheel', self.mousewheel, false);
-        self.domElement.removeEventListener('DOMMouseScroll', self.mousewheel, false); // firefox
-        self.domElement.removeEventListener('touchstart', self.touchstart, false);
-        self.domElement.removeEventListener('touchend', self.touchend, false);
-        self.domElement.removeEventListener('touchmove', self.touchmove, false);
-
-        window.removeEventListener('keydown', self.keydown, false);
-        window.removeEventListener('keyup', self.keyup, false);
+        Object.keys(self.listeners).forEach(function (key) {
+            var listener = self.listeners[key];
+            listener.element.removeEventListener(listener.event, listener.fn);
+        });
     };
 
     TrackballController.prototype.enable = function () {
         var self = this;
-        self.enabled = true;
         self.handleResize(); // update screen size settings
-        self.domElement.addEventListener('contextmenu', self.contextmenu.bind(self), false);
-        self.domElement.addEventListener('mousedown', self.mousedown.bind(self), false);
-        self.domElement.addEventListener('mousemove', self.mousemove.bind(self), false);
-        self.domElement.addEventListener('mouseup', self.mouseup.bind(self), false);
-        self.domElement.addEventListener('mousewheel', self.mousewheel.bind(self), false);
-        self.domElement.addEventListener('DOMMouseScroll', self.mousewheel.bind(self), false); // firefox
-        self.domElement.addEventListener('touchstart', self.touchstart.bind(self), false);
-        self.domElement.addEventListener('touchend', self.touchend.bind(self), false);
-        self.domElement.addEventListener('touchmove', self.touchmove.bind(self), false);
-
-        window.addEventListener('keydown', self.keydown.bind(self), false);
-        window.addEventListener('keyup', self.keyup.bind(self), false);
+        function addListener(element, event, fn) {
+            self.listeners[event] = {
+                element: element,
+                event: event,
+                fn: fn.bind(self)
+            };
+            element.addEventListener(event, self.listeners[event].fn, false);
+        }
+        addListener(self.domElement, 'contextmenu', self.contextMenu);
+        addListener(self.domElement, 'mousedown', self.mousedown);
+        addListener(self.domElement, 'mousemove', self.mousemove);
+        addListener(self.domElement, 'mouseup', self.mouseup);
+        addListener(self.domElement, 'mousewheel', self.mousewheel);
+        addListener(self.domElement, 'DOMMouseScroll', self.mousewheel);
+        addListener(self.domElement, 'touchstart', self.touchstart);
+        addListener(self.domElement, 'touchend', self.touchend);
+        addListener(self.domElement, 'touchmove', self.touchmove);
+        addListener(window, 'keydown', self.keydown);
+        addListener(window, 'keyup', self.keyup);
+        self.enabled = true;
     };
 
     TrackballController.prototype.getMouseOnCircle = (function () {
@@ -193,6 +193,18 @@ FOUR.TrackballController = (function () {
         };
     }());
 
+    TrackballController.prototype.handleDoubleClick = function (selected) {
+        var self = this;
+        // CTRL double click rotates the camera toward the selected point
+        if (self.modifiers[self.KEY.CTRL]) {
+            self.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
+        }
+        // double click navigates the camera to the selected point
+        else {
+            self.dispatchEvent({type:'navigate', position:selected.point, object:selected.object});
+        }
+    };
+
     TrackballController.prototype.handleEvent = function (event) {
         if (typeof this[event.type] === 'function') {
             this[event.type](event);
@@ -216,6 +228,8 @@ FOUR.TrackballController = (function () {
             self.screen.height = box.height;
         }
     };
+
+    TrackballController.prototype.handleSingleClick = function () {};
 
     TrackballController.prototype.keydown = function (event) {
         var self = this;
