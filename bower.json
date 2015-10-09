@@ -1,6 +1,6 @@
 {
   "name": "threejs-cad",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Threejs CAD application components",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
