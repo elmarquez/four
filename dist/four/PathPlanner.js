@@ -82,7 +82,7 @@ FOUR.PathPlanner = (function () {
                 resolve();
             });
             tween.onUpdate(function () {
-                camera.up = new THREE.Vector3(this.x, this.y, this.z);
+                camera.setUp(new THREE.Vector3(this.x, this.y, this.z));
                 emit('update');
             });
             tween.start();

@@ -113,7 +113,7 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.setCamera = function (name) {
         var found = false, i, obj, self = this;
-        if (typeof self.scene === FOUR.Scene3D) {
+        if (typeof self.scene === FOUR.Scene) {
             self.camera = self.scene.getCamera(name);
         } else {
             for (i = 0;i < self.scene.children && !found; i++) {

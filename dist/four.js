@@ -291,7 +291,7 @@ FOUR.PathPlanner = (function () {
                 resolve();
             });
             tween.onUpdate(function () {
-                camera.up = new THREE.Vector3(this.x, this.y, this.z);
+                camera.setUp(new THREE.Vector3(this.x, this.y, this.z));
                 emit('update');
             });
             tween.start();
@@ -354,7 +354,7 @@ FOUR.PathPlanner = (function () {
 
 var FOUR = FOUR || {};
 
-FOUR.Scene3D = (function () {
+FOUR.Scene = (function () {
 
     // default camera settings
     var camera = {
@@ -369,7 +369,7 @@ FOUR.Scene3D = (function () {
      *
      * @constructor
      */
-    function Scene3D () {
+    function Scene () {
         THREE.Scene.call(this);
 
         var self = this;
@@ -397,18 +397,18 @@ FOUR.Scene3D = (function () {
         });
     }
 
-    Scene3D.prototype = Object.create(THREE.Scene.prototype);
+    Scene.prototype = Object.create(THREE.Scene.prototype);
 
-    Scene3D.prototype.DEFAULT_CAMERA_NAME = 'camera1';
+    Scene.prototype.DEFAULT_CAMERA_NAME = 'camera1';
 
-    Scene3D.prototype.constructor = Scene3D;
+    Scene.prototype.constructor = Scene;
 
     /**
      * Create a default scene camera. A camera aspect ratio or DOM height
      * element and width must be specified.
      * @param config
      */
-    Scene3D.prototype.createDefaultCamera = function (config) {
+    Scene.prototype.createDefaultCamera = function (config) {
         // TODO rename to createCamera
         var self = this;
         Object.keys(config).forEach(function (key) {
@@ -423,18 +423,18 @@ FOUR.Scene3D = (function () {
         targetcamera.addEventListener('update', function () { self.emit('update'); });
     };
 
-    Scene3D.prototype.emit = function (type) {
+    Scene.prototype.emit = function (type) {
       this.dispatchEvent({'type':type});
     };
 
-    Scene3D.prototype.getCamera = function (name) {
+    Scene.prototype.getCamera = function (name) {
         var self = this;
         return self.getCameras(function (obj) {
             return obj.name === name;
         }).pop();
     };
 
-    Scene3D.prototype.getCameras = function (filter) {
+    Scene.prototype.getCameras = function (filter) {
         var cameras = [], self = this;
         if (!filter) {
             filter = filter || function () { return true; };
@@ -447,19 +447,19 @@ FOUR.Scene3D = (function () {
         return cameras;
     };
 
-    Scene3D.prototype.getLight = function (name) {
+    Scene.prototype.getLight = function (name) {
         throw new Error('not implemented');
     };
 
-    Scene3D.prototype.getLights = function () {
+    Scene.prototype.getLights = function () {
         throw new Error('not implemented');
     };
 
-    Scene3D.prototype.load = function () {
+    Scene.prototype.load = function () {
         throw new Error('not implemented');
     };
 
-    return Scene3D;
+    return Scene;
 
 }());;/* globals THREE */
 'use strict';
@@ -775,10 +775,11 @@ FOUR.TargetCamera = (function () {
 
     /**
      * Reset camera orientation so that camera.up aligns with +Z.
+     * @param {Function} progress Progress callback
      */
-    TargetCamera.prototype.resetOrientation = function () {
+    TargetCamera.prototype.resetOrientation = function (progress) {
         var self = this;
-        return self.planner.tweenToOrientation(self, new THREE.Vector3(0,0,1), self.emit.bind(self));
+        return self.planner.tweenToOrientation(self, new THREE.Vector3(0,0,1), progress || self.emit.bind(self));
     };
 
     TargetCamera.prototype.setDistance = function (dist) {
@@ -797,6 +798,11 @@ FOUR.TargetCamera = (function () {
             new THREE.Vector3(next.x, next.y, next.z),
             self.target,
             self.emit.bind(self));
+    };
+
+    TargetCamera.prototype.setUp = function (vec) {
+        this.up = vec;
+        this.emit('update');
     };
 
     /**
@@ -1643,7 +1649,7 @@ FOUR.Viewport3D = (function () {
      */
     Viewport3D.prototype.setCamera = function (name) {
         var found = false, i, obj, self = this;
-        if (typeof self.scene === FOUR.Scene3D) {
+        if (typeof self.scene === FOUR.Scene) {
             self.camera = self.scene.getCamera(name);
         } else {
             for (i = 0;i < self.scene.children && !found; i++) {
@@ -3463,9 +3469,10 @@ FOUR.WalkController = (function () {
         THREE.EventDispatcher.call(this);
         var self = this;
 
-        self.SINGLE_CLICK_TIMEOUT = 500; // milliseconds
+        self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
         self.KEY = {
             CANCEL: 27,
+            CTRL: 17,
             MOVE_TO_EYE_HEIGHT: 192,
             MOVE_FORWARD: 38,
             MOVE_LEFT: 37,
@@ -3540,6 +3547,10 @@ FOUR.WalkController = (function () {
         });
     };
 
+    WalkController.prototype.emit = function (event) {
+        this.dispatchEvent({type: event || 'update'});
+    };
+
     WalkController.prototype.enable = function () {
         var self = this;
         function addListener(element, event, fn) {
@@ -3588,6 +3599,9 @@ FOUR.WalkController = (function () {
             return;
         }
         switch(event.keyCode) {
+            case self.KEY.CTRL:
+                self.modifiers[self.KEY.CTRL] = true;
+                break;
             case self.KEY.MOVE_TO_EYE_HEIGHT:
                 self.setWalkHeight();
                 break;
@@ -3615,6 +3629,9 @@ FOUR.WalkController = (function () {
     WalkController.prototype.onKeyUp = function (event) {
         var self = this;
         switch(event.keyCode) {
+            case self.KEY.CTRL:
+                self.modifiers[self.KEY.CTRL] = false;
+                break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
                 break;
@@ -3653,23 +3670,23 @@ FOUR.WalkController = (function () {
         );
         // handle single and double click events
         if (self.timeout !== null) {
-            console.log('double click');
-            //clearTimeout(self.timeout);
-            //self.timeout = null;
-            //// calculate mouse position in normalized device coordinates (-1 to +1)
-            //self.mouse.end.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
-            //self.mouse.end.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
-            //// update the picking ray with the camera and mouse position
-            //self.raycaster.setFromCamera(self.mouse.end, self.viewport.camera);
-            //// calculate objects intersecting the picking ray
-            //var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
-            //// handle the action for the nearest object
-            //if (intersects && intersects.length > 0) {
-            //    self.handleDoubleClick(intersects[0]);
-            //}
+            //console.log('double click');
+            clearTimeout(self.timeout);
+            self.timeout = null;
+            // calculate mouse position in normalized device coordinates (-1 to +1)
+            self.mouse.end.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
+            self.mouse.end.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
+            // update the picking ray with the camera and mouse position
+            self.raycaster.setFromCamera(self.mouse.end, self.viewport.camera);
+            // calculate objects intersecting the picking ray
+            var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
+            // handle the action for the nearest object
+            if (intersects && intersects.length > 0) {
+                self.handleDoubleClick(intersects[0]);
+            }
         } else {
             self.timeout = setTimeout(function () {
-                console.log('single click');
+                //console.log('single click');
                 clearTimeout(self.timeout);
                 self.timeout = null;
             }, self.SINGLE_CLICK_TIMEOUT);
@@ -3704,7 +3721,7 @@ FOUR.WalkController = (function () {
     WalkController.prototype.setWalkHeight = function () {
         var self = this;
         return self.camera
-          .resetOrientation()
+          .resetOrientation(self.emit.bind(self))
           .then(function () {
             self.camera.setPositionAndTarget(
               self.camera.position.x,

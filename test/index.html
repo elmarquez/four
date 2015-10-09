@@ -160,7 +160,7 @@
     var keyinput = window.keyinput = new FOUR.KeyInputController();
 
     var domElement = document.getElementById('webgl');
-    var scene = window.scene = new FOUR.Scene3D();
+    var scene = window.scene = new FOUR.Scene();
     scene.createDefaultCamera({height: domElement.clientHeight, width: domElement.clientWidth});
 
     // Basic scene lighting
@@ -372,9 +372,17 @@
       viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
 
       // trackball controller
-      viewport.controllers.trackball = new FOUR.TrackballController({camera:camera, domElement:domElement});
+      viewport.controllers.trackball = new FOUR.TrackballController({viewport:viewport});
       viewport.controllers.trackball.dynamicDampingFactor = 0.5;
       viewport.controllers.trackball.addEventListener('change', viewport.render.bind(viewport));
+      viewport.controllers.trackball.addEventListener('lookat', function (event) {
+        camera.setLookAt(event.position.x, event.position.y, event.position.z);
+      }, false);
+      viewport.controllers.trackball.addEventListener('navigate', function (event) {
+        var bbox = new FOUR.BoundingBox();
+        bbox.update([event.object]);
+        camera.zoomToFit(bbox);
+      }, false);
 
       // first person navigation controller
       viewport.controllers.walk = new FOUR.WalkController({viewport:viewport});
@@ -394,7 +402,7 @@
 //      viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
 
       // tour controller
-      viewport.controllers.tour = new FOUR.TourController({camera:camera, domElement:domElement, selection:scene.selection});
+      viewport.controllers.tour = new FOUR.TourController({viewport:viewport, selection:scene.selection});
       viewport.controllers.tour.addEventListener('update', function () {
         viewport.render.bind(viewport);
       });

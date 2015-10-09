@@ -4,7 +4,7 @@
 
 var FOUR = FOUR || {};
 
-FOUR.Scene3D = (function () {
+FOUR.Scene = (function () {
 
     // default camera settings
     var camera = {
@@ -19,7 +19,7 @@ FOUR.Scene3D = (function () {
      *
      * @constructor
      */
-    function Scene3D () {
+    function Scene () {
         THREE.Scene.call(this);
 
         var self = this;
@@ -47,18 +47,18 @@ FOUR.Scene3D = (function () {
         });
     }
 
-    Scene3D.prototype = Object.create(THREE.Scene.prototype);
+    Scene.prototype = Object.create(THREE.Scene.prototype);
 
-    Scene3D.prototype.DEFAULT_CAMERA_NAME = 'camera1';
+    Scene.prototype.DEFAULT_CAMERA_NAME = 'camera1';
 
-    Scene3D.prototype.constructor = Scene3D;
+    Scene.prototype.constructor = Scene;
 
     /**
      * Create a default scene camera. A camera aspect ratio or DOM height
      * element and width must be specified.
      * @param config
      */
-    Scene3D.prototype.createDefaultCamera = function (config) {
+    Scene.prototype.createDefaultCamera = function (config) {
         // TODO rename to createCamera
         var self = this;
         Object.keys(config).forEach(function (key) {
@@ -73,18 +73,18 @@ FOUR.Scene3D = (function () {
         targetcamera.addEventListener('update', function () { self.emit('update'); });
     };
 
-    Scene3D.prototype.emit = function (type) {
+    Scene.prototype.emit = function (type) {
       this.dispatchEvent({'type':type});
     };
 
-    Scene3D.prototype.getCamera = function (name) {
+    Scene.prototype.getCamera = function (name) {
         var self = this;
         return self.getCameras(function (obj) {
             return obj.name === name;
         }).pop();
     };
 
-    Scene3D.prototype.getCameras = function (filter) {
+    Scene.prototype.getCameras = function (filter) {
         var cameras = [], self = this;
         if (!filter) {
             filter = filter || function () { return true; };
@@ -97,18 +97,18 @@ FOUR.Scene3D = (function () {
         return cameras;
     };
 
-    Scene3D.prototype.getLight = function (name) {
+    Scene.prototype.getLight = function (name) {
         throw new Error('not implemented');
     };
 
-    Scene3D.prototype.getLights = function () {
+    Scene.prototype.getLights = function () {
         throw new Error('not implemented');
     };
 
-    Scene3D.prototype.load = function () {
+    Scene.prototype.load = function () {
         throw new Error('not implemented');
     };
 
-    return Scene3D;
+    return Scene;
 
 }());

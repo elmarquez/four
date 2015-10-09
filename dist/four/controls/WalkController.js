@@ -12,9 +12,10 @@ FOUR.WalkController = (function () {
         THREE.EventDispatcher.call(this);
         var self = this;
 
-        self.SINGLE_CLICK_TIMEOUT = 500; // milliseconds
+        self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
         self.KEY = {
             CANCEL: 27,
+            CTRL: 17,
             MOVE_TO_EYE_HEIGHT: 192,
             MOVE_FORWARD: 38,
             MOVE_LEFT: 37,
@@ -89,6 +90,10 @@ FOUR.WalkController = (function () {
         });
     };
 
+    WalkController.prototype.emit = function (event) {
+        this.dispatchEvent({type: event || 'update'});
+    };
+
     WalkController.prototype.enable = function () {
         var self = this;
         function addListener(element, event, fn) {
@@ -137,6 +142,9 @@ FOUR.WalkController = (function () {
             return;
         }
         switch(event.keyCode) {
+            case self.KEY.CTRL:
+                self.modifiers[self.KEY.CTRL] = true;
+                break;
             case self.KEY.MOVE_TO_EYE_HEIGHT:
                 self.setWalkHeight();
                 break;
@@ -164,6 +172,9 @@ FOUR.WalkController = (function () {
     WalkController.prototype.onKeyUp = function (event) {
         var self = this;
         switch(event.keyCode) {
+            case self.KEY.CTRL:
+                self.modifiers[self.KEY.CTRL] = false;
+                break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
                 break;
@@ -202,23 +213,23 @@ FOUR.WalkController = (function () {
         );
         // handle single and double click events
         if (self.timeout !== null) {
-            console.log('double click');
-            //clearTimeout(self.timeout);
-            //self.timeout = null;
-            //// calculate mouse position in normalized device coordinates (-1 to +1)
-            //self.mouse.end.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
-            //self.mouse.end.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
-            //// update the picking ray with the camera and mouse position
-            //self.raycaster.setFromCamera(self.mouse.end, self.viewport.camera);
-            //// calculate objects intersecting the picking ray
-            //var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
-            //// handle the action for the nearest object
-            //if (intersects && intersects.length > 0) {
-            //    self.handleDoubleClick(intersects[0]);
-            //}
+            //console.log('double click');
+            clearTimeout(self.timeout);
+            self.timeout = null;
+            // calculate mouse position in normalized device coordinates (-1 to +1)
+            self.mouse.end.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
+            self.mouse.end.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
+            // update the picking ray with the camera and mouse position
+            self.raycaster.setFromCamera(self.mouse.end, self.viewport.camera);
+            // calculate objects intersecting the picking ray
+            var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
+            // handle the action for the nearest object
+            if (intersects && intersects.length > 0) {
+                self.handleDoubleClick(intersects[0]);
+            }
         } else {
             self.timeout = setTimeout(function () {
-                console.log('single click');
+                //console.log('single click');
                 clearTimeout(self.timeout);
                 self.timeout = null;
             }, self.SINGLE_CLICK_TIMEOUT);
@@ -253,7 +264,7 @@ FOUR.WalkController = (function () {
     WalkController.prototype.setWalkHeight = function () {
         var self = this;
         return self.camera
-          .resetOrientation()
+          .resetOrientation(self.emit.bind(self))
           .then(function () {
             self.camera.setPositionAndTarget(
               self.camera.position.x,
