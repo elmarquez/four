@@ -336,12 +336,6 @@
       Mousetrap.bind('g', function () {
         viewport.controllers.tour.plan();
       });
-      Mousetrap.bind(',', function () {
-        viewport.controllers.tour.previous();
-      });
-      Mousetrap.bind('.', function () {
-        viewport.controllers.tour.next();
-      });
       Mousetrap.bind('/', function () {
         console.error('switch object focus');
       });
@@ -372,16 +366,9 @@
     }
 
     function setupControllers() {
+      // TODO for most controllers, passing in the viewport should provide the required information
       // selection controller
       viewport.controllers.selection = new FOUR.SelectionController({viewport: viewport, selection: scene.selection});
-      viewport.controllers.selection.addEventListener('lookat', function (event) {
-        console.info('look at', event.position);
-        camera.setLookAt(event.position.x, event.position.y, event.position.z);
-      }, false);
-      viewport.controllers.selection.addEventListener('navigate', function (event) {
-        console.info('navigate to', event.position);
-        camera.setTarget(event.position.x, event.position.y, event.position.z);
-      }, false);
       viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
 
       // trackball controller
@@ -390,13 +377,21 @@
       viewport.controllers.trackball.addEventListener('change', viewport.render.bind(viewport));
 
       // first person navigation controller
-      viewport.controllers.walk = new FOUR.WalkController({camera:camera, domElement:domElement});
+      viewport.controllers.walk = new FOUR.WalkController({viewport:viewport});
       viewport.controllers.walk.enforceWalkHeight = true;
       viewport.controllers.walk.addEventListener('change', viewport.render.bind(viewport));
+      viewport.controllers.walk.addEventListener('lookat', function (event) {
+        camera.setLookAt(event.position.x, event.position.y, event.position.z);
+      }, false);
+      viewport.controllers.walk.addEventListener('navigate', function (event) {
+        var bbox = new FOUR.BoundingBox();
+        bbox.update([event.object]);
+        camera.zoomToFit(bbox);
+      }, false);
 
       // orbit controller
-      viewport.controllers.orbit = new FOUR.OrbitController({camera:camera, domElement:domElement});
-      viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
+//      viewport.controllers.orbit = new FOUR.OrbitController({camera:camera, domElement:domElement});
+//      viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
 
       // tour controller
       viewport.controllers.tour = new FOUR.TourController({camera:camera, domElement:domElement, selection:scene.selection});
@@ -405,11 +400,9 @@
       });
 
       // keyinput controller
-      viewport.controllers.keyinput = new FOUR.KeyInputController();
-      viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.selection.onKeyDown.bind(viewport.controllers.selection));
-      viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.selection.onKeyUp.bind(viewport.controllers.selection));
-      viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
-      viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
+//      viewport.controllers.keyinput = new FOUR.KeyInputController();
+//      window.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
+//      window.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
 
       // set the viewport controller mode
       viewport.setMode('selection');

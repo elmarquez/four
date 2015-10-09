@@ -19,7 +19,7 @@ FOUR.SelectionController = (function () {
     config = config || {};
     var self = this;
 
-    self.DOUBLE_CLICK_TIMEOUT = 500; // milliseconds
+    self.SINGLE_CLICK_TIMEOUT = 500; // milliseconds
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.SELECTION_MODE = {
       POINT: 0,
@@ -159,7 +159,7 @@ FOUR.SelectionController = (function () {
           // update the selection set using only the nearest selected object
           objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
           self.handleSingleClick(objs);
-        }, self.DOUBLE_CLICK_TIMEOUT);
+        }, self.SINGLE_CLICK_TIMEOUT);
       }
     }
   };
