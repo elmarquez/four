@@ -395,7 +395,7 @@
       viewport.controllers.walk.addEventListener('change', viewport.render.bind(viewport));
 
       // orbit controller
-      viewport.controllers.orbit = new FOUR.OrbitController(camera);
+      viewport.controllers.orbit = new FOUR.OrbitController({camera:camera, domElement:domElement});
       viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
 
       // tour controller
@@ -408,8 +408,8 @@
       viewport.controllers.keyinput = new FOUR.KeyInputController();
       viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.selection.onKeyDown.bind(viewport.controllers.selection));
       viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.selection.onKeyUp.bind(viewport.controllers.selection));
-//      viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
-//      viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
+      viewport.controllers.keyinput.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
+      viewport.controllers.keyinput.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
 
       // set the viewport controller mode
       viewport.setMode('selection');
