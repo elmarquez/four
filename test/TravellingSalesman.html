@@ -1,0 +1,81 @@
+
+<html>
+<head>
+    <title>Traveling Salesman Test</title>
+    <script src="../lib/path/TravellingSalesman.js"></script>
+    <style>
+        body {
+            background-color: #303030;
+            color: ghostwhite;
+        }
+        #map {
+            border: 1px solid #999999;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="map" height="800" width="800"></canvas>
+    <br/>
+    <button onclick="update();">Update Plan</button>
+
+<script type="text/javascript">
+    var canvas = document.getElementById('map');
+    var ctx = canvas.getContext('2d');
+
+    var items = [
+        [60, 200],[180, 200],[80, 180],[140, 180],[20, 160],
+        [100, 160],[200, 160],[140, 140],[40, 120],[100, 120],
+        [180, 100],[60, 80],[120, 80],[180, 60],[20, 40],
+        [100, 40],[200, 40],[20, 20],[60, 20],[160, 20]
+    ];
+
+    function update () {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        drawPoints(items);
+        // random points
+        var ts = new TravellingSalesman(50);
+        items.forEach(function (p) {
+            ts.addPoint({x: p[0], y:p[1]});
+        });
+        // Initialize population
+        ts.init();
+        console.log("Initial distance: " + ts.getPopulation().getFittest().getDistance());
+        // Evolve population for 100 generations
+        try {
+            ts.evolve(100);
+        } catch (e) {
+
+        }
+        // Print final results
+        console.log("Finished");
+        console.log("Final distance: " + ts.getPopulation().getFittest().getDistance());
+
+        var solution = ts.getSolution();
+        console.info('Solution', solution);
+        drawRoute(solution);
+    }
+
+    function drawPoints(points) {
+        var _ctx = ctx;
+        ctx.fillStyle = 'white';
+        points.forEach(function (p) {
+            _ctx.fillRect(p[0]-2,p[1]-2,4,4);
+        });
+    }
+
+    function drawRoute(route) {
+        var i;
+        ctx.beginPath();
+        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = 'orange';
+        ctx.moveTo(route[0].x, route[0].y);
+        for (i = 1; i< route.length; i++) {
+            ctx.lineTo(route[i].x, route[i].y);
+        }
+        ctx.stroke();
+    }
+</script>
+</body>
+</html>
