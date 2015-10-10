@@ -5,7 +5,7 @@
   <title>Threejs Viewcube Navigation Control</title>
   <script src="../vendor/jquery/dist/jquery.min.js"></script>
   <script src="../vendor/mousetrap/mousetrap.min.js"></script>
-  <script src="../vendor/three.js/build/three.min.js"></script>
+  <script src="../vendor/three.js/three.min.js"></script>
   <script src="../vendor/tween.js/build/tween.min.js"></script>
   <script src="../lib/Viewcube.js"></script>
   <style>
@@ -43,6 +43,7 @@
     // viewcube
     var viewcube = window.viewcube = new FOUR.Viewcube('viewcube');
     viewcube.init();
+    viewcube.render();
 
     // A webgl viewport that will interact with our viewcube
     var domElement = document.getElementById('viewport');
@@ -93,6 +94,7 @@
       renderer.render(scene, camera);
     }
 
+    render();
     render();
 
   });
