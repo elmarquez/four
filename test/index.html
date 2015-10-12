@@ -264,6 +264,18 @@
         viewport.render();
 
         function setupKeyboardBindings() {
+            // selection
+            Mousetrap.bind('ctrl+a', function () {
+                console.log('select all');
+                scene.selection.addAll(scene.model.children);
+                viewport.render();
+            });
+            Mousetrap.bind('ctrl+n', function () {
+                console.log('select none');
+                scene.selection.removeAll();
+                viewport.render();
+            });
+
             // bounding box
             Mousetrap.bind('b', function () {
                 console.log('toggle bounding box visibility');

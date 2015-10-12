@@ -369,15 +369,6 @@ var FOUR = FOUR || {};
 
 FOUR.Scene = (function () {
 
-    // default camera settings
-    var camera = {
-        far: 1000,
-        fov: 45,
-        height: 1,
-        near: 0.1,
-        width: 1
-    };
-
     /**
      *
      * @constructor
@@ -405,9 +396,6 @@ FOUR.Scene = (function () {
         self.selection.addEventListener('update', function () {
             self.boundingBox.update(self.selection.getObjects());
         });
-        self.selection.addEventListener('update', function () {
-            // highlight selected objects
-        });
     }
 
     Scene.prototype = Object.create(THREE.Scene.prototype);
@@ -420,20 +408,29 @@ FOUR.Scene = (function () {
      * Create a default scene camera. A camera aspect ratio or DOM height
      * element and width must be specified.
      * @param config
+     * @todo turn this into a more generic create camera method?
      */
     Scene.prototype.createDefaultCamera = function (config) {
         // TODO rename to createCamera
         var self = this;
+        // default camera settings
+        var cfg = {
+            far: 1000,
+            fov: 45,
+            height: 1,
+            near: 0.1,
+            width: 1
+        };
         Object.keys(config).forEach(function (key) {
-           camera[key] = config[key];
+           cfg[key] = config[key];
         });
-        var targetcamera = new FOUR.TargetCamera(camera.fov, camera.width / camera.height, camera.near, camera.far);
-        targetcamera.name = self.DEFAULT_CAMERA_NAME; // use name field
-        self.cameras.add(targetcamera);
-        targetcamera.setPositionAndTarget(-50, -50, 50, 0, 0, 0); // use position, target fields
-        targetcamera.addEventListener('continuous-update-end', function () { self.emit('continuous-update-end'); });
-        targetcamera.addEventListener('continuous-update-start', function () { self.emit('continuous-update-start'); });
-        targetcamera.addEventListener('update', function () { self.emit('update'); });
+        var camera = new FOUR.TargetCamera(cfg.fov, cfg.width / cfg.height, cfg.near, cfg.far);
+        camera.name = self.DEFAULT_CAMERA_NAME; // use name field
+        self.cameras.add(camera);
+        camera.setPositionAndTarget(-50, -50, 50, 0, 0, 0); // use position, target fields
+        camera.addEventListener('continuous-update-end', function () { self.emit('continuous-update-end'); });
+        camera.addEventListener('continuous-update-start', function () { self.emit('continuous-update-start'); });
+        camera.addEventListener('update', function () { self.emit('update'); });
     };
 
     Scene.prototype.emit = function (type) {
@@ -1286,7 +1283,6 @@ FOUR.Viewcube = (function () {
 
     Viewcube.prototype.render = function () {
         var self = this;
-        TWEEN.update();
         self.renderer.render(self.scene, self.camera);
     };
 
@@ -1544,6 +1540,10 @@ FOUR.Viewcube = (function () {
         });
     };
 
+    Viewcube.prototype.update = function () {
+        TWEEN.update();
+    };
+
     return Viewcube;
 
 }());
@@ -1568,6 +1568,7 @@ FOUR.Viewport3D = (function () {
         this.backgroundColor = new THREE.Color(0x000, 1.0);
         this.camera = camera;
         this.clock = new THREE.Clock();
+        this.continuousUpdate = false;
         this.controller = null; // the active controller
         this.controllers = {};
         this.domElement = domElement;
@@ -1800,7 +1801,7 @@ FOUR.MultiController = (function () {
 var FOUR = FOUR || {};
 
 /**
- * Modified version of the THREE.OrbitController
+ * A reimplementation of the THREE.OrbitController.
  */
 FOUR.OrbitController = (function () {
 
@@ -2025,205 +2026,94 @@ FOUR.OrbitController = (function () {
 
 		var self = this;
 
-		// Set to false to disable this control
-		self.enabled = true;
-
-		// This option actually enables dollying in and out; left as "zoom" for
-		// backwards compatibility.
-		// Set to false to disable zooming
-		self.enableZoom = true;
-		self.zoomSpeed = 1.0;
-
-		// Set to false to disable rotating
-		self.enableRotate = true;
-		self.rotateSpeed = 1.0;
-
-		// Set to false to disable panning
-		self.enablePan = true;
-		self.keyPanSpeed = 7.0;	// pixels moved per arrow key push
+		self.EVENT = {
+			CHANGE: {type:'change'},
+			END: {type:'end'},
+			START: {type:'start'}
+		};
+		self.KEYS = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
+		self.STATE = { NONE : - 1, ROTATE : 0, DOLLY : 1, PAN : 2, TOUCH_ROTATE : 3, TOUCH_DOLLY : 4, TOUCH_PAN : 5 };
 
 		// Set to true to automatically rotate around the target
 		// If auto-rotate is enabled, you must call controls.update() in your animation loop
 		self.autoRotate = false;
 		self.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
 
-		// Set to false to disable use of the keys
-		self.enableKeys = true;
-
-		// The four arrow keys
-		self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
-
-		// Mouse buttons
-		self.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
-
-		self.camera = config.camera;
-		self.domElement = config.domElement;
-
+		self.camera = config.camera || config.viewport.camera;
 		self.constraint = new OrbitConstraint(self.camera);
+		self.dollyDelta = new THREE.Vector2();
+		self.dollyEnd = new THREE.Vector2();
+		self.dollyStart = new THREE.Vector2();
+		self.domElement = config.domElement || config.viewport.domElement;
+		self.enabled = false;
+		self.enableKeys = true;
+		self.enablePan = true;
+		self.enableRotate = true;
+		self.enableZoom = true;
+		self.keyPanSpeed = 7.0;	// pixels moved per arrow key push
+		self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
+		self.listeners = {};
+		self.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+		self.panStart = new THREE.Vector2();
+		self.panEnd = new THREE.Vector2();
+		self.panDelta = new THREE.Vector2();
+		self.rotateDelta = new THREE.Vector2();
+		self.rotateEnd = new THREE.Vector2();
+		self.rotateSpeed = 1.0;
+		self.rotateStart = new THREE.Vector2();
+		self.state = self.STATE.NONE;
+		self.viewport = config.viewport;
+		self.zoomSpeed = 1.0;
 
-		// API
-		//Object.defineProperty(this, 'constraint', {
-		//	get: function() {
-		//		return self.constraint;
-		//	}
-		//});
-
-		////////////
-		// internals
-
-		var rotateStart = new THREE.Vector2();
-		var rotateEnd = new THREE.Vector2();
-		var rotateDelta = new THREE.Vector2();
-
-		var panStart = new THREE.Vector2();
-		var panEnd = new THREE.Vector2();
-		var panDelta = new THREE.Vector2();
-
-		var dollyStart = new THREE.Vector2();
-		var dollyEnd = new THREE.Vector2();
-		var dollyDelta = new THREE.Vector2();
-
-		var STATE = { NONE : - 1, ROTATE : 0, DOLLY : 1, PAN : 2, TOUCH_ROTATE : 3, TOUCH_DOLLY : 4, TOUCH_PAN : 5 };
-
-		var state = STATE.NONE;
-
+		// TODO do we need these?
 		// for reset
 		self.target0 = self.target.clone();
 		self.position0 = self.camera.position.clone();
 		self.zoom0 = self.camera.zoom;
-
-		// events
-		self.changeEvent = { type: 'change' };
-		self.startEvent = { type: 'start' };
-		self.endEvent = { type: 'end' };
-
-
-		function contextmenu(event) {
-			event.preventDefault();
-		}
-
-		function getAutoRotationAngle() {
-			return 2 * Math.PI / 60 / 60 * self.autoRotateSpeed;
-		}
-
-		function getZoomScale() {
-			return Math.pow(0.95, self.zoomSpeed);
-		}
-
-		function onMouseDown(event) {
-			if (self.enabled === false) {
-				return;
-			}
-			event.preventDefault();
-			if (event.button === self.mouseButtons.ORBIT) {
-				if (self.enableRotate === false) {
-					return;
-				}
-				state = STATE.ROTATE;
-				rotateStart.set(event.clientX, event.clientY);
-			} else if (event.button === self.mouseButtons.ZOOM) {
-				if (self.enableZoom === false) {
-					return;
-				}
-				state = STATE.DOLLY;
-				dollyStart.set(event.clientX, event.clientY);
-			} else if (event.button === self.mouseButtons.PAN) {
-				if (self.enablePan === false) {
-					return;
-				}
-				state = STATE.PAN;
-				panStart.set(event.clientX, event.clientY);
-			}
-
-			if (state !== STATE.NONE) {
-				self.domElement.addEventListener('mousemove', onMouseMove.bind(self), false);
-				self.domElement.addEventListener('mouseup', onMouseUp.bind(self), false);
-				self.dispatchEvent(self.startEvent);
-			}
-		}
-
-		function onMouseMove(event) {
-			if (self.enabled === false) {
-				return;
-			}
-			event.preventDefault();
-			var element = self.domElement === document ? self.domElement.body : self.domElement;
-			if (state === STATE.ROTATE) {
-				if (self.enableRotate === false) {
-					return;
-				}
-				rotateEnd.set(event.clientX, event.clientY);
-				rotateDelta.subVectors(rotateEnd, rotateStart);
-				// rotating across whole screen goes 360 degrees around
-				self.constraint.rotateLeft(2 * Math.PI * rotateDelta.x / element.clientWidth * self.rotateSpeed);
-				// rotating up and down along whole screen attempts to go 360, but limited to 180
-				self.constraint.rotateUp(2 * Math.PI * rotateDelta.y / element.clientHeight * self.rotateSpeed);
-				rotateStart.copy(rotateEnd);
-			} else if (state === STATE.DOLLY) {
-				if (self.enableZoom === false) {
-					return;
-				}
-				dollyEnd.set(event.clientX, event.clientY);
-				dollyDelta.subVectors(dollyEnd, dollyStart);
-				if (dollyDelta.y > 0) {
-					self.constraint.dollyIn(getZoomScale());
-				} else if (dollyDelta.y < 0) {
-					self.constraint.dollyOut(getZoomScale());
-				}
-				dollyStart.copy(dollyEnd);
-			} else if (state === STATE.PAN) {
-				if (self.enablePan === false) {
-					return;
-				}
-				panEnd.set(event.clientX, event.clientY);
-				panDelta.subVectors(panEnd, panStart);
-				self.pan(panDelta.x, panDelta.y);
-				panStart.copy(panEnd);
-			}
-			if (state !== STATE.NONE) {
-				self.update();
-			}
-		}
-
-		function onMouseUp() {
-			if (self.enabled === false) {
-				return;
-			}
-			self.domElement.removeEventListener('mousemove', onMouseMove, false);
-			self.domElement.removeEventListener('mouseup', onMouseUp, false);
-			self.dispatchEvent(self.endEvent);
-			state = STATE.NONE;
-		}
-		// force an update at start
-		this.listen();
-		this.update();
 	}
 
 	OrbitController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
 	OrbitController.prototype.constructor = OrbitController;
 
+	OrbitController.prototype.contextmenu = function (event) {
+		event.preventDefault();
+	};
+
 	OrbitController.prototype.disable = function () {
 		var self = this;
 		self.enabled = false;
-		self.dispose();
-	};
-
-	OrbitController.prototype.dispose = function () {
-		var self = this;
-		self.domElement.removeEventListener('contextmenu', self.contextmenu, false);
-		self.domElement.removeEventListener('mousedown', self.onMouseDown, false);
-		self.domElement.removeEventListener('mousewheel', self.onMouseWheel, false);
-		self.domElement.removeEventListener('DOMMouseScroll', self.onMouseWheel, false); // firefox
-		self.domElement.removeEventListener('mousemove', self.onMouseMove, false);
-		self.domElement.removeEventListener('mouseup', self.onMouseUp, false);
+		Object.keys(self.listeners).forEach(function (key) {
+			var listener = self.listeners[key];
+			listener.element.removeEventListener(listener.event, listener.fn);
+		});
 	};
 
 	OrbitController.prototype.enable = function () {
 		var self = this;
+		function addListener(element, event, fn) {
+			self.listeners[event] = {
+				element: element,
+				event: event,
+				fn: fn.bind(self)
+			};
+			element.addEventListener(event, self.listeners[event].fn, false);
+		}
+		addListener(self.domElement, 'contextmenu', self.contextmenu);
+		addListener(self.domElement, 'mousedown', self.onMouseDown);
+		addListener(self.domElement, 'mousemove', self.onMouseMove);
+		addListener(self.domElement, 'mouseup', self.onMouseUp);
+		addListener(self.domElement, 'mousewheel', self.onMouseWheel);
+		addListener(self.domElement, 'DOMMouseScroll', self.onMouseWheel);
+		addListener(window, 'keydown', self.onKeyDown);
+		addListener(window, 'keyup', self.onKeyUp);
 		self.constraint.sync();
 		self.enabled = true;
-		self.listen();
+	};
+
+	OrbitController.prototype.getAutoRotationAngle = function () {
+		var self = this;
+		return 2 * Math.PI / 60 / 60 * self.autoRotateSpeed;
 	};
 
 	OrbitController.prototype.getAzimuthalAngle = function () {
@@ -2234,13 +2124,101 @@ FOUR.OrbitController = (function () {
 		return this.constraint.getPolarAngle();
 	};
 
-	OrbitController.prototype.listen = function () {
+	OrbitController.prototype.getZoomScale = function () {
 		var self = this;
-		self.domElement.addEventListener('contextmenu', self.contextmenu, false);
-		self.domElement.addEventListener('mousedown', self.onMouseDown, false);
-		self.domElement.addEventListener('mousewheel', self.onMouseWheel, false);
-		self.domElement.addEventListener('DOMMouseScroll', self.onMouseWheel, false); // firefox
-		self.domElement.addEventListener('mouseup', self.onMouseUp, false);
+		return Math.pow(0.95, self.zoomSpeed);
+	};
+
+	OrbitController.prototype.onKeyDown = function (event) {
+		//console.info(event);
+	};
+
+	OrbitController.prototype.onKeyUp = function (event) {
+		//console.info(event);
+	};
+
+	OrbitController.prototype.onMouseDown = function (event) {
+		var self = this;
+		if (self.enabled === false) {
+			return;
+		}
+		event.preventDefault();
+		if (event.button === self.mouseButtons.ORBIT) {
+			if (self.enableRotate === false) {
+				return;
+			}
+			self.state = self.STATE.ROTATE;
+			self.rotateStart.set(event.clientX, event.clientY);
+		} else if (event.button === self.mouseButtons.ZOOM) {
+			if (self.enableZoom === false) {
+				return;
+			}
+			self.state = self.STATE.DOLLY;
+			self.dollyStart.set(event.clientX, event.clientY);
+		} else if (event.button === self.mouseButtons.PAN) {
+			if (self.enablePan === false) {
+				return;
+			}
+			self.state = self.STATE.PAN;
+			self.panStart.set(event.clientX, event.clientY);
+		}
+
+		if (self.state !== self.STATE.NONE) {
+			self.dispatchEvent(self.EVENT.START);
+		}
+	};
+
+	OrbitController.prototype.onMouseMove = function (event) {
+		var self = this;
+		if (self.enabled === false) {
+			return;
+		}
+		event.preventDefault();
+		var element = self.domElement;
+		if (self.state === self.STATE.ROTATE) {
+			if (self.enableRotate === false) {
+				return;
+			}
+			self.rotateEnd.set(event.clientX, event.clientY);
+			self.rotateDelta.subVectors(self.rotateEnd, self.rotateStart);
+			// rotating across whole screen goes 360 degrees around
+			self.constraint.rotateLeft(2 * Math.PI * self.rotateDelta.x / element.clientWidth * self.rotateSpeed);
+			// rotating up and down along whole screen attempts to go 360, but limited to 180
+			self.constraint.rotateUp(2 * Math.PI * self.rotateDelta.y / element.clientHeight * self.rotateSpeed);
+			self.rotateStart.copy(self.rotateEnd);
+		} else if (self.state === self.STATE.DOLLY) {
+			if (self.enableZoom === false) {
+				return;
+			}
+			self.dollyEnd.set(event.clientX, event.clientY);
+			self.dollyDelta.subVectors(self.dollyEnd, self.dollyStart);
+			if (self.dollyDelta.y > 0) {
+				self.constraint.dollyIn(self.getZoomScale());
+			} else if (self.dollyDelta.y < 0) {
+				self.constraint.dollyOut(self.getZoomScale());
+			}
+			self.dollyStart.copy(self.dollyEnd);
+		} else if (self.state === self.STATE.PAN) {
+			if (self.enablePan === false) {
+				return;
+			}
+			self.panEnd.set(event.clientX, event.clientY);
+			self.panDelta.subVectors(self.panEnd, self.panStart);
+			self.pan(self.panDelta.x, self.panDelta.y);
+			self.panStart.copy(self.panEnd);
+		}
+		if (self.state !== self.STATE.NONE) {
+			self.update();
+		}
+	};
+
+	OrbitController.prototype.onMouseUp = function (event) {
+		var self = this;
+		if (self.enabled === false) {
+			return;
+		}
+		self.dispatchEvent(self.EVENT.END);
+		self.state = self.STATE.NONE;
 	};
 
 	OrbitController.prototype.onMouseWheel = function (event) {
@@ -2264,8 +2242,12 @@ FOUR.OrbitController = (function () {
 			self.constraint.dollyIn(self.getZoomScale());
 		}
 		self.update();
-		self.dispatchEvent(self.startEvent);
-		self.dispatchEvent(self.endEvent);
+		self.dispatchEvent(self.EVENT.START);
+		self.dispatchEvent(self.EVENT.END);
+	};
+
+	OrbitController.prototype.onWindowResize = function () {
+		console.warn('Not implemented');
 	};
 
 	/**
@@ -2288,7 +2270,7 @@ FOUR.OrbitController = (function () {
 		self.camera.zoom = self.zoom0;
 
 		self.camera.updateProjectionMatrix();
-		self.dispatchEvent(self.changeEvent);
+		self.dispatchEvent(self.EVENT.CHANGE);
 
 		self.update();
 	};
@@ -2299,10 +2281,9 @@ FOUR.OrbitController = (function () {
 			self.constraint.rotateLeft(self.getAutoRotationAngle());
 		}
 		if (self.constraint.update() === true) {
-			self.dispatchEvent(self.changeEvent);
+			self.dispatchEvent(self.EVENT.CHANGE);
 		}
 	};
-
 
 	Object.defineProperties(OrbitController.prototype, {
 		//camera: {
@@ -2709,9 +2690,9 @@ FOUR.TourController = (function () {
             SIMULATED_ANNEALING: 1
         };
 
-        self.camera = config.camera;
+        self.camera = config.viewport.camera;
         self.current = -1; // index of the tour feature
-        self.domElement = config.domElement;
+        self.domElement = config.viewport.domElement;
         self.enabled = false;
         self.listeners = {};
         self.offset = 100; // distance between camera and feature when visiting
@@ -2799,24 +2780,9 @@ FOUR.TourController = (function () {
      */
     TourController.prototype.navigate = function (i) {
         var self = this;
-        // the feature to visit
         var feature = self.path[i];
-        // the offset from the current camera position to the new camera position
-        // TODO what is 10??
-        var dist = (10 / Math.tan(Math.PI * self.camera.fov / 360)) + self.offset;
-        var target = new THREE.Vector3(0, 0, -dist);
-        target.applyQuaternion(self.camera.quaternion);
-        target.add(self.camera.position);
-        var diff = new THREE.Vector3().subVectors(new THREE.Vector3(feature.x, feature.y, feature.z), target);
-        // the next camera position
-        var camera = new THREE.Vector3().addVectors(self.camera.position, diff);
-        // move the camera to the next position
-        return self.planner.tweenToPosition(
-          self.camera,
-          new THREE.Vector3(camera.x, camera.y, camera.z),
-          new THREE.Vector3(feature.x, feature.y, feature.z),
-          self.emit.bind(self)
-        );
+        self.camera.setTarget(feature.x, feature.y, feature.z);
+        // TODO zoom to fit object
     };
 
     /**
@@ -2993,6 +2959,7 @@ FOUR.TrackballController = (function () {
             CTRL: 17,
             SHIFT: 16,
             CANCEL: 27,
+            GRAVE_ACCENT: 192,
             MOVE_FORWARD: 73,
             MOVE_LEFT: 74,
             MOVE_BACK: 75,
@@ -3196,6 +3163,8 @@ FOUR.TrackballController = (function () {
             return;
         } else if (event.keyCode === self.KEY.CTRL) {
             self.modifiers[self.KEY.CTRL] = true;
+        } else if (event.keyCode === self.KEY.GRAVE_ACCENT) {
+            self.camera.resetOrientation();
         }
         _state = _prevState;
     };
@@ -5878,6 +5847,25 @@ var TravellingSalesman = (function () {
         }
     }
 
+    Tour.prototype.checkForDuplicateValues = function () {
+        var i;
+        for (i = 0; i < this.tour.length; i++) {
+            var p = this.tour[i];
+            if (this.tour.lastIndexOf(p) !== i) {
+                throw new Error('Tour contains a duplicate element');
+            }
+        }
+    };
+
+    Tour.prototype.checkForNullValues = function () {
+        var i;
+        for (i = 0; i < this.tour.length; i++) {
+            if (this.tour[i] === null) {
+                throw new Error('Tour contains a null entry');
+            }
+        }
+    };
+
     Tour.prototype.containsPoint = function (p) {
         var result = false;
         this.tour.forEach(function (point) {
@@ -5947,16 +5935,6 @@ var TravellingSalesman = (function () {
         this.tour[i] = point;
         this.fitness = 0;
         this.distance = 0;
-    };
-
-    Tour.prototype.checkForDuplicates = function () {
-        var i;
-        for (i = 0; i < this.tour.length; i++) {
-            var p = this.tour[i];
-            if (this.tour.lastIndexOf(p) !== i) {
-                throw new Error('Tour contains a duplicate element');
-            }
-        }
     };
 
     Tour.prototype.shuffle = function () {
@@ -6078,8 +6056,8 @@ var TravellingSalesman = (function () {
                 }
             }
         }
-        child.checkForDuplicates();
-
+        child.checkForNullValues();
+        child.checkForDuplicateValues();
         // force fitness value to update?
         return child;
     };
