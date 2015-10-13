@@ -14,6 +14,7 @@ module.exports = {
         src: [
             'Gruntfile.js',
             'conf/**/*.js',
+            '!dist/**/*.js',
             'lib/**/*.js',
             '!lib/controls/dist/**/*'
         ]

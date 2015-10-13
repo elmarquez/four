@@ -3,7 +3,7 @@
 module.exports = {
   dist: {
     cwd: 'lib',
-    src: [ '**/*' ],
+    src: [ '**/*','!controls/dist/**/*' ],
     dest: 'dist/four',
     expand: true
   }

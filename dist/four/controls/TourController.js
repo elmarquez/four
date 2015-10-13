@@ -27,7 +27,7 @@ FOUR.TourController = (function () {
             UPDATE: -3
         };
         self.PLANNING_STRATEGY = {
-            GENETIC: 0,
+            GENETIC_EVOLUTION: 0,
             SIMULATED_ANNEALING: 1
         };
 
@@ -39,13 +39,9 @@ FOUR.TourController = (function () {
         self.offset = 100; // distance between camera and feature when visiting
         self.path = [];
         self.planner = new FOUR.PathPlanner();
-        self.planningStrategy = self.PLANNING_STRATEGY.GENETIC;
+        self.planningStrategy = self.PLANNING_STRATEGY.GENETIC_EVOLUTION;
         self.selection = config.selection;
         self.viewport = config.viewport;
-
-        if (self.enabled) {
-            self.enable();
-        }
     }
 
     TourController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -191,13 +187,13 @@ FOUR.TourController = (function () {
      * Generate a tour plan.
      * @returns {Promise}
      */
-    TourController.prototype.plan = function () {
+    TourController.prototype.plan = function (objs) {
         var self = this;
         // reset the current feature index
         self.current = -1;
         self.path = [];
         // get the list of features
-        var features = self.selection.getObjects();
+        var features = objs || self.selection.getObjects();
         // generate the tour path
         return self.planner
           .generateTourSequence(features)

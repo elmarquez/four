@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>Threejs First Person Navigation Example</title>
+  <!-- vendor -->
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/mousetrap/mousetrap.js"></script>
+  <script src="../vendor/three.js/three.min.js"></script>
+  <script src="../vendor/tweenjs/src/Tween.js"></script>
+
+  <!-- lib -->
+  <script src="../lib/controls/FirstPersonController.js"></script>
+  <style>
+    body {
+      background-color: #484848;
+      margin: 0;
+      padding: 0;
+    }
+
+    #webgl {
+      background-color: #5B6674;
+      bottom: 0;
+      left: 0;
+      overflow: hidden;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 500;
+    }
+
+    #webgl:focus {
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+<div id="webgl"></div>
+<script>
+  $(document).ready(function () {
+    var controller, delta, renderer, scene, viewport = {};
+
+    init();
+    animate();
+
+    function init() {
+      viewport.clock = new THREE.Clock();
+      viewport.camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+      viewport.camera.position.z = 500;
+      viewport.camera.up = new THREE.Vector3(0, 0, 1); // CAD camera
+
+      viewport.domElement = document.getElementById('webgl');
+      controller = new FOUR.FirstPersonController({viewport: viewport});
+      window.addEventListener('keydown', controller.onKeyDown.bind(controller), false);
+      window.addEventListener('keyup', controller.onKeyUp.bind(controller), false);
+      controller.addEventListener('change', render);
+      controller.enable();
+
+      // world
+      scene = viewport.scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0xcccccc, 0.002);
+
+      var geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+      var material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
+      for (var i = 0; i < 500; i++) {
+        var mesh = new THREE.Mesh(geometry, material);
+        mesh.position.x = ( Math.random() - 0.5 ) * 1000;
+        mesh.position.y = ( Math.random() - 0.5 ) * 1000;
+        mesh.position.z = ( Math.random() - 0.5 ) * 1000;
+        mesh.updateMatrix();
+        mesh.matrixAutoUpdate = false;
+        scene.add(mesh);
+      }
+
+      // lights
+      var light = new THREE.DirectionalLight(0xffffff);
+      light.position.set(1, 1, 1);
+      scene.add(light);
+
+      light = new THREE.DirectionalLight(0x002288);
+      light.position.set(-1, -1, -1);
+      scene.add(light);
+
+      light = new THREE.AmbientLight(0x222222);
+      scene.add(light);
+
+      // renderer
+      renderer = viewport.renderer = new THREE.WebGLRenderer({antialias: false});
+      viewport.renderer.setClearColor(scene.fog.color);
+      viewport.renderer.setPixelRatio(window.devicePixelRatio);
+      viewport.renderer.setSize(window.innerWidth, window.innerHeight);
+
+      viewport.domElement.appendChild(viewport.renderer.domElement);
+
+      window.addEventListener('resize', onWindowResize, false);
+      render();
+    }
+
+    function onWindowResize() {
+      viewport.camera.aspect = window.innerWidth / window.innerHeight;
+      viewport.camera.updateProjectionMatrix();
+      viewport.renderer.setSize(window.innerWidth, window.innerHeight);
+      controller.onResize();
+      render();
+    }
+
+    function animate() {
+      delta = viewport.clock.getDelta();
+      requestAnimationFrame(animate);
+      controller.update(delta);
+    }
+
+    function render() {
+      viewport.renderer.render(viewport.scene, viewport.camera);
+    }
+  });
+</script>
+</body>
+</html>
