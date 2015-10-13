@@ -2,7 +2,7 @@
 <html ng-app="cad">
 <head lang="en">
     <meta charset="UTF-8">
-    <title>Threejs Multi-mode Navigation Example</title>
+    <title>Threejs CAD Interface</title>
     <!-- vendor -->
     <script src="../vendor/jquery/dist/jquery.js"></script>
     <script src="../vendor/angular/angular.js"></script>
@@ -36,7 +36,7 @@
             padding: 0;
         }
 
-        #commandbox {
+        .commandbox {
             background: #888;
             display: none;
             margin-left: auto;
@@ -46,7 +46,7 @@
             z-index: 800;
         }
 
-        #webgl {
+        .viewport {
             bottom: 0;
             left: 0;
             overflow: hidden;
@@ -55,10 +55,14 @@
             top: 48px;
             z-index: 500;
         }
-
-        #webgl:focus {
+        .viewport:focus {
             outline: none;
         }
+
+        .tools {}
+        .datagrid {}
+        .palette {}
+        .sidebar {}
 
         .active {
             background-color: #ffffff;
@@ -90,77 +94,22 @@
             overflow: hidden;
             width: 48px;
         }
-
-        .inline {
-            display: inline;
-        }
-
-        .offset-right {
-            margin-right: 20px;
-        }
-
-        .orientation-control {
-            background-color: rgba(255, 255, 255, 1);
-            height: 92px;
-            position: absolute;
-            right: 20px;
-            top: 68px;
-            width: 92px;
-            z-index: 900;
-        }
-
-        .axis-control {
-            background-color: rgba(255, 255, 255, 1);
-            bottom: 20px;
-            height: 48px;
-            position: absolute;
-            left: 20px;
-            width: 48px;
-            z-index: 900;
-        }
     </style>
 </head>
 <body>
-<div class="controls" ng-controller="NavController">
-    <div class="control-group offset-right inline">
-        <button class="button control" ng-click="setMode(MODES.SELECT)" ng-class="{active:mode===MODES.SELECT}">Select
-        </button>
-        <button class="button control" ng-click="setMode(MODES.TRACKBALL)" ng-class="{active:mode===MODES.TRACKBALL}">
-            Nav
-        </button>
-        <button class="button control" ng-click="setMode(MODES.WALK)" ng-class="{active:mode===MODES.WALK}">Walk
-        </button>
-        <button class="button control" ng-click="setMode(MODES.ORBIT)" ng-class="{active:mode===MODES.ORBIT}">Orbit
-        </button>
+<div class="controls" ng-controller="NavController"></div>
+<div class="viewport"></div>
+<div class="commandbox">
+    <input type="text" placeholder="Command" />
+    <div class="matches">
+
     </div>
-    <div class="control-group inline">
-        <button class="button control" ng-click="setView(VIEWS.PERSPECTIVE)"
-                ng-class="{active:view===VIEWS.PERSPECTIVE}">Persp
-        </button>
-        <button class="button control" ng-click="setView(VIEWS.TOP)" ng-class="{active:view===VIEWS.TOP}">Top</button>
-        <button class="button control" ng-click="setView(VIEWS.LEFT)" ng-class="{active:view===VIEWS.LEFT}">Left
-        </button>
-        <button class="button control" ng-click="setView(VIEWS.RIGHT)" ng-class="{active:view===VIEWS.RIGHT}">Right
-        </button>
-        <button class="button control" ng-click="setView(VIEWS.FRONT)" ng-class="{active:view===VIEWS.FRONT}">Front
-        </button>
-        <button class="button control" ng-click="setView(VIEWS.BACK)" ng-class="{active:view===VIEWS.BACK}">Back
-        </button>
-    </div>
-</div>
-<div id="webgl"></div>
-<div id="commandbox"></div>
-<div class="orientation-control">
-    Control widget
-</div>
-<div class="axis-control">
-    Axis
 </div>
 <script>
     $(document).ready(function () {
         var keyinput = window.keyinput = new FOUR.KeyInputController();
 
-        var domElement = document.getElementById('webgl');
+        var domElement = document.getElementById('viewport');
         var scene = window.scene = new FOUR.Scene();
         scene.createDefaultCamera({height: domElement.clientHeight, width: domElement.clientWidth});
 

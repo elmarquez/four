@@ -1,7 +1,7 @@
-angular.module('lidar', []);
+angular.module('cad', []);
 
 angular
-    .module('lidar')
+    .module('cad')
     .controller('NavController',
     ['$scope', function ($scope) {
 
