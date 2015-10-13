@@ -3,6 +3,10 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>Threejs CAD Interface</title>
+    <!-- fonts -->
+    <link href='https://fonts.googleapis.com/css?family=Lato:400,300,100,700,900' rel='stylesheet' type='text/css'>
+    <link href='../vendor/font-awesome/css/font-awesome.css' rel='stylesheet' type='text/css'>
+
     <!-- vendor -->
     <script src="../vendor/jquery/dist/jquery.js"></script>
     <script src="../vendor/angular/angular.js"></script>
@@ -32,6 +36,7 @@
         body {
             background-color: #484848;
             color: #C9CCC6;
+            font-family: 'Lato', sans-serif;
             margin: 0;
             padding: 0;
         }
@@ -46,23 +51,90 @@
             z-index: 800;
         }
 
-        .viewport {
+        #viewport {
             bottom: 0;
             left: 0;
             overflow: hidden;
             position: absolute;
             right: 0;
-            top: 48px;
+            top: 0px;
             z-index: 500;
         }
-        .viewport:focus {
+        #viewport:focus {
             outline: none;
+        }
+
+        .status {
+            color: rgb(200, 200, 200);
+            z-index: 600;
+            left: 10px;
+            right: 10px;
+            top: 10px;
+            position: absolute;
+            text-align: center;
         }
 
         .tools {}
         .datagrid {}
-        .palette {}
-        .sidebar {}
+        .palette {
+            border-left: 1px solid rgb(27, 27, 27);
+            font-size: 0.8em;
+            min-height: 80px;
+        }
+        .palette .body {
+            color: rgb(144, 144, 144);
+            padding-bottom: 10px;
+            padding-top: 10px;
+            text-align: center;
+        }
+        .palette .footer {
+            background: linear-gradient(to bottom, #333333 0%,#2c2c2c 100%); /* W3C */
+            border-top: 1px solid rgb(60, 60, 63);
+            bottom: 0;
+            box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
+            color: rgb(201, 201, 201);
+            font-weight: 700;
+            height: 44px;
+            line-height: 32px;
+            padding-left: 10px;
+            padding-right: 10px;
+            position: absolute;
+            text-shadow: 0px -2px 3px rgba(22, 22, 22, 1);
+            text-transform: uppercase;
+            vertical-align: middle;
+            -webkit-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
+            -moz-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
+        }
+        .palette .header {
+            /*background: #333333;*/
+            background: linear-gradient(to bottom, #333333 0%,#2c2c2c 100%); /* W3C */
+            border-top: 1px solid rgb(60, 60, 63);
+            box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
+            color: white;
+            font-weight: 700;
+            height: 32px;
+            line-height: 32px;
+            padding-left: 10px;
+            padding-right: 10px;
+            text-shadow: 0px -2px 3px rgba(22, 22, 22, 1);
+            text-transform: uppercase;
+            vertical-align: middle;
+            -webkit-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
+            -moz-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
+        }
+        #sidebar {
+            background-color: rgb(34, 35, 35);
+            bottom: 0;
+            color: rgb(144, 144, 144);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 280px;
+            z-index: 500;
+        }
 
         .active {
             background-color: #ffffff;
@@ -94,15 +166,75 @@
             overflow: hidden;
             width: 48px;
         }
+        .tool {
+            height: 48px;
+            overflow: hidden;
+            width: 48px;
+        }
     </style>
 </head>
 <body>
 <div class="controls" ng-controller="NavController"></div>
-<div class="viewport"></div>
+<div class="status top">
+    Tools
+</div>
+<div class="status bottom">
+    Status Info
+</div>
+<div id="viewport">
+</div>
 <div class="commandbox">
     <input type="text" placeholder="Command" />
     <div class="matches">
 
+    </div>
+</div>
+<div id="sidebar">
+    <div class="palette">
+        <div class="body">
+            <div class="row">
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+            </div>
+            <div class="row">
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+                <button class="tool">Tool</button>
+            </div>
+        </div>
+    </div>
+    <div class="palette">
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Layers</div>
+        <div class="body">
+            Content of the palette
+        </div>
+    </div>
+    <div class="palette">
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Tasks</div>
+        <div class="body">
+            Content of the palette
+        </div>
+    </div>
+    <div class="palette">
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Pins</div>
+        <div class="body">
+            Content of the palette
+        </div>
+    </div>
+    <div class="palette">
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Changes</div>
+        <div class="body">
+            Content of the palette
+            <button>Save Changes</button>
+        </div>
+    </div>
+    <div class="palette footer">
+        Content of the palette
     </div>
 </div>
 <script>

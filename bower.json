@@ -22,7 +22,8 @@
     "angular": "~1.4.6",
     "slickgrid": "~2.1.0",
     "jqTree": "jqtree#~1.2.1",
-    "qtip2": "~2.2.1"
+    "qtip2": "~2.2.1",
+    "font-awesome": "fontawesome#~4.4.0"
   },
   "dependencies": {
     "bluebird": "~2.10.0",
