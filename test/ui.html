@@ -8,9 +8,11 @@
     <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600' rel='stylesheet' type='text/css'>
     <link href='../vendor/font-awesome/css/font-awesome.css' rel='stylesheet' type='text/css'>
     <link href='../vendor/jqTree/jqtree.css' rel='stylesheet' type='text/css'>
+    <link href='../vendor/ol3/ol.css' rel='stylesheet' type='text/css'>
     <link href='../vendor/slickgrid/slick.grid.css' rel='stylesheet' type='text/css'>
     <link href='../vendor/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css' rel='stylesheet' type='text/css'>
     <link href='../vendor/slickgrid/examples/examples.css' rel='stylesheet' type='text/css'>
+    <link href='ui.css' rel='stylesheet' type='text/css'>
 
     <!-- vendor -->
     <script src="../vendor/jquery/dist/jquery.js"></script>
@@ -18,6 +20,7 @@
     <script src="../vendor/jqTree/tree.jquery.js"></script>
     <script src="../vendor/angular/angular.js"></script>
     <script src="../vendor/mousetrap/mousetrap.js"></script>
+    <script src="../vendor/ol3/ol.js"></script>
     <script src="../vendor/slickgrid/slick.core.js"></script>
     <script src="../vendor/slickgrid/slick.grid.js"></script>
     <script src="../vendor/three.js/three.js"></script>
@@ -40,199 +43,6 @@
 
     <!-- demo application -->
     <script src="app.js"></script>
-
-    <style>
-        body {
-            background-color: #484848;
-            color: #C9CCC6;
-            font-family: 'Lato', sans-serif;
-            font-size: 0.8em;
-            margin: 0;
-            padding: 0;
-        }
-        #grid {
-            background-color: rgb(35, 35, 35);
-            bottom: 0;
-            height: 190px;
-            left: 0;
-            overflow: hidden;
-            position: absolute;
-            right: 280px;
-            z-index: 600;
-        }
-        #myGrid {
-            font-size: 0.8em;
-        }
-        #hud {
-            bottom: 0;
-            color: rgba(200, 200, 200, 0.8);
-            display: flex;
-            flex-direction: column;
-            flex-wrap: nowrap;
-            /*font-family: 'Source Code Pro', monospace;*/
-            font-weight: 300;
-            justify-content: space-between;
-            left: 0;
-            margin: 15px;
-            position: absolute;
-            right: 280px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
-            top: 0;
-            z-index: 600;
-        }
-        #hud .bottom {
-            display: flex;
-        }
-        #hud .row {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
-            justify-content: space-between;
-        }
-        #hud .top {
-            display: flex;
-        }
-        #sidebar {
-            background-color: rgb(35, 35, 35);
-            bottom: 0;
-            color: rgb(144, 144, 144);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 280px;
-            z-index: 500;
-        }
-        #viewport {
-            bottom: 0;
-            display: flex;
-            flex-direction: column;
-            flex-wrap: nowrap;
-            justify-content: space-between;
-            left: 0;
-            overflow: hidden;
-            position: absolute;
-            right: 280px;
-            top: 0;
-            z-index: 500;
-        }
-        #viewport:focus {
-            outline: none;
-        }
-        .active {
-            background-color: rgba(200,200,200,0.2) !important;
-        }
-        .btn {
-            width: 100%;
-        }
-        .btn:focus {
-            outline: none;
-        }
-        .commandbox {
-            background: #888;
-            display: none;
-            margin-left: auto;
-            margin-right: auto;
-            min-height: 400px;
-            width: 400px;
-            z-index: 800;
-        }
-        .palette {
-            border-left: 1px solid rgb(27, 27, 27);
-            min-height: 80px;
-        }
-        .palette .body {
-            color: rgb(144, 144, 144);
-            padding-bottom: 0px;
-            padding-top: 0px;
-            text-align: center;
-        }
-        .palette .footer {
-            background: linear-gradient(to bottom, #333333 0%,#2c2c2c 100%); /* W3C */
-            border-top: 1px solid rgb(60, 60, 63);
-            bottom: 0;
-            box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
-            color: rgb(201, 201, 201);
-            font-weight: 700;
-            height: 44px;
-            line-height: 32px;
-            padding-left: 10px;
-            padding-right: 10px;
-            position: absolute;
-            text-shadow: 0px -2px 3px rgba(22, 22, 22, 1);
-            text-transform: uppercase;
-            vertical-align: middle;
-            -webkit-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
-            -moz-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
-        }
-        .header {
-            /*background: #333333;*/
-            background: linear-gradient(to bottom, #333333 0%,#2c2c2c 100%); /* W3C */
-            border-top: 1px solid rgb(60, 60, 63);
-            box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
-            color: white;
-            font-size: 0.8em;
-            font-weight: 700;
-            height: 32px;
-            line-height: 32px;
-            padding-left: 10px;
-            padding-right: 10px;
-            text-shadow: 0px -2px 3px rgba(22, 22, 22, 1);
-            text-transform: uppercase;
-            vertical-align: middle;
-            -webkit-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
-            -moz-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
-        }
-        .palette .row {
-            display: flex;
-        }
-        .tool {
-            background-color: rgb(35, 35, 35);
-            border-bottom: 1px solid rgba(22, 22, 22, 1);
-            border-right: 1px solid rgba(22, 22, 22, 1);
-            border-left: 1px solid rgb(60, 60, 63);
-            border-top: 1px solid rgb(60, 60, 63);
-            color: rgba(144,144,144,1);
-            height: 52px;
-            margin-top: 2px;
-            overflow: hidden;
-            text-shadow: 0 0 4px rgba(22, 22, 22, 1);
-            width: 52px;
-        }
-        .tool:focus {
-            outline: none;
-        }
-        .tools {
-            background-color: rgb(35, 35, 35);
-            width: 48px;
-        }
-        ul.list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        ul.list li {
-            border-top: 1px solid rgba(60, 60, 60, 1);
-            padding: 7px;
-            text-align: left;
-        }
-        ul.list li i {
-            padding-left: 5px;
-            padding-right: 10px;
-        }
-        ul.list li:first-child {
-            border-top: none;
-        }
-        .color-swatch {
-            background-color: purple;
-            border: 1px solid rgb(60, 60, 60);
-            float: right;
-            height: 16px;
-            width: 16px;
-        }
-    </style>
 </head>
 <body>
 <!--<div id="hud">-->
@@ -372,10 +182,18 @@
             <button>Save Changes</button>
         </div>
     </div>
-    <div class="palette footer">
-        <i class="fa fa-user"></i>
-        Stacie Grassano
-        <i class="fa fa-bars"></i>
+    <div class="palette">
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Map</div>
+        <div id="map" class="map"></div>
+    </div>
+    <div class="footer">
+        <div class="inset">
+            <i class="fa fa-user"></i>
+            Stacie Grassano
+        <span class="float-right">
+            <i class="fa fa-bars"></i>
+        </span>
+        </div>
     </div>
 </div>
 <script>
@@ -685,6 +503,19 @@
         enableCellNavigation: true,
         enableColumnReorder: false
     };
+
+    var map = new ol.Map({
+        target: 'map',
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.MapQuest({layer: 'sat'})
+            })
+        ],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([37.41, 8.82]),
+            zoom: 4
+        })
+    });
 
     $(function () {
         var data = [];
