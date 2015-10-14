@@ -5,12 +5,21 @@
     <title>Threejs CAD Interface</title>
     <!-- fonts -->
     <link href='https://fonts.googleapis.com/css?family=Lato:400,300,100,700,900' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600' rel='stylesheet' type='text/css'>
     <link href='../vendor/font-awesome/css/font-awesome.css' rel='stylesheet' type='text/css'>
+    <link href='../vendor/jqTree/jqtree.css' rel='stylesheet' type='text/css'>
+    <link href='../vendor/slickgrid/slick.grid.css' rel='stylesheet' type='text/css'>
+    <link href='../vendor/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css' rel='stylesheet' type='text/css'>
+    <link href='../vendor/slickgrid/examples/examples.css' rel='stylesheet' type='text/css'>
 
     <!-- vendor -->
     <script src="../vendor/jquery/dist/jquery.js"></script>
+    <script src="../vendor/jquery.event.dragdrop/event.drag/jquery.event.drag.js"></script>
+    <script src="../vendor/jqTree/tree.jquery.js"></script>
     <script src="../vendor/angular/angular.js"></script>
     <script src="../vendor/mousetrap/mousetrap.js"></script>
+    <script src="../vendor/slickgrid/slick.core.js"></script>
+    <script src="../vendor/slickgrid/slick.grid.js"></script>
     <script src="../vendor/three.js/three.js"></script>
     <script src="../vendor/tweenjs/src/Tween.js"></script>
 
@@ -37,10 +46,90 @@
             background-color: #484848;
             color: #C9CCC6;
             font-family: 'Lato', sans-serif;
+            font-size: 0.8em;
             margin: 0;
             padding: 0;
         }
-
+        #grid {
+            background-color: rgb(35, 35, 35);
+            bottom: 0;
+            height: 190px;
+            left: 0;
+            overflow: hidden;
+            position: absolute;
+            right: 280px;
+            z-index: 600;
+        }
+        #myGrid {
+            font-size: 0.8em;
+        }
+        #hud {
+            bottom: 0;
+            color: rgba(200, 200, 200, 0.8);
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            /*font-family: 'Source Code Pro', monospace;*/
+            font-weight: 300;
+            justify-content: space-between;
+            left: 0;
+            margin: 15px;
+            position: absolute;
+            right: 280px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+            top: 0;
+            z-index: 600;
+        }
+        #hud .bottom {
+            display: flex;
+        }
+        #hud .row {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+        #hud .top {
+            display: flex;
+        }
+        #sidebar {
+            background-color: rgb(35, 35, 35);
+            bottom: 0;
+            color: rgb(144, 144, 144);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 280px;
+            z-index: 500;
+        }
+        #viewport {
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+            left: 0;
+            overflow: hidden;
+            position: absolute;
+            right: 280px;
+            top: 0;
+            z-index: 500;
+        }
+        #viewport:focus {
+            outline: none;
+        }
+        .active {
+            background-color: rgba(200,200,200,0.2) !important;
+        }
+        .btn {
+            width: 100%;
+        }
+        .btn:focus {
+            outline: none;
+        }
         .commandbox {
             background: #888;
             display: none;
@@ -50,41 +139,14 @@
             width: 400px;
             z-index: 800;
         }
-
-        #viewport {
-            bottom: 0;
-            left: 0;
-            overflow: hidden;
-            position: absolute;
-            right: 0;
-            top: 0px;
-            z-index: 500;
-        }
-        #viewport:focus {
-            outline: none;
-        }
-
-        .status {
-            color: rgb(200, 200, 200);
-            z-index: 600;
-            left: 10px;
-            right: 10px;
-            top: 10px;
-            position: absolute;
-            text-align: center;
-        }
-
-        .tools {}
-        .datagrid {}
         .palette {
             border-left: 1px solid rgb(27, 27, 27);
-            font-size: 0.8em;
             min-height: 80px;
         }
         .palette .body {
             color: rgb(144, 144, 144);
-            padding-bottom: 10px;
-            padding-top: 10px;
+            padding-bottom: 0px;
+            padding-top: 0px;
             text-align: center;
         }
         .palette .footer {
@@ -105,12 +167,13 @@
             -webkit-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
             -moz-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
         }
-        .palette .header {
+        .header {
             /*background: #333333;*/
             background: linear-gradient(to bottom, #333333 0%,#2c2c2c 100%); /* W3C */
             border-top: 1px solid rgb(60, 60, 63);
             box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
             color: white;
+            font-size: 0.8em;
             font-weight: 700;
             height: 32px;
             line-height: 32px;
@@ -122,91 +185,172 @@
             -webkit-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
             -moz-box-shadow: 0px 2px 4px 0px rgba(22,22,22,0.8);
         }
-        #sidebar {
-            background-color: rgb(34, 35, 35);
-            bottom: 0;
-            color: rgb(144, 144, 144);
+        .palette .row {
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 280px;
-            z-index: 500;
         }
-
-        .active {
-            background-color: #ffffff;
+        .tool {
+            background-color: rgb(35, 35, 35);
+            border-bottom: 1px solid rgba(22, 22, 22, 1);
+            border-right: 1px solid rgba(22, 22, 22, 1);
+            border-left: 1px solid rgb(60, 60, 63);
+            border-top: 1px solid rgb(60, 60, 63);
+            color: rgba(144,144,144,1);
+            height: 52px;
+            margin-top: 2px;
+            overflow: hidden;
+            text-shadow: 0 0 4px rgba(22, 22, 22, 1);
+            width: 52px;
         }
-
-        .button:focus {
+        .tool:focus {
             outline: none;
         }
-
-        .controls {
-            background-color: #333;
-            height: 48px;
-            left: 0px;
-            padding: 1px;
-            right: 0px;
-            position: absolute;
-            top: 0px;
+        .tools {
+            background-color: rgb(35, 35, 35);
+            width: 48px;
         }
-
-        .control-group {
+        ul.list {
+            list-style: none;
             margin: 0;
             padding: 0;
         }
-
-        .control {
-            border: 1px solid #222;
-            display: inline;
-            min-height: 48px;
-            overflow: hidden;
-            width: 48px;
+        ul.list li {
+            border-top: 1px solid rgba(60, 60, 60, 1);
+            padding: 7px;
+            text-align: left;
         }
-        .tool {
-            height: 48px;
-            overflow: hidden;
-            width: 48px;
+        ul.list li i {
+            padding-left: 5px;
+            padding-right: 10px;
+        }
+        ul.list li:first-child {
+            border-top: none;
+        }
+        .color-swatch {
+            background-color: purple;
+            border: 1px solid rgb(60, 60, 60);
+            float: right;
+            height: 16px;
+            width: 16px;
         }
     </style>
 </head>
 <body>
-<div class="controls" ng-controller="NavController"></div>
-<div class="status top">
-    Tools
+<!--<div id="hud">-->
+    <!--<div class="row top">-->
+        <!--<div class="tools">-->
+            <!--<button class="button tool"><i class="fa fa-mouse-pointer fa-fw fa-inverse"></i></button>-->
+            <!--<button class="button tool"><i class="fa fa-arrows fa-fw fa-inverse"></i></button>-->
+            <!--<button class="button tool"><i class="fa fa-cube fa-fw fa-inverse"></i></button>-->
+            <!--<button class="button tool"><i class="fa fa-map-marker fa-fw fa-inverse"></i></button>-->
+            <!--<button class="button tool"><i class="fa fa-history fa-fw fa-inverse"></i></button>-->
+        <!--</div>-->
+        <!--<div class="center">-->
+            <!--Center-->
+        <!--</div>-->
+        <!--<div class="right">-->
+            <!--Right-->
+        <!--</div>-->
+    <!--</div>-->
+    <!--<div class="row bottom">-->
+        <!--<div class="left">-->
+            <!--Lat. 10000, Lng. 10000, Elev: 10-->
+        <!--</div>-->
+        <!--<div class="center">-->
+            <!--Perspective View-->
+        <!--</div>-->
+        <!--<div class="right">-->
+            <!--Right-->
+        <!--</div>-->
+    <!--</div>-->
+<!--</div>-->
+<div id="grid">
+    <div class="header">
+        Data Grid
+    </div>
+    <div id="myGrid" style="height:500px;"></div>
 </div>
-<div class="status bottom">
-    Status Info
-</div>
-<div id="viewport">
-</div>
+<div id="viewport"></div>
 <div class="commandbox">
     <input type="text" placeholder="Command" />
     <div class="matches">
-
+        <ul class="list">
+            <li>Item / Item</li>
+            <li>Item / Item</li>
+            <li>Item / Item</li>
+            <li>Item / Item</li>
+        </ul>
     </div>
 </div>
 <div id="sidebar">
     <div class="palette">
-        <div class="body">
-            <div class="row">
-                <button class="tool"><i class="fa fa-mouse-pointer fa-2x fa-fw"></i></button>
-                <button class="tool"><i class="fa fa-arrows fa-2x fa-fw"></i></button>
-                <button class="tool"><i class="fa fa-cube fa-2x fa-fw"></i></button>
-                <button class="tool"><i class="fa fa-map-marker fa-2x fa-fw"></i></button>
-                <button class="tool"><i class="fa fa-history fa-2x fa-fw"></i></button>
-            </div>
+        <div class="row">
+            <button class="button tool"><i class="fa fa-mouse-pointer fa-2x fa-fw fa-inverse"></i></button>
+            <button class="button tool active"><i class="fa fa-arrows fa-2x fa-fw fa-inverse"></i></button>
+            <button class="button tool"><i class="fa fa-cube fa-2x fa-fw fa-inverse"></i></button>
+            <button class="button tool"><i class="fa fa-map-marker fa-2x fa-fw fa-inverse"></i></button>
+            <button class="button tool"><i class="fa fa-history fa-2x fa-fw fa-inverse"></i></button>
         </div>
     </div>
     <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Layers</div>
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Points</div>
         <div class="body">
-            Content of the palette
-            <i class="fa fa-eye"></i>
-            <i class="fa fa-eye-slash"></i>
+            <ul class="list">
+                <li>
+                    <span class="text-right">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+                <li>
+                    <span class="text-right">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+                <li>
+                    <span class="text-right">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+                <li>
+                    <span class="text-right">
+                        <i class="fa fa-eye"></i>
+                    </span>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="palette">
+        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Features</div>
+        <div class="body">
+            <ul class="list">
+                <li>
+                    <i class="fa fa-eye"></i>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+                <li>
+                    <i class="fa fa-eye"></i>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+                <li>
+                    <i class="fa fa-eye"></i>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+                <li>
+                    <i class="fa fa-eye"></i>
+                    Layer Name
+                    <span class="color-swatch"></span>
+                </li>
+            </ul>
         </div>
     </div>
     <div class="palette">
@@ -229,7 +373,9 @@
         </div>
     </div>
     <div class="palette footer">
-        Content of the palette
+        <i class="fa fa-user"></i>
+        Stacie Grassano
+        <i class="fa fa-bars"></i>
     </div>
 </div>
 <script>
@@ -508,15 +654,58 @@
             });
 
             // keyinput controller
-//      viewport.controllers.keyinput = new FOUR.KeyInputController();
-//      window.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
-//      window.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
+            //      viewport.controllers.keyinput = new FOUR.KeyInputController();
+            //      window.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
+            //      window.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
 
             // set the viewport controller mode
             viewport.setMode('selection');
         }
 
     });
+
+
+    // data grid example
+    var grid;
+    var columns = [
+        {id: "id", name: "ID", field: "id"},
+        {id: "status", name: "Status", field: "status"},
+        {id: "species", name: "Species", field: "species"},
+        {id: "points", name: "Points", field: "points"},
+        {id: "groundHeight", name: "Ground Height", field: "groundHeight"},
+        {id: "leafSize", name: "Leaf Size", field: "leafSize"},
+        {id: "density", name: "Density", field: "density"},
+        {id: "address", name: "Address", field: "address"},
+        {id: "xSize", name: "X Size", field: "xSize"},
+        {id: "ySize", name: "Y Size", field: "ySize"},
+        {id: "zSize", name: "Z Size", field: "zSize"}
+    ];
+
+    var options = {
+        enableCellNavigation: true,
+        enableColumnReorder: false
+    };
+
+    $(function () {
+        var data = [];
+        for (var i = 0; i < 500; i++) {
+            data[i] = {
+                id: i,
+                status: 'E_EXISTING',
+                species: 'Species',
+                points: 100,
+                groundHeight: 1,
+                leafSize: 1,
+                density: 2,
+                address: '123 ABC Street',
+                xSize: 1,
+                ySize: 1,
+                zSize: 1
+            };
+        }
+        grid = new Slick.Grid("#myGrid", data, columns, options);
+    })
+
 </script>
 </body>
 </html>
