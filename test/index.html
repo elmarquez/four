@@ -257,6 +257,8 @@
         // viewport
         var viewport = window.viewport = new FOUR.Viewport3D({domElement:domElement, scene:scene, camera:camera});
         viewport.addEventListener('update', viewport.render.bind(viewport), false);
+        viewport.render();
+        viewport.update();
 
         setupKeyboardBindings();
         setupControllers();
@@ -435,7 +437,7 @@
 //      window.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
 
             // set the viewport controller mode
-            viewport.setMode('selection');
+            viewport.setActiveController('selection');
         }
 
     });

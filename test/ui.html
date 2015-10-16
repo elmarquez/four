@@ -297,6 +297,8 @@
         // viewport
         var viewport = window.viewport = new FOUR.Viewport3D({domElement:domElement, scene:scene, camera:camera});
         viewport.addEventListener('update', viewport.render.bind(viewport), false);
+        viewport.render();
+        viewport.update();
 
         setupKeyboardBindings();
         setupControllers();
@@ -325,7 +327,7 @@
             // viewport mode
             // TODO modify the cursor depending on the mode
             Mousetrap.bind('q', function () {
-                viewport.setMode('selection');
+                viewport.setActiveController('selection');
             });
 
             // view controls
@@ -336,16 +338,16 @@
             });
 
             Mousetrap.bind('1', function () {
-                viewport.setMode('trackball');
+                viewport.setActiveController('trackball');
             });
             Mousetrap.bind('2', function () {
-                viewport.setMode('walk');
+                viewport.setActiveController('walk');
             });
             Mousetrap.bind('3', function () {
-                viewport.setMode('orbit');
+                viewport.setActiveController('orbit');
             });
             Mousetrap.bind('4', function () {
-                viewport.setMode('tour');
+                viewport.setActiveController('tour');
             });
             Mousetrap.bind('5', function () {
                 var bbox = getViewBoundingBox();
@@ -476,7 +478,7 @@
             //      window.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
 
             // set the viewport controller mode
-            viewport.setMode('selection');
+            viewport.setActiveController('selection');
         }
 
     });
