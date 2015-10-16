@@ -229,7 +229,7 @@ FOUR.FirstPersonController = (function () {
 		var self = this;
 
 		self.EVENT = {
-			CHANGE: {type:'change'},
+			UPDATE: {type:'udpate'},
 			END: {type:'end'},
 			START: {type:'start'}
 		};
@@ -568,7 +568,7 @@ FOUR.FirstPersonController = (function () {
 		self.camera.zoom = self.zoom0;
 
 		self.camera.updateProjectionMatrix();
-		self.dispatchEvent(self.EVENT.CHANGE);
+		self.dispatchEvent(self.EVENT.UPDATE);
 
 		self.update();
 	};
@@ -626,7 +626,7 @@ FOUR.FirstPersonController = (function () {
 		}
 		// signal change
 		if (self.constraint.update() === true || change === true) {
-			self.dispatchEvent(self.EVENT.CHANGE);
+			self.dispatchEvent(self.EVENT.UPDATE);
 		}
 	};
 

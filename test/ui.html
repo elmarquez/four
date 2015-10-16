@@ -295,12 +295,11 @@
         var camera = scene.getCamera(scene.DEFAULT_CAMERA_NAME);
 
         // viewport
-        var viewport = window.viewport = new FOUR.Viewport3D(domElement, scene, camera);
+        var viewport = window.viewport = new FOUR.Viewport3D({domElement:domElement, scene:scene, camera:camera});
         viewport.addEventListener('update', viewport.render.bind(viewport), false);
 
         setupKeyboardBindings();
         setupControllers();
-        viewport.init();
         viewport.render();
 
         function setupKeyboardBindings() {

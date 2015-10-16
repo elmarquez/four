@@ -229,7 +229,7 @@ FOUR.OrbitController = (function () {
 		var self = this;
 
 		self.EVENT = {
-			CHANGE: {type:'change'},
+			UPDATE: {type:'update'},
 			END: {type:'end'},
 			START: {type:'start'}
 		};
@@ -472,7 +472,7 @@ FOUR.OrbitController = (function () {
 		self.camera.zoom = self.zoom0;
 
 		self.camera.updateProjectionMatrix();
-		self.dispatchEvent(self.EVENT.CHANGE);
+		self.dispatchEvent(self.EVENT.UPDATE);
 
 		self.update();
 	};
@@ -483,7 +483,7 @@ FOUR.OrbitController = (function () {
 			self.constraint.rotateLeft(self.getAutoRotationAngle());
 		}
 		if (self.constraint.update() === true) {
-			self.dispatchEvent(self.EVENT.CHANGE);
+			self.dispatchEvent(self.EVENT.UPDATE);
 		}
 	};
 

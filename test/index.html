@@ -255,13 +255,11 @@
         var camera = scene.getCamera(scene.DEFAULT_CAMERA_NAME);
 
         // viewport
-        var viewport = window.viewport = new FOUR.Viewport3D(domElement, scene, camera);
+        var viewport = window.viewport = new FOUR.Viewport3D({domElement:domElement, scene:scene, camera:camera});
         viewport.addEventListener('update', viewport.render.bind(viewport), false);
 
         setupKeyboardBindings();
         setupControllers();
-        viewport.init();
-        viewport.render();
 
         function setupKeyboardBindings() {
             // selection
@@ -398,7 +396,7 @@
             // trackball controller
             viewport.controllers.trackball = new FOUR.TrackballController({viewport: viewport});
             viewport.controllers.trackball.dynamicDampingFactor = 0.5;
-            viewport.controllers.trackball.addEventListener('change', viewport.render.bind(viewport));
+            viewport.controllers.trackball.addEventListener('update', viewport.render.bind(viewport));
             viewport.controllers.trackball.addEventListener('lookat', function (event) {
                 camera.setLookAt(event.position.x, event.position.y, event.position.z);
             }, false);
@@ -411,7 +409,7 @@
             // first person navigation controller
             viewport.controllers.walk = new FOUR.WalkController({viewport: viewport});
             viewport.controllers.walk.enforceWalkHeight = true;
-            viewport.controllers.walk.addEventListener('change', viewport.render.bind(viewport));
+            viewport.controllers.walk.addEventListener('update', viewport.render.bind(viewport));
             viewport.controllers.walk.addEventListener('lookat', function (event) {
                 camera.setLookAt(event.position.x, event.position.y, event.position.z);
             }, false);
@@ -423,7 +421,7 @@
 
             // orbit controller
             viewport.controllers.orbit = new FOUR.OrbitController({camera:camera, domElement:domElement});
-            viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
+            viewport.controllers.orbit.addEventListener('update', viewport.render.bind(viewport));
 
             // tour controller
             viewport.controllers.tour = new FOUR.TourController({viewport: viewport, selection: scene.selection});

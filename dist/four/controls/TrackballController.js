@@ -48,7 +48,7 @@ FOUR.TrackballController = (function () {
 
         self.EPS = 0.000001;
         self.EVENTS = {
-            CHANGE: {type: 'change'},
+            UPDATE: {type: 'update'},
             END: {type: 'end'},
             START: {type: 'start'}
         };
@@ -400,7 +400,7 @@ FOUR.TrackballController = (function () {
 
         _eye.subVectors(self.camera.position, self.target);
         self.camera.lookAt(self.target);
-        self.dispatchEvent(self.EVENTS.CHANGE);
+        self.dispatchEvent(self.EVENTS.UPDATE);
         self.lastPosition.copy(self.camera.position);
     };
 
@@ -546,7 +546,7 @@ FOUR.TrackballController = (function () {
         self.camera.lookAt(self.target);
 
         if (self.lastPosition.distanceToSquared(self.camera.position) > self.EPS) {
-            self.dispatchEvent(self.EVENTS.CHANGE);
+            self.dispatchEvent(self.EVENTS.UPDATE);
             self.lastPosition.copy(self.camera.position);
         }
     };

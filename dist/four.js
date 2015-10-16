@@ -370,29 +370,41 @@ var FOUR = FOUR || {};
 FOUR.Scene = (function () {
 
     /**
-     *
+     * Scene
      * @constructor
      */
-    function Scene () {
+    function Scene (config) {
         THREE.Scene.call(this);
+        config = config || {};
 
         var self = this;
+        self.DEFAULT_CAMERA_NAME = 'camera1';
         self.boundingBox = new FOUR.BoundingBox('scene-bounding-box');
         self.cameras = new THREE.Object3D();
         self.helpers = new THREE.Object3D();
         self.lights = new THREE.Object3D();
         self.model = new THREE.Object3D();
-        self.selection = new FOUR.SelectionSet({scene: self});
+        self.selection = new FOUR.SelectionSet();
+
+        self.cameras.name = 'cameras';
+        self.lights.name = 'lights';
+        self.model.name = 'model';
+        self.helpers.name = 'helpers';
 
         self.add(self.cameras);
         self.add(self.lights);
         self.add(self.model);
         self.add(self.helpers);
 
+        Object.keys(config).forEach(function (key) {
+           self[key] = config[key];
+        });
+
         // scene bounding box
         self.helpers.add(self.boundingBox);
 
         // listen for updates
+        // TODO update the scene bounding box when the backing model changes
         self.selection.addEventListener('update', function () {
             self.boundingBox.update(self.selection.getObjects());
         });
@@ -400,24 +412,22 @@ FOUR.Scene = (function () {
 
     Scene.prototype = Object.create(THREE.Scene.prototype);
 
-    Scene.prototype.DEFAULT_CAMERA_NAME = 'camera1';
-
     Scene.prototype.constructor = Scene;
 
     /**
      * Create a default scene camera. A camera aspect ratio or DOM height
      * element and width must be specified.
-     * @param config
-     * @todo turn this into a more generic create camera method?
+     * @param {Object} config Configuration
      */
     Scene.prototype.createDefaultCamera = function (config) {
-        // TODO rename to createCamera
         var self = this;
+        config = config || {};
         // default camera settings
         var cfg = {
             far: 1000,
             fov: 45,
             height: 1,
+            name: self.DEFAULT_CAMERA_NAME,
             near: 0.1,
             width: 1
         };
@@ -425,12 +435,10 @@ FOUR.Scene = (function () {
            cfg[key] = config[key];
         });
         var camera = new FOUR.TargetCamera(cfg.fov, cfg.width / cfg.height, cfg.near, cfg.far);
-        camera.name = self.DEFAULT_CAMERA_NAME; // use name field
-        self.cameras.add(camera);
+        camera.name = cfg.name;
         camera.setPositionAndTarget(-50, -50, 50, 0, 0, 0); // use position, target fields
-        camera.addEventListener('continuous-update-end', function () { self.emit('continuous-update-end'); });
-        camera.addEventListener('continuous-update-start', function () { self.emit('continuous-update-start'); });
         camera.addEventListener('update', function () { self.emit('update'); });
+        self.cameras.add(camera);
     };
 
     Scene.prototype.emit = function (type) {
@@ -438,35 +446,41 @@ FOUR.Scene = (function () {
     };
 
     Scene.prototype.getCamera = function (name) {
-        var self = this;
-        return self.getCameras(function (obj) {
-            return obj.name === name;
-        }).pop();
+        return this.getLayerObject('cameras', name);
     };
 
-    Scene.prototype.getCameras = function (filter) {
-        var cameras = [], self = this;
-        if (!filter) {
-            filter = filter || function () { return true; };
-        }
-        self.cameras.traverse(function (obj) {
-            if (filter(obj)) {
-                cameras.push(obj);
-            }
-        });
-        return cameras;
+    Scene.prototype.getCameras = function () {
+        return this.getLayerObjects('cameras');
+    };
+
+    Scene.prototype.getHelper = function (name) {
+        return this.getLayerObject('helpers', name);
+    };
+
+    Scene.prototype.getHelpers = function () {
+        return this.getLayerObjects('helpers');
+    };
+
+    Scene.prototype.getLayerObjects = function (layer) {
+        return this.children.reduce(function (last, current) {
+            return current.name === layer ? current.children : last;
+        }, null);
+    };
+
+    Scene.prototype.getLayerObject = function (layer, name) {
+        return this
+          .getLayerObjects(layer)
+          .reduce(function (last, current) {
+            return current.name === name ? current : last;
+        }, null);
     };
 
     Scene.prototype.getLight = function (name) {
-        throw new Error('not implemented');
+        return this.getLayerObject('lights', name);
     };
 
     Scene.prototype.getLights = function () {
-        throw new Error('not implemented');
-    };
-
-    Scene.prototype.load = function () {
-        throw new Error('not implemented');
+        return this.getLayerObjects('lights');
     };
 
     return Scene;
@@ -487,8 +501,9 @@ FOUR.SelectionSet = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
+    self.boundingBox = new FOUR.BoundingBox(); // TODO update the bounding box when the selection set changes
     self.count = 0;
-    self.name = 'selection-set';
+    self.name = 'default-selection-set';
     self.selectedColor = 0xff5a00;
     self.selection = {};
     Object.keys(config).forEach(function (key) {
@@ -1556,164 +1571,142 @@ var FOUR = FOUR || {};
  */
 FOUR.Viewport3D = (function () {
 
-    /**
-     * Viewport3D constructor.
-     * @param {Element} domElement DOM element
-     * @param {THREE.Scene|FOUR.Scene} scene Scene
-     * @param {THREE.Camera} camera Camera
-     * @constructor
-     */
-    function Viewport3D(domElement, scene, camera) {
-        THREE.EventDispatcher.call(this);
-        this.backgroundColor = new THREE.Color(0x000, 1.0);
-        this.camera = camera;
-        this.clock = new THREE.Clock();
-        this.continuousUpdate = false;
-        this.controller = null; // the active controller
-        this.controllers = {};
-        this.domElement = domElement;
-        this.renderer = null;
-        this.scene = scene || new THREE.Scene();
+  /**
+   * Viewport3D constructor.
+   * @param {Object} config Configuration
+   * @constructor
+   */
+  function Viewport3D(config) {
+    THREE.EventDispatcher.call(this);
+    var self = this;
+    self.backgroundColor = new THREE.Color(0x000, 1.0);
+    self.camera = config.camera;
+    self.clock = new THREE.Clock();
+    self.continuousUpdate = true;
+    self.controller = null; // the active controller
+    self.controllers = {};
+    self.delta = 0;
+    self.domElement = config.domElement;
+    self.renderer = new THREE.WebGLRenderer({antialias: true});
+    self.renderer.setClearColor(self.backgroundColor);
+    self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
+    self.renderer.shadowMap.enabled = true;
+    self.scene = config.scene;
+    // add the viewport to the DOM
+    self.domElement.appendChild(self.renderer.domElement);
+    // listen for events
+    self.domElement.addEventListener('resize', self.handleResize.bind(self), false);
+    self.scene.addEventListener('update', self.render.bind(self), false);
+  }
+
+  Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  /**
+   * Add controller to viewport.
+   * @param {FOUR.Controller} controller Controller
+   * @param {String} name Name
+   */
+  Viewport3D.prototype.addController = function (controller, name) {
+    this.controllers[name] = controller;
+  };
+
+  /**
+   * Get the viewport camera.
+   * @returns {THREE.Camera}
+   */
+  Viewport3D.prototype.getCamera = function () {
+    return this.camera;
+  };
+
+  /**
+   * Get the viewport scene.
+   * @returns {THREE.Scene}
+   */
+  Viewport3D.prototype.getScene = function () {
+    return this.scene;
+  };
+
+  /**
+   * Handle window resize event.
+   */
+  Viewport3D.prototype.handleResize = function () {
+    var ctrl, self = this;
+    var height = self.domElement.clientHeight;
+    var width = self.domElement.clientWidth;
+    self.camera.aspect = width / height;
+    self.camera.updateProjectionMatrix();
+    Object.keys(self.controllers).forEach(function (key) {
+      ctrl = self.controllers[key];
+      if (typeof ctrl.handleResize === 'function') {
+        ctrl.handleResize();
+      }
+    });
+    self.renderer.setSize(width, height);
+    self.render();
+  };
+
+  /**
+   * Render the viewport once.
+   */
+  Viewport3D.prototype.render = function () {
+    this.renderer.render(this.scene, this.camera);
+  };
+
+  /**
+   * Set the active viewport controller.
+   * @param {String} name Controller name
+   */
+  Viewport3D.prototype.setActiveController = function (name) {
+    var self = this;
+    if (self.controller) {
+      self.controller.disable();
     }
+    self.controller = self.controllers[name];
+    self.controller.enable();
+  };
 
-    Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
+  /**
+   * Set viewport background color.
+   * @param {THREE.Color} color Color
+   */
+  Viewport3D.prototype.setBackgroundColor = function (color) {
+    var self = this;
+    self.background = color;
+    self.renderer.setClearColor(self.backgroundColor);
+    self.render();
+  };
 
-    Viewport3D.prototype.constructor = Viewport3D;
+  /**
+   * Set the viewport camera.
+   * @param {THREE.Camera} camera Camera
+   */
+  Viewport3D.prototype.setCamera = function (camera) {
+    var self = this;
+    self.camera = camera;
+    self.camera.aspect = self.domElement.clientWidth / self.domElement.clientHeight;
+    self.camera.updateProjectionMatrix();
+    this.render();
+  };
 
-    /**
-     * Add controller to viewport.
-     * @param {FOUR.Controller} controller Controller
-     * @param {String} name Name
-     */
-    Viewport3D.prototype.addController = function (controller, name) {
-        this.controllers[name] = controller;
-    };
+  /**
+   * Update the controller and global tween state.
+   */
+  Viewport3D.prototype.update = function () {
+    var self = this;
+    if (self.continuousUpdate) {
+      // enqueue next update
+      requestAnimationFrame(self.update.bind(self));
+      // update tween state
+      TWEEN.update();
+      // update controller state
+      if (self.controller) {
+        self.delta = self.clock.getDelta();
+        self.controller.update(self.delta);
+      }
+    }
+  };
 
-    /**
-     * Get the viewport camera.
-     * @returns {THREE.Camera}
-     */
-    Viewport3D.prototype.getCamera = function () {
-        return this.camera;
-    };
-
-    /**
-     * Get the viewport scene.
-     * @returns {THREE.Scene|FOUR.Scene}
-     */
-    Viewport3D.prototype.getScene = function () {
-        return this.scene;
-    };
-
-    /**
-     * Handle window resize event.
-     */
-    Viewport3D.prototype.handleResize = function () {
-        var self = this;
-        var height = self.domElement.clientHeight;
-        var width = self.domElement.clientWidth;
-        self.camera.aspect = width / height;
-        self.camera.updateProjectionMatrix();
-        self.renderer.setSize(width, height);
-        self.render();
-    };
-
-    /**
-     * Initialize the viewport.
-     */
-    Viewport3D.prototype.init = function () {
-        var self = this;
-        // renderer
-        self.renderer = new THREE.WebGLRenderer({antialias: true});
-        self.renderer.setClearColor(self.backgroundColor);
-        self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
-        self.renderer.shadowMap.enabled = true;
-        self.domElement.appendChild(self.renderer.domElement);
-        // listen for events
-        window.addEventListener('resize', self.handleResize.bind(self), false);
-        self.scene.addEventListener('update', self.render.bind(self), false);
-        // draw the first frame
-        self.render();
-        // start updating controllers
-        self.update();
-    };
-
-    /**
-     * Render the viewport once.
-     */
-    Viewport3D.prototype.render = function () {
-        var self = this;
-        self.renderer.render(self.scene, self.camera);
-    };
-
-    /**
-     * Set viewport background color.
-     * @param {THREE.Color} color Color
-     */
-    Viewport3D.prototype.setBackgroundColor = function (color) {
-        var self = this;
-        self.background = color;
-        self.renderer.setClearColor(self.backgroundColor);
-        self.render();
-    };
-
-    /**
-     * Set the viewport camera.
-     * @param {String} name Camera name
-     */
-    Viewport3D.prototype.setCamera = function (name) {
-        var found = false, i, obj, self = this;
-        if (typeof self.scene === FOUR.Scene) {
-            self.camera = self.scene.getCamera(name);
-        } else {
-            for (i = 0;i < self.scene.children && !found; i++) {
-                obj = self.scene.children[i];
-                if (typeof obj === THREE.Camera) {
-                    if (obj.name === name) {
-                        self.camera = obj;
-                        found = true;
-                    }
-                }
-            }
-            if (!found) {
-                console.error('Camera "' + name + '" not found');
-            }
-        }
-        self.render();
-    };
-
-    /**
-     * Set the active viewport controller.
-     * @param {String} mode Controller key
-     */
-    Viewport3D.prototype.setMode = function (mode) {
-        var self = this;
-        if (self.mode && self.controller) {
-            self.controller.disable();
-        }
-        console.info('set viewport mode to ' + mode);
-        self.mode = mode;
-        self.controller = self.controllers[self.mode];
-        self.controller.enable();
-    };
-
-    /**
-     * Update the controller and global tween state.
-     */
-    Viewport3D.prototype.update = function () {
-        var self = this;
-        // enqueue next update
-        requestAnimationFrame(self.update.bind(self));
-        // update tween state
-        TWEEN.update();
-        // update the current controller if it has an update() function
-        if (self.controller) {
-            var delta = self.clock.getDelta();
-            self.controller.update(delta);
-        }
-    };
-
-    return Viewport3D;
+  return Viewport3D;
 
 }());
 ;'use strict';
@@ -1947,7 +1940,7 @@ FOUR.FirstPersonController = (function () {
 		var self = this;
 
 		self.EVENT = {
-			CHANGE: {type:'change'},
+			UPDATE: {type:'udpate'},
 			END: {type:'end'},
 			START: {type:'start'}
 		};
@@ -2286,7 +2279,7 @@ FOUR.FirstPersonController = (function () {
 		self.camera.zoom = self.zoom0;
 
 		self.camera.updateProjectionMatrix();
-		self.dispatchEvent(self.EVENT.CHANGE);
+		self.dispatchEvent(self.EVENT.UPDATE);
 
 		self.update();
 	};
@@ -2344,7 +2337,7 @@ FOUR.FirstPersonController = (function () {
 		}
 		// signal change
 		if (self.constraint.update() === true || change === true) {
-			self.dispatchEvent(self.EVENT.CHANGE);
+			self.dispatchEvent(self.EVENT.UPDATE);
 		}
 	};
 
@@ -2462,7 +2455,7 @@ FOUR.MultiController = (function () {
         var self = this;
 
         self.EVENTS = {
-            CHANGE: { type: 'change' },
+            UPDATE: { type: 'update' },
             END: { type: 'end' },
             START: { type: 'start' }
         };
@@ -2503,12 +2496,19 @@ FOUR.MultiController = (function () {
     };
 
     /**
-     * Set the controller mode.
-     * @param {String} mode Controller mode
+     * Set the active viewport controller.
+     * @param {String} name Controller name
      */
-    MultiController.prototype.setMode = function (mode) {
+    MultiController.prototype.setActiveController = function (name) {
         var self = this;
-        self.dispatchEvent({type: 'change'});
+        self.controller.disable();
+        if (!self.controllers[name]) {
+            console.error('Controller ' + name + ' does not exist');
+        } else {
+            self.controller = self.controllers[name];
+            self.controller.enable();
+            self.dispatchEvent(self.EVENTS.UPDATE);
+        }
     };
 
     return MultiController;
@@ -2745,7 +2745,7 @@ FOUR.OrbitController = (function () {
 		var self = this;
 
 		self.EVENT = {
-			CHANGE: {type:'change'},
+			UPDATE: {type:'update'},
 			END: {type:'end'},
 			START: {type:'start'}
 		};
@@ -2988,7 +2988,7 @@ FOUR.OrbitController = (function () {
 		self.camera.zoom = self.zoom0;
 
 		self.camera.updateProjectionMatrix();
-		self.dispatchEvent(self.EVENT.CHANGE);
+		self.dispatchEvent(self.EVENT.UPDATE);
 
 		self.update();
 	};
@@ -2999,7 +2999,7 @@ FOUR.OrbitController = (function () {
 			self.constraint.rotateLeft(self.getAutoRotationAngle());
 		}
 		if (self.constraint.update() === true) {
-			self.dispatchEvent(self.EVENT.CHANGE);
+			self.dispatchEvent(self.EVENT.UPDATE);
 		}
 	};
 
@@ -3264,6 +3264,10 @@ FOUR.SelectionController = (function () {
 
   //SelectionController.prototype.constructor = SelectionController;
 
+  SelectionController.prototype.contextMenu = function (event) {
+    event.preventDefault();
+  };
+
   SelectionController.prototype.count = function () {
     return this.selection.getObjects().length;
   };
@@ -3288,6 +3292,7 @@ FOUR.SelectionController = (function () {
       element.addEventListener(event, self.listeners[event].fn, false);
     }
     addListener(self.selection, 'update', self.update);
+    addListener(self.viewport.domElement, 'contextmenu', self.contextMenu);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseover', self.onMouseOver);
@@ -3317,7 +3322,9 @@ FOUR.SelectionController = (function () {
     }
   };
 
-  SelectionController.prototype.onMouseDown = function (event) {};
+  SelectionController.prototype.onMouseDown = function (event) {
+    event.stopPropagation();
+  };
 
   SelectionController.prototype.onMouseMove = function (event) {};
 
@@ -3391,7 +3398,7 @@ FOUR.TourController = (function () {
 
         var self = this;
         self.EVENTS = {
-            CHANGE: { type: 'change' },
+            UPDATE: { type: 'update' },
             END: { type: 'end' },
             START: { type: 'start' }
         };
@@ -3657,7 +3664,7 @@ FOUR.TrackballController = (function () {
 
         self.EPS = 0.000001;
         self.EVENTS = {
-            CHANGE: {type: 'change'},
+            UPDATE: {type: 'update'},
             END: {type: 'end'},
             START: {type: 'start'}
         };
@@ -4009,7 +4016,7 @@ FOUR.TrackballController = (function () {
 
         _eye.subVectors(self.camera.position, self.target);
         self.camera.lookAt(self.target);
-        self.dispatchEvent(self.EVENTS.CHANGE);
+        self.dispatchEvent(self.EVENTS.UPDATE);
         self.lastPosition.copy(self.camera.position);
     };
 
@@ -4155,7 +4162,7 @@ FOUR.TrackballController = (function () {
         self.camera.lookAt(self.target);
 
         if (self.lastPosition.distanceToSquared(self.camera.position) > self.EPS) {
-            self.dispatchEvent(self.EVENTS.CHANGE);
+            self.dispatchEvent(self.EVENTS.UPDATE);
             self.lastPosition.copy(self.camera.position);
         }
     };
@@ -5202,6 +5209,9 @@ FOUR.WalkController = (function () {
         THREE.EventDispatcher.call(this);
         var self = this;
 
+        self.EVENTS = {
+            UPDATE: {type:'update'}
+        };
         self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
         self.KEY = {
             CANCEL: 27,
@@ -5302,6 +5312,7 @@ FOUR.WalkController = (function () {
             };
             element.addEventListener(event, self.listeners[event].fn, false);
         }
+        addListener(self.domElement, 'contextmenu', self.contextMenu);
         addListener(self.domElement, 'mousedown', self.onMouseDown);
         addListener(self.domElement, 'mousemove', self.onMouseMove);
         addListener(self.domElement, 'mouseup', self.onMouseUp);
@@ -5517,18 +5528,18 @@ FOUR.WalkController = (function () {
         }
 
         // change the camera lookat direction
-        if (self.lookChange) {
-            self.camera.rotateOnAxis(
-                new THREE.Vector3(0,1,0),
-                Math.PI * 2 / 360 * -self.mouse.direction.x * self.lookSpeed);
-            // TODO clamp the amount of vertical rotation
-            //self.camera.rotateOnAxis(
-            //    new THREE.Vector3(1,0,0),
-            //    Math.PI * 2 / 360 * -self.mouse.direction.y * self.lookSpeed * 0.5);
-            change = true;
-        }
+        //if (self.lookChange) {
+        //    self.camera.rotateOnAxis(
+        //        new THREE.Vector3(0,1,0),
+        //        Math.PI * 2 / 360 * -self.mouse.direction.x * self.lookSpeed);
+        //    // TODO clamp the amount of vertical rotation
+        //    //self.camera.rotateOnAxis(
+        //    //    new THREE.Vector3(1,0,0),
+        //    //    Math.PI * 2 / 360 * -self.mouse.direction.y * self.lookSpeed * 0.5);
+        //    change = true;
+        //}
         if (change) {
-            self.dispatchEvent({'type':'change'});
+            self.dispatchEvent(self.EVENTS.UPDATE);
         }
     };
 

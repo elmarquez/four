@@ -26,7 +26,7 @@ FOUR.MultiController = (function () {
         var self = this;
 
         self.EVENTS = {
-            CHANGE: { type: 'change' },
+            UPDATE: { type: 'update' },
             END: { type: 'end' },
             START: { type: 'start' }
         };
@@ -67,12 +67,19 @@ FOUR.MultiController = (function () {
     };
 
     /**
-     * Set the controller mode.
-     * @param {String} mode Controller mode
+     * Set the active viewport controller.
+     * @param {String} name Controller name
      */
-    MultiController.prototype.setMode = function (mode) {
+    MultiController.prototype.setActiveController = function (name) {
         var self = this;
-        self.dispatchEvent({type: 'change'});
+        self.controller.disable();
+        if (!self.controllers[name]) {
+            console.error('Controller ' + name + ' does not exist');
+        } else {
+            self.controller = self.controllers[name];
+            self.controller.enable();
+            self.dispatchEvent(self.EVENTS.UPDATE);
+        }
     };
 
     return MultiController;

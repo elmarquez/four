@@ -14,8 +14,9 @@ FOUR.SelectionSet = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
+    self.boundingBox = new FOUR.BoundingBox(); // TODO update the bounding box when the selection set changes
     self.count = 0;
-    self.name = 'selection-set';
+    self.name = 'default-selection-set';
     self.selectedColor = 0xff5a00;
     self.selection = {};
     Object.keys(config).forEach(function (key) {

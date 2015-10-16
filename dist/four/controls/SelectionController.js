@@ -47,6 +47,10 @@ FOUR.SelectionController = (function () {
 
   //SelectionController.prototype.constructor = SelectionController;
 
+  SelectionController.prototype.contextMenu = function (event) {
+    event.preventDefault();
+  };
+
   SelectionController.prototype.count = function () {
     return this.selection.getObjects().length;
   };
@@ -71,6 +75,7 @@ FOUR.SelectionController = (function () {
       element.addEventListener(event, self.listeners[event].fn, false);
     }
     addListener(self.selection, 'update', self.update);
+    addListener(self.viewport.domElement, 'contextmenu', self.contextMenu);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseover', self.onMouseOver);
@@ -100,7 +105,9 @@ FOUR.SelectionController = (function () {
     }
   };
 
-  SelectionController.prototype.onMouseDown = function (event) {};
+  SelectionController.prototype.onMouseDown = function (event) {
+    event.stopPropagation();
+  };
 
   SelectionController.prototype.onMouseMove = function (event) {};
 
