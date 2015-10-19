@@ -35,3 +35,5 @@ Marquee Selection
 font-family: 'Work Sans', sans-serif;
 font-family: 'Abril Fatface', cursive;
 
+
+http://blog.autodesk360.com/how-to-view-slice-your-3d-models-by-axis/

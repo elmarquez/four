@@ -125,6 +125,9 @@ body {
     -webkit-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
     -moz-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
 }
+.map {
+    border-bottom: 1px solid rgba(22,22,22,0.8);
+}
 .palette .row {
     display: flex;
 }
@@ -178,4 +181,9 @@ ul.list li:first-child {
 .inset {
     margin-left: 15px;
     margin-right: 15px;
+}
+.inset-bottom {
+    margin-bottom: 15px;
+}.inset-top {
+    margin-top: 15px;
 }

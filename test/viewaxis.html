@@ -8,7 +8,8 @@
   <script src="../vendor/three.js/three.min.js"></script>
   <script src="../vendor/tween.js/build/tween.min.js"></script>
   <script src="../lib/controls/TrackballController.js"></script>
-  <script src="../lib/Viewcube.js"></script>
+  <script src="../lib/fonts/helvetiker_regular.typeface.js"></script>
+  <script src="../lib/ViewAxis.js"></script>
   <script src="../lib/Viewport3D.js"></script>
   <style>
     body {
@@ -16,15 +17,15 @@
       margin:0;
       padding:0;
     }
-    #viewcube {
+    #viewaxis {
       background-color: transparent;
-      border: 1px solid rgba(0,0,0,0.1);
-      height: 200px;
+      border: 1px solid red;
+      bottom: 0;
+      height: 120px;
+      left: 0;
       overflow: hidden;
       position: absolute;
-      right: 20px;
-      top: 0;
-      width: 200px;
+      width: 120px;
       z-index: 500;
     }
     #viewport {
@@ -39,7 +40,7 @@
 </head>
 <body>
 <div id="viewport"></div>
-<div id="viewcube"></div>
+<div id="viewaxis"></div>
 <script>
   $(document).ready(function () {
     var domElement = document.getElementById('viewport');
@@ -90,15 +91,15 @@
     viewport.addController(trackball, 'trackball');
     viewport.setActiveController('trackball');
 
-    // viewcube
-    var viewcubeElement = document.getElementById('viewcube');
-    var viewcube = window.viewcube = new FOUR.Viewcube({domElement:viewcubeElement, viewport:viewport});
+    // view axis
+    var viewaxisElement = document.getElementById('viewaxis');
+    var viewaxis = window.viewaxis = new FOUR.ViewAxis({domElement:viewaxisElement, viewport:viewport});
 
     viewport.render();
-    viewcube.render();
+    viewaxis.render();
 
     viewport.update();
-    viewcube.update();
+    viewaxis.update();
 
   });
 </script>

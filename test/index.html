@@ -19,7 +19,7 @@
     <script src="../lib/path/TravellingSalesman.js"></script>
     <script src="../lib/BoundingBox.js"></script>
     <script src="../lib/KeyInputController.js"></script>
-    <script src="../lib/PathPlanner.js"></script>
+    <script src="../lib/path/PathPlanner.js"></script>
     <script src="../lib/Scene.js"></script>
     <script src="../lib/SelectionSet.js"></script>
     <script src="../lib/TargetCamera.js"></script>
@@ -387,13 +387,20 @@
         }
 
         function setupControllers() {
-            // TODO for most controllers, passing in the viewport should provide the required information
-            // selection controller
-            viewport.controllers.selection = new FOUR.SelectionController({
-                viewport: viewport,
-                selection: scene.selection
-            });
+            viewport.controllers.selection = new FOUR.SelectionController({viewport: viewport});
             viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
+            viewport.controllers.selection.addEventListener('add', function (objs) {
+                console.info('add', objs);
+            });
+            viewport.controllers.selection.addEventListener('remove', function (objs) {
+                console.info('remove', objs);
+            });
+            viewport.controllers.selection.addEventListener('toggle', function (objs) {
+                console.info('toggle', objs);
+            });
+            viewport.controllers.selection.addEventListener('hover', function (objs) {
+                console.info('hover', objs);
+            });
 
             // trackball controller
             viewport.controllers.trackball = new FOUR.TrackballController({viewport: viewport});
