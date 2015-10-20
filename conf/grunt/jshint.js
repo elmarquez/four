@@ -16,7 +16,8 @@ module.exports = {
             'conf/**/*.js',
             '!dist/**/*.js',
             'lib/**/*.js',
-            '!lib/controls/dist/**/*'
+            '!lib/controls/dist/**/*',
+            '!lib/fonts/**/*'
         ]
     }
 };

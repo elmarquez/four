@@ -88,8 +88,8 @@ FOUR.TrackballController = (function () {
         self.allowZoom = true;
         self.allowPan = true;
         self.allowRotate = true;
-        self.camera = config.viewport.camera;
-        self.domElement = config.viewport.domElement;
+        self.camera = config.camera || config.viewport.camera;
+        self.domElement = config.domElement || config.viewport.domElement;
         self.dynamicDampingFactor = 0.2;
         self.enabled = false;
         self.keys = [
@@ -97,12 +97,14 @@ FOUR.TrackballController = (function () {
             73 /*I*/, 74 /*J*/, 75 /*K*/, 76 /*L*/
         ];
         self.lastPosition = new THREE.Vector3();
+        self.lastTarget = new THREE.Vector3();
         self.listeners = {};
         self.maxDistance = Infinity;
         self.minDistance = 0;
         self.modifiers = {};
         self.mouse = self.MOUSE_STATE.UP;
         self.mousePosition = new THREE.Vector2();
+        self.name = 'Trackball';
         self.panSpeed = 0.3;
         self.raycaster = new THREE.Raycaster();
         self.rotateSpeed = 1.0;
@@ -128,8 +130,6 @@ FOUR.TrackballController = (function () {
     }
 
     TrackballController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-    //TrackballController.prototype.constructor = TrackballController;
 
     TrackballController.prototype.checkDistances = function () {
         var self = this;
@@ -278,6 +278,8 @@ FOUR.TrackballController = (function () {
         event.preventDefault();
         event.stopPropagation();
         var self = this;
+        self.lastPosition.copy(self.camera.position);
+        self.lastTarget.copy(self.camera.target);
         self.mouse = self.MOUSE_STATE.DOWN;
         if (self.enabled === false) {
             return;
@@ -371,9 +373,10 @@ FOUR.TrackballController = (function () {
           pan = new THREE.Vector3();
 
         return function panCamera () {
-            var self = this;
+            var change = false, self = this;
             mouseChange.copy(_panEnd).sub(_panStart);
             if (mouseChange.lengthSq()) {
+                change = true;
                 mouseChange.multiplyScalar(_eye.length() * self.panSpeed);
                 pan.copy(_eye).cross(self.camera.up).setLength(mouseChange.x);
                 pan.add(cameraUp.copy(self.camera.up).setLength(mouseChange.y));
@@ -386,6 +389,7 @@ FOUR.TrackballController = (function () {
                     _panStart.add(mouseChange.subVectors(_panEnd, _panStart).multiplyScalar(self.dynamicDampingFactor));
                 }
             }
+            return change;
         };
     }());
 
@@ -402,6 +406,7 @@ FOUR.TrackballController = (function () {
         self.camera.lookAt(self.target);
         self.dispatchEvent(self.EVENTS.UPDATE);
         self.lastPosition.copy(self.camera.position);
+        self.lastTarget.copy(self.camera.target);
     };
 
     TrackballController.prototype.rotateCamera = (function() {
@@ -415,11 +420,12 @@ FOUR.TrackballController = (function () {
           angle;
 
         return function rotateCamera() {
-            var self = this;
+            var change = false, self = this;
             moveDirection.set(_moveCurr.x - _movePrev.x, _moveCurr.y - _movePrev.y, 0);
             angle = moveDirection.length();
 
             if (angle) {
+                change = true;
                 _eye.copy(self.camera.position).sub(self.target);
 
                 eyeDirection.copy(_eye).normalize();
@@ -449,6 +455,7 @@ FOUR.TrackballController = (function () {
                 self.camera.up.applyQuaternion(quaternion);
             }
             _movePrev.copy(_moveCurr);
+            return change;
         };
     }());
 
@@ -530,33 +537,39 @@ FOUR.TrackballController = (function () {
     };
 
     TrackballController.prototype.update = function () {
-        var self = this;
+        var change = false, self = this;
         _eye.subVectors(self.camera.position, self.target);
-        if (self.allowRotate) {
-            self.rotateCamera();
+        if (self.allowRotate && self.rotateCamera()) {
+            change = true;
         }
-        if (self.allowZoom) {
-            self.zoomCamera();
+        if (self.allowZoom && self.zoomCamera()) {
+            change = true;
         }
-        if (self.allowPan) {
-            self.panCamera();
+        if (self.allowPan && self.panCamera()) {
+            change = true;
         }
         self.camera.position.addVectors(self.target, _eye);
         self.checkDistances();
         self.camera.lookAt(self.target);
 
-        if (self.lastPosition.distanceToSquared(self.camera.position) > self.EPS) {
+        if (change &&
+          (self.lastPosition.distanceToSquared(self.camera.position) > self.EPS ||
+          self.lastTarget.distanceToSquared(self.camera.target) > self.EPS)) {
             self.dispatchEvent(self.EVENTS.UPDATE);
             self.lastPosition.copy(self.camera.position);
+            self.lastTarget.copy(self.camera.target);
         }
     };
 
     TrackballController.prototype.zoomCamera = function () {
-        var factor, self = this;
+        var change = false, factor, self = this;
         if (_state === STATE.TOUCH_ZOOM_PAN) {
             factor = _touchZoomDistanceStart / _touchZoomDistanceEnd;
             _touchZoomDistanceStart = _touchZoomDistanceEnd;
             _eye.multiplyScalar(factor);
+            if (factor !== 1.0 && factor > 0.0) {
+                change = true;
+            }
         } else {
             factor = 1.0 + (_zoomEnd.y - _zoomStart.y) * self.zoomSpeed;
             if (factor !== 1.0 && factor > 0.0) {
@@ -566,8 +579,10 @@ FOUR.TrackballController = (function () {
                 } else {
                     _zoomStart.y += (_zoomEnd.y - _zoomStart.y) * this.dynamicDampingFactor;
                 }
+                change = true;
             }
         }
+        return change;
     };
 
     return TrackballController;

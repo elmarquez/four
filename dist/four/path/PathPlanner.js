@@ -17,9 +17,9 @@ FOUR.PathPlanner = (function () {
      * @returns {Number} Distance
      */
     function distance (p1, p2) {
-        var dx = Math.pow(p2.x + p1.x, 2);
-        var dy = Math.pow(p2.y + p1.y, 2);
-        var dz = Math.pow(p2.z + p1.z, 2);
+        var dx = Math.pow(p2.x - p1.x, 2);
+        var dy = Math.pow(p2.y - p1.y, 2);
+        var dz = Math.pow(p2.z - p1.z, 2);
         return Math.sqrt(dx + dy + dz);
     }
 
@@ -121,14 +121,20 @@ FOUR.PathPlanner = (function () {
             var tween = new TWEEN.Tween(start).to(finish, 1500);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
+                var tweened = this;
+                camera.distance = distance(camera.position, camera.target);
+                camera.position.set(tweened.x, tweened.y, tweened.z);
+                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
+                camera.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
+                emit('update');
                 resolve();
             });
             tween.onUpdate(function () {
                 var tweened = this;
                 camera.distance = distance(camera.position, camera.target);
-                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.position.set(tweened.x, tweened.y, tweened.z);
-                camera.target.set(tweened.tx, tweened.ty, tweened.tz);
+                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
+                camera.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
                 emit('update');
             });
             tween.start();

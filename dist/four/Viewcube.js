@@ -4,10 +4,12 @@ var FOUR = FOUR || {};
 
 FOUR.Viewcube = (function () {
 
-    function Viewcube (elementId) {
+    function Viewcube (config) {
         THREE.EventDispatcher.call(this);
 
-        this.FACES = {
+        var self = this;
+
+        self.FACES = {
             TOP: 0,
             FRONT: 1,
             RIGHT: 2,
@@ -40,60 +42,56 @@ FOUR.Viewcube = (function () {
             BOTTOM_BACK_LEFT_CORNER: 24,
             BOTTOM_FRONT_LEFT_CORNER: 25
         };
-        this.MODES = {
+        self.MODES = {
             SELECT: 0,
             READONLY: 1
         };
-        this.OFFSET = 250;
-        this.ROTATION_0   = 0;
-        this.ROTATION_90  = Math.PI / 2;
-        this.ROTATION_180 = Math.PI;
-        this.ROTATION_270 = Math.PI * 1.5;
-        this.ROTATION_360 = Math.PI * 2;
+        self.OFFSET = 250;
+        self.ROTATION_0   = 0;
+        self.ROTATION_90  = Math.PI / 2;
+        self.ROTATION_180 = Math.PI;
+        self.ROTATION_270 = Math.PI * 1.5;
+        self.ROTATION_360 = Math.PI * 2;
 
-        this.COMPASS_COLOR = 0x666666;
-        this.COMPASS_OPACITY = 0.8;
-        this.FACE_COLOUR = 0x4a5f70;
-        this.FACE_OPACITY_MOUSE_OFF = 0.0;
-        this.FACE_OPACITY_MOUSE_OVER = 0.8;
+        self.COMPASS_COLOR = 0x666666;
+        self.COMPASS_OPACITY = 0.8;
+        self.FACE_COLOUR = 0x4a5f70;
+        self.FACE_OPACITY_MOUSE_OFF = 0.0;
+        self.FACE_OPACITY_MOUSE_OVER = 0.8;
 
-        this.backgroundColor = new THREE.Color(0x000000, 0);
-        this.camera = null;
-        this.compass = null;
-        this.control = null;
-        this.cube = null;
-        this.domElement = document.getElementById(elementId);
-        this.elementId = elementId;
-        this.fov = 60; // 50
-        this.mouse = new THREE.Vector2();
-        this.raycaster = new THREE.Raycaster();
-        this.renderer = null;
-        this.scene = new THREE.Scene();
-    }
+        self.camera = null;
+        self.compass = null;
+        self.control = null;
+        self.cube = null;
+        self.domElement = config.domElement;
+        self.enable = {
+            compass: true,
+            cube: true
+        };
+        self.fov = 60; // 50
+        self.mouse = new THREE.Vector2();
+        self.raycaster = new THREE.Raycaster();
+        self.scene = new THREE.Scene();
+        self.viewport = config.viewport;
 
-    Viewcube.prototype = Object.create(THREE.EventDispatcher.prototype);
+        Object.keys(config).forEach(function (key) {
+           self[key] = config[key];
+        });
 
-    Viewcube.prototype.constructor = Viewcube;
-
-    Viewcube.prototype.init = function () {
-        var self = this;
         // renderer
         self.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
-        //self.renderer.setClearColor(self.backgroundColor);
         self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
-        self.renderer.shadowMap.enabled = true;
-        // add the output of the renderer to the html element
+        self.renderer.shadowMap.enabled = false;
         self.domElement.appendChild(self.renderer.domElement);
-        // setup scene
+
         self.setupCamera();
         self.setupGeometry();
         self.setupLights();
-        // setup interactions
         self.setupNavigation();
         self.setupSelection();
-        // start rendering
-        self.render();
-    };
+    }
+
+    Viewcube.prototype = Object.create(THREE.EventDispatcher.prototype);
 
     Viewcube.prototype.makeCompass = function (name, x, y, z, radius, segments, color, opacity) {
         var obj = new THREE.Object3D();
@@ -116,14 +114,14 @@ FOUR.Viewcube = (function () {
         geometry = new THREE.PlaneGeometry(w, w);
         material = new THREE.MeshBasicMaterial({color: color, opacity: self.FACE_OPACITY_MOUSE_OFF, transparent: true});
         face1 = new THREE.Mesh(geometry, material);
-        face1.material.side = THREE.DoubleSide;
+        face1.material.side = THREE.FrontSide;
         face1.name = name;
         face1.position.setX(w / 2);
         face1.position.setY(w / 2);
 
         geometry = new THREE.PlaneGeometry(w, w);
         face2 = new THREE.Mesh(geometry, material);
-        face2.material.side = THREE.DoubleSide;
+        face2.material.side = THREE.FrontSide;
         face2.name = name;
         face2.position.setX(w / 2);
         face2.position.setZ(-w / 2);
@@ -131,7 +129,7 @@ FOUR.Viewcube = (function () {
 
         geometry = new THREE.PlaneGeometry(w, w);
         face3 = new THREE.Mesh(geometry, material);
-        face3.material.side = THREE.DoubleSide;
+        face3.material.side = THREE.FrontSide;
         face3.name = name;
         face3.position.setY(w / 2);
         face3.position.setZ(-w / 2);
@@ -157,13 +155,13 @@ FOUR.Viewcube = (function () {
         geometry = new THREE.PlaneGeometry(w, h);
         material = new THREE.MeshBasicMaterial({color: color, opacity: self.FACE_OPACITY_MOUSE_OFF, transparent: true});
         face1 = new THREE.Mesh(geometry, material);
-        face1.material.side = THREE.DoubleSide;
+        face1.material.side = THREE.FrontSide;
         face1.name = name;
         face1.position.setY(h / 2);
 
         geometry = new THREE.PlaneGeometry(w, h);
         face2 = new THREE.Mesh(geometry, material);
-        face2.material.side = THREE.DoubleSide;
+        face2.material.side = THREE.FrontSide;
         face2.name = name;
         face2.position.setZ(-h / 2);
         face2.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI / 2);
@@ -196,6 +194,12 @@ FOUR.Viewcube = (function () {
         return face;
     };
 
+    Viewcube.prototype.onCameraUpdate = function () {
+        var self = this;
+        var camera = self.viewport.camera;
+      // rotate the viewcube to match the viewport camera
+    };
+
     Viewcube.prototype.onMouseMove = function (event) {
         var self = this;
         // calculate mouse position in normalized device coordinates
@@ -219,7 +223,6 @@ FOUR.Viewcube = (function () {
 
     Viewcube.prototype.onMouseOver = function (event) {
         var self = this;
-        requestAnimationFrame(self.render.bind(self));
     };
 
     Viewcube.prototype.onMouseUp = function (event) {
@@ -498,7 +501,9 @@ FOUR.Viewcube = (function () {
     };
 
     Viewcube.prototype.update = function () {
+        var self = this;
         TWEEN.update();
+        requestAnimationFrame(self.render.bind(self));
     };
 
     return Viewcube;

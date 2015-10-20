@@ -441,7 +441,7 @@
             viewport.controllers.trackball.dynamicDampingFactor = 0.5;
             viewport.controllers.trackball.addEventListener('change', viewport.render.bind(viewport));
             viewport.controllers.trackball.addEventListener('lookat', function (event) {
-                camera.setLookAt(event.position.x, event.position.y, event.position.z);
+                camera.setLookAt(event.position);
             }, false);
             viewport.controllers.trackball.addEventListener('navigate', function (event) {
                 var bbox = new FOUR.BoundingBox();
@@ -454,7 +454,7 @@
             viewport.controllers.walk.enforceWalkHeight = true;
             viewport.controllers.walk.addEventListener('change', viewport.render.bind(viewport));
             viewport.controllers.walk.addEventListener('lookat', function (event) {
-                camera.setLookAt(event.position.x, event.position.y, event.position.z);
+                camera.setLookAt(event.position);
             }, false);
             viewport.controllers.walk.addEventListener('navigate', function (event) {
                 var bbox = new FOUR.BoundingBox();

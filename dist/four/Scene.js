@@ -73,7 +73,7 @@ FOUR.Scene = (function () {
         });
         var camera = new FOUR.TargetCamera(cfg.fov, cfg.width / cfg.height, cfg.near, cfg.far);
         camera.name = cfg.name;
-        camera.setPositionAndTarget(-50, -50, 50, 0, 0, 0); // use position, target fields
+        camera.setPositionAndTarget(new THREE.Vector3(-50, -50, 50), new THREE.Vector3()); // use position, target fields
         camera.addEventListener('update', function () { self.emit('update'); });
         self.cameras.add(camera);
     };
@@ -96,6 +96,24 @@ FOUR.Scene = (function () {
 
     Scene.prototype.getHelpers = function () {
         return this.getLayerObjects('helpers');
+    };
+
+    Scene.prototype.getLayer = function (name) {
+      return this.getLayers().reduce(function (last, current) {
+          if (current.name === name) {
+              last = current;
+          }
+          return last;
+      }, null);
+    };
+
+    Scene.prototype.getLayers = function () {
+        return this.children.reduce(function (last, current) {
+            if (typeof current === THREE.Object3D) {
+                last.push(current);
+            }
+            return last;
+        }, []);
     };
 
     Scene.prototype.getLayerObjects = function (layer) {
