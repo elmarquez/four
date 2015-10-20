@@ -20,11 +20,11 @@
     }
     #viewcube {
       background-color: transparent;
-      border: 1px solid rgba(0,0,0,0.1);
+      border: 1px solid rgba(255,0,0,0.5);
       height: 200px;
       overflow: hidden;
       position: absolute;
-      right: 20px;
+      right: 0;
       top: 0;
       width: 200px;
       z-index: 500;
@@ -71,7 +71,7 @@
     scene.add(lights[2]);
 
     // add some geometry for demonstration purposes
-    var count = 1000;
+    var count = 1000, cloud = new THREE.Object3D();
     var geometry, material = new THREE.MeshPhongMaterial({
       color: 0x156289,
       emissive: 0x072534,
@@ -84,8 +84,13 @@
       mesh.position.x = Math.floor(Math.random() * 100);
       mesh.position.y = Math.floor(Math.random() * 100);
       mesh.position.z = Math.floor(Math.random() * 100);
-      scene.add(mesh);
+      cloud.add(mesh);
     }
+    cloud.position.set(-50,-50,-50);
+    scene.add(cloud);
+
+    var axisHelper = new THREE.AxisHelper(50);
+    scene.add(axisHelper);
 
     var viewport = new FOUR.Viewport3D({camera:camera, domElement:domElement, scene:scene});
     var trackball = new FOUR.TrackballController({viewport:viewport});
@@ -94,13 +99,15 @@
 
     // viewcube
     var viewcubeElement = document.getElementById('viewcube');
-    var viewcube = window.viewcube = new FOUR.Viewcube({domElement:viewcubeElement, viewport:viewport});
+    var viewcube = window.viewcube = new FOUR.Viewcube({domElement:viewcubeElement, enable: {compass:false, cube:true}, viewport:viewport});
 
-    viewport.render();
-    viewcube.render();
+    viewport.addEventListener('update', viewcube.onCameraUpdate.bind(viewcube), false);
 
     viewport.update();
+    viewport.render();
+
     viewcube.update();
+    viewcube.render();
 
   });
 </script>
