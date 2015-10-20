@@ -8,6 +8,8 @@
   <script src="../vendor/three.js/three.min.js"></script>
   <script src="../vendor/tween.js/build/tween.min.js"></script>
   <script src="../lib/controls/TrackballController.js"></script>
+  <script src="../lib/path/PathPlanner.js"></script>
+  <script src="../lib/TargetCamera.js"></script>
   <script src="../lib/Viewcube.js"></script>
   <script src="../lib/Viewport3D.js"></script>
   <style>
@@ -46,7 +48,7 @@
     var scene = new THREE.Scene();
 
     // camera
-    var camera = new THREE.PerspectiveCamera(50, domElement.clientWidth / domElement.clientHeight, 0.1, 1000);
+    var camera = new FOUR.TargetCamera(50, domElement.clientWidth / domElement.clientHeight, 0.1, 1000);
     camera.position.set(50,50,50);
     camera.up = new THREE.Vector3(0,0,1);
     scene.add(camera);

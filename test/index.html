@@ -179,6 +179,8 @@
         spotLight.position.set(100, 140, 130);
         scene.lights.add(spotLight);
 
+        var selectionSet = new FOUR.SelectionSet();
+
         // Sample geometry
         var obj, geometry, material;
 
@@ -286,7 +288,7 @@
             // viewport mode
             // TODO modify the cursor depending on the mode
             Mousetrap.bind('q', function () {
-                viewport.setMode('selection');
+                viewport.setActiveController('selection');
             });
 
             // view controls
@@ -297,16 +299,16 @@
             });
 
             Mousetrap.bind('1', function () {
-                viewport.setMode('trackball');
+                viewport.setActiveController('trackball');
             });
             Mousetrap.bind('2', function () {
-                viewport.setMode('walk');
+                viewport.setActiveController('walk');
             });
             Mousetrap.bind('3', function () {
-                viewport.setMode('orbit');
+                viewport.setActiveController('orbit');
             });
             Mousetrap.bind('4', function () {
-                viewport.setMode('tour');
+                viewport.setActiveController('tour');
             });
             Mousetrap.bind('5', function () {
                 var bbox = getViewBoundingBox();
@@ -389,17 +391,20 @@
         function setupControllers() {
             viewport.controllers.selection = new FOUR.SelectionController({viewport: viewport});
             viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
-            viewport.controllers.selection.addEventListener('add', function (objs) {
-                console.info('add', objs);
+            viewport.controllers.selection.addEventListener('add', function (event) {
+//                console.info('add', event.items);
+                selectionSet.addAll(event.items);
             });
-            viewport.controllers.selection.addEventListener('remove', function (objs) {
-                console.info('remove', objs);
+            viewport.controllers.selection.addEventListener('remove', function (event) {
+//                console.info('remove', event.items);
+                selectionSet.removeAll(event.items);
             });
-            viewport.controllers.selection.addEventListener('toggle', function (objs) {
-                console.info('toggle', objs);
+            viewport.controllers.selection.addEventListener('toggle', function (event) {
+//                console.info('toggle', event.items);
+                selectionSet.toggle(event.items);
             });
-            viewport.controllers.selection.addEventListener('hover', function (objs) {
-                console.info('hover', objs);
+            viewport.controllers.selection.addEventListener('hover', function (event) {
+                console.info('hover', event);
             });
 
             // trackball controller

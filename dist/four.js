@@ -686,11 +686,12 @@ FOUR.TargetCamera = (function () {
      * @returns {Promise}
      */
     TargetCamera.prototype.setLookAt = function (lookAt) {
-        var direction, self = this, target;
-        // direction from camera to look at position
-        direction = new THREE.Vector3().subVectors(self.position, lookAt);
-        target = direction.length(self.distance);
-        return self.setTarget(target);
+        var offset, self = this;
+        // direction from camera to new look at position
+        offset = new THREE.Vector3().subVectors(lookAt, self.position);
+        offset.setLength(self.distance);
+        var target = new THREE.Vector3().addVectors(self.position, offset);
+        return self.planner.tweenToPosition(self, self.position, target, self.emit.bind(self));
     };
 
     /**
@@ -853,6 +854,7 @@ FOUR.TargetCamera = (function () {
         distance = bbox.getRadius() / Math.tan(Math.PI * self.fov / 360);
         // compute the new camera position
         offset.setLength(distance);
+        var center = bbox.getCenter();
         next = new THREE.Vector3().addVectors(bbox.getCenter(), offset);
         // move the camera to the new position
         return self.planner.tweenToPosition(self, next, bbox.getCenter(), self.emit.bind(self));
@@ -1721,8 +1723,8 @@ FOUR.Viewport3D = (function () {
     // add the viewport to the DOM
     self.domElement.appendChild(self.renderer.domElement);
     // listen for events
-    self.domElement.addEventListener('resize', self.handleResize.bind(self), false);
     self.scene.addEventListener('update', self.render.bind(self), false);
+    window.addEventListener('resize', self.handleResize.bind(self), false);
   }
 
   Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -3887,6 +3889,7 @@ FOUR.TrackballController = (function () {
         self.modifiers = {};
         self.mouse = self.MOUSE_STATE.UP;
         self.mousePosition = new THREE.Vector2();
+        self.moving = false;
         self.name = 'Trackball';
         self.panSpeed = 0.3;
         self.raycaster = new THREE.Raycaster();
@@ -3897,11 +3900,6 @@ FOUR.TrackballController = (function () {
         self.timeout = null;
         self.viewport = config.viewport;
         self.zoomSpeed = 1.2;
-
-        // for reset
-        self.target0 = self.target.clone();
-        self.position0 = self.camera.position.clone();
-        self.up0 = self.camera.up.clone();
 
         Object.keys(self.KEY).forEach(function (key) {
             self.modifiers[self.KEY[key]] = false;
@@ -4090,6 +4088,7 @@ FOUR.TrackballController = (function () {
         if (self.enabled === false) {
             return;
         }
+        self.moving = true;
         if (_state === STATE.ROTATE && self.allowRotate) {
             _movePrev.copy(_moveCurr);
             _moveCurr.copy(self.getMouseOnCircle(event.pageX, event.pageY));
@@ -4105,6 +4104,7 @@ FOUR.TrackballController = (function () {
         event.stopPropagation();
         var self = this;
         self.mouse = self.MOUSE_STATE.UP;
+        self.moving = false;
         _state = STATE.NONE;
         if (self.enabled === false) {
             return;
@@ -4180,10 +4180,6 @@ FOUR.TrackballController = (function () {
         var self = this;
         _state = STATE.NONE;
         _prevState = STATE.NONE;
-
-        self.target.copy(self.target0);
-        self.camera.position.copy(self.position0);
-        self.camera.up.copy(self.up0);
 
         _eye.subVectors(self.camera.position, self.target);
         self.camera.lookAt(self.target);
@@ -5867,8 +5863,9 @@ FOUR.PathPlanner = (function () {
                 var tweened = this;
                 camera.distance = distance(camera.position, camera.target);
                 camera.position.set(tweened.x, tweened.y, tweened.z);
-                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
+                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
+                console.info(tweened.tx,tweened.ty,tweened.tz);
                 emit('update');
             });
             tween.start();
