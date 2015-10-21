@@ -225,15 +225,29 @@ FOUR.FirstPersonController = (function () {
 	function FirstPersonController (config) {
 		THREE.EventDispatcher.call(this);
 		config = config || {};
-
 		var self = this;
 
 		self.EVENT = {
-			UPDATE: {type:'udpate'},
+			UPDATE: {type:'update'},
 			END: {type:'end'},
 			START: {type:'start'}
 		};
-		self.KEYS = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
+		self.KEY = {
+			CANCEL: 27,
+			CTRL: 17,
+			MOVE_TO_EYE_HEIGHT: 192,
+			MOVE_FORWARD: 38,
+			MOVE_LEFT: 37,
+			MOVE_BACK: 40,
+			MOVE_RIGHT: 39,
+			MOVE_UP: 221,
+			MOVE_DOWN: 219,
+			ROTATE_LEFT: 37,
+			ROTATE_RIGHT: 39,
+			LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40
+		};
+		self.MOUSE_STATE = {DOWN: 0, UP: 1};
+		self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
 		self.STATE = { NONE : - 1, ROTATE : 0, DOLLY : 1, PAN : 2, TOUCH_ROTATE : 3, TOUCH_DOLLY : 4, TOUCH_PAN : 5 };
 		self.WALK_HEIGHT = 2;
 
@@ -253,26 +267,46 @@ FOUR.FirstPersonController = (function () {
 		self.enablePan = true;
 		self.enableRotate = true;
 		self.enableZoom = true;
+		self.enforceWalkHeight = false;
 		self.keyPanSpeed = 7.0;	// pixels moved per arrow key push
 		self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 		self.listeners = {};
+		self.lookChange = false;
+		self.lookSpeed = 0.85;
+		self.modifiers = {
+			'ALT': false,
+			'CTRL': false,
+			'SHIFT': false
+		};
+		self.mouse = {
+			direction: new THREE.Vector2(),
+			end: { x: 0, y: 0 },
+			start: { x: 0, y: 0 },
+			state: self.MOUSE_STATE.UP
+		};
 		self.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+		self.move = {
+			forward: false,
+			backward: false,
+			left: false,
+			right: false,
+			up: false,
+			down: false
+		};
+		self.movementSpeed = 100.0;
 		self.panStart = new THREE.Vector2();
 		self.panEnd = new THREE.Vector2();
 		self.panDelta = new THREE.Vector2();
+		self.raycaster = new THREE.Raycaster();
 		self.rotateDelta = new THREE.Vector2();
 		self.rotateEnd = new THREE.Vector2();
 		self.rotateSpeed = 1.0;
 		self.rotateStart = new THREE.Vector2();
 		self.state = self.STATE.NONE;
+		self.timeout = null;
 		self.viewport = config.viewport;
+		self.walkHeight = null;
 		self.zoomSpeed = 1.0;
-
-		// TODO do we need these?
-		// for reset
-		self.target0 = self.target.clone();
-		self.position0 = self.camera.position.clone();
-		self.zoom0 = self.camera.zoom;
 
 		Object.keys(config).forEach(function (key) {
 			self[key] = config[key];
@@ -280,8 +314,6 @@ FOUR.FirstPersonController = (function () {
 	}
 
 	FirstPersonController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-	FirstPersonController.prototype.constructor = FirstPersonController;
 
 	FirstPersonController.prototype.contextmenu = function (event) {
 		event.preventDefault();
@@ -320,23 +352,6 @@ FOUR.FirstPersonController = (function () {
 		addListener(window, 'keyup', self.onKeyUp);
 		self.constraint.sync();
 		self.enabled = true;
-
-		// FIXME integrate the following
-		//function addListener(element, event, fn) {
-		//	self.listeners[event] = {
-		//		element: element,
-		//		event: event,
-		//		fn: fn.bind(self)
-		//	};
-		//	element.addEventListener(event, self.listeners[event].fn, false);
-		//}
-		//addListener(self.domElement, 'mousedown', self.onMouseDown);
-		//addListener(self.domElement, 'mousemove', self.onMouseMove);
-		//addListener(self.domElement, 'mouseup', self.onMouseUp);
-		//addListener(window, 'keydown', self.onKeyDown);
-		//addListener(window, 'keyup', self.onKeyUp);
-		//self.enabled = true;
-		//self.setWalkHeight();
 	};
 
 	FirstPersonController.prototype.getAutoRotationAngle = function () {
@@ -563,9 +578,9 @@ FOUR.FirstPersonController = (function () {
 		var self = this;
 		self.state = self.STATE.NONE;
 
-		self.target.copy(self.target0);
-		self.camera.position.copy(self.position0);
-		self.camera.zoom = self.zoom0;
+		self.target.copy(self.camera.target);
+		self.camera.position.copy(self.camera.position);
+		self.camera.zoom = 1;
 
 		self.camera.updateProjectionMatrix();
 		self.dispatchEvent(self.EVENT.UPDATE);

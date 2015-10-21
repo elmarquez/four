@@ -20,20 +20,26 @@ X work on selection tools
     - update walk path (depends on the size of the set)
 
 
-Powerlines
-
-* http://eris.eresearch.unimelb.edu.au/geoserver/janjuc/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=janjuc:JanJuc_hv_poles&outputFormat=json
-* http://eris.eresearch.unimelb.edu.au/geoserver/janjuc/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=janjuc:JanJuc_22kv_line_centreline&outputFormat=json
-
-
 Marquee Selection
+-----------------
 
 * http://tempt3d.com/webgl-code-samples/canvas-interaction/marquee-select.html
 
 
+User Interface Mockup
+---------------------
+
+
+Alternate Camera Implementations
+--------------------------------
+
+http://hamelot.co.uk/visualization/three-js-quaternion-camera/
+
+
+Other
+-----
+
 * <link href='https://fonts.googleapis.com/css?family=Abril+Fatface|Work+Sans:400,600,300,200,700' rel='stylesheet' type='text/css'>
-font-family: 'Work Sans', sans-serif;
-font-family: 'Abril Fatface', cursive;
-
-
-http://blog.autodesk360.com/how-to-view-slice-your-3d-models-by-axis/
+* font-family: 'Work Sans', sans-serif;
+* font-family: 'Abril Fatface', cursive;
+* http://blog.autodesk360.com/how-to-view-slice-your-3d-models-by-axis/

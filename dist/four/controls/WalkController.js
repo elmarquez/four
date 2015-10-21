@@ -10,12 +10,12 @@ FOUR.WalkController = (function () {
 
     function WalkController (config) {
         THREE.EventDispatcher.call(this);
+        config = config || {};
         var self = this;
 
-        self.EVENTS = {
+        self.EVENT = {
             UPDATE: {type:'update'}
         };
-        self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
         self.KEY = {
             CANCEL: 27,
             CTRL: 17,
@@ -25,12 +25,15 @@ FOUR.WalkController = (function () {
             MOVE_BACK: 40,
             MOVE_RIGHT: 39,
             MOVE_UP: 221,
-            MOVE_DOWN: 219
+            MOVE_DOWN: 219,
+            ROTATE_LEFT: -1,
+            ROTATE_RIGHT: -1
         };
         self.MOUSE_STATE = {
             DOWN: 0,
             UP: 1
         };
+        self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
 
         self.camera = config.camera || config.viewport.camera;
         self.domElement = config.domElement || config.viewport.domElement;
@@ -132,7 +135,7 @@ FOUR.WalkController = (function () {
      */
     // done
     WalkController.prototype.getWalkHeight = function (position) {
-        return 0;
+        return 0 + this.WALK_HEIGHT;
     };
 
     // done
@@ -301,52 +304,71 @@ FOUR.WalkController = (function () {
 
     // done
     WalkController.prototype.update = function (delta) {
-        var self = this;
+        var change = false, cross, distance, height, next, offset, self = this;
         if (!self.enabled) {
             return;
         }
-        var distance = delta * self.movementSpeed;
-        var change = false;
+        distance = delta * self.movementSpeed;
+        offset = new THREE.Vector3().subVectors(self.camera.position, self.camera.target);
+        offset.setLength(distance);
+        cross = new THREE.Vector3().crossVectors(offset, self.camera.up);
 
         // translate the camera
         if (self.move.forward) {
-            self.camera.translateZ(-distance);
+            offset.negate();
+            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            self.camera.position.copy(next);
+            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            self.camera.target.copy(next);
             change = true;
         }
         if (self.move.backward) {
-            self.camera.translateZ(distance);
+            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            self.camera.position.copy(next);
+            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            self.camera.target.copy(next);
             change = true;
         }
         if (self.move.right) {
-            self.camera.translateX(distance);
+            cross.negate();
+            next = new THREE.Vector3().addVectors(self.camera.position, cross);
+            self.camera.position.copy(next);
+            next = new THREE.Vector3().addVectors(self.camera.target, cross);
+            self.camera.target.copy(next);
             change = true;
         }
         if (self.move.left) {
-            self.camera.translateX(-distance);
+            next = new THREE.Vector3().addVectors(self.camera.position, cross);
+            self.camera.position.copy(next);
+            next = new THREE.Vector3().addVectors(self.camera.target, cross);
+            self.camera.target.copy(next);
             change = true;
         }
         if (self.move.up) {
-            self.camera.translateY(-distance);
+            offset = new THREE.Vector3().copy(self.camera.up);
+            offset.setLength(distance);
+            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            self.camera.position.copy(next);
+            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            self.camera.target.copy(next);
             change = true;
         }
         if (self.move.down) {
-            self.camera.translateY(distance);
+            height = self.getWalkHeight(self.camera.position);
+            offset = new THREE.Vector3().copy(self.camera.up).negate();
+            offset.setLength(distance);
+            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            next.z = next.z < height ? height : next.z;
+            self.camera.position.copy(next);
+            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            next.z = next.z < height ? height : next.z;
+            self.camera.target.copy(next);
             change = true;
         }
+        console.info(self.camera.position, self.camera.target);
 
-        // change the camera lookat direction
-        //if (self.lookChange) {
-        //    self.camera.rotateOnAxis(
-        //        new THREE.Vector3(0,1,0),
-        //        Math.PI * 2 / 360 * -self.mouse.direction.x * self.lookSpeed);
-        //    // TODO clamp the amount of vertical rotation
-        //    //self.camera.rotateOnAxis(
-        //    //    new THREE.Vector3(1,0,0),
-        //    //    Math.PI * 2 / 360 * -self.mouse.direction.y * self.lookSpeed * 0.5);
-        //    change = true;
-        //}
         if (change) {
-            self.dispatchEvent(self.EVENTS.UPDATE);
+            self.dispatchEvent(self.EVENT.UPDATE);
         }
     };
 
