@@ -6,7 +6,6 @@ FOUR.Viewcube = (function () {
 
     /**
      * View orientation controller.
-     * @todo fade in/fade out on mouse enter/mouse leave
      * @param {Object} config Configurations
      * @constructor
      */
@@ -18,11 +17,12 @@ FOUR.Viewcube = (function () {
 
         self.CUBE_FACE_SIZE = 70;
         self.CUBE_EDGE_SIZE = 15;
-        self.CUBE_LABEL_SIZE = 95;
+        self.CUBE_LABEL_SIZE = 95; // dimension of cube that has label map
         self.COMPASS_COLOR = 0x666666;
         self.COMPASS_OPACITY = 0.8;
-        self.FACE_COLOUR = 0x4a5f70;
-        //self.FACE_COLOUR = 0xff0000;
+
+        //self.FACE_COLOUR = 0x4a5f70;
+        self.FACE_COLOUR = 0xff0000;
         self.FACE_OPACITY_MOUSE_OFF = 0;
         self.FACE_OPACITY_MOUSE_NOT_OVER = 0.2;
         self.FACE_OPACITY_MOUSE_OVER = 0.8;
@@ -71,7 +71,7 @@ FOUR.Viewcube = (function () {
         self.ROTATION_270 = Math.PI * 1.5;
         self.ROTATION_360 = Math.PI * 2;
 
-        self.camera = null;
+        self.camera = null; // viewcube camera
         self.compass = new THREE.Object3D();
         self.control = new THREE.Object3D();
         self.cube = new THREE.Object3D();
@@ -84,21 +84,22 @@ FOUR.Viewcube = (function () {
         self.enabled = false;
         self.fov = 60; // 50
         self.frontFace = null;
+        self.labelSize = 128;
         self.listeners = {};
         self.materials = {};
         self.mouse = new THREE.Vector2();
         self.raycaster = new THREE.Raycaster();
         self.renderContinuous = false;
         self.scene = new THREE.Scene();
-        self.viewport = config.viewport;
-
-        Object.keys(config).forEach(function (key) {
-           self[key] = config[key];
-        });
+        self.viewport = config.viewport; // target viewport
 
         self.compass.name = 'compass';
         self.control.name = 'control';
         self.cube.name = 'cube';
+
+        Object.keys(config).forEach(function (key) {
+            self[key] = config[key];
+        });
 
         // renderer
         self.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
@@ -109,6 +110,11 @@ FOUR.Viewcube = (function () {
         self.setupLights();
         self.setupMaterials();
         self.setupGeometry();
+
+        setTimeout(function () {
+            self.control.quaternion.copy(self.viewport.camera.quaternion.inverse());
+            self.onMouseLeave();
+        },1);
     }
 
     Viewcube.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -235,17 +241,6 @@ FOUR.Viewcube = (function () {
         return face;
     };
 
-    Viewcube.prototype.onCameraUpdate = function () {
-        var self = this;
-        var camera = self.viewport.camera;
-        //var direction = new THREE.Vector3().subVectors(camera.target, camera.position).normalize();
-        var direction = new THREE.Vector3().subVectors(camera.position, camera.target).normalize();
-        direction.setLength(200);
-        self.cube.lookAt(direction);
-        //console.info('camera update', direction, typeof camera);
-        self.render();
-    };
-
     Viewcube.prototype.onContextMenu = function (event) {
         event.preventDefault();
     };
@@ -264,11 +259,9 @@ FOUR.Viewcube = (function () {
 
     Viewcube.prototype.onMouseMove = function (event) {
         var self = this;
-        // calculate mouse position in normalized device coordinates
-        // (-1 to +1) for both components
+        //console.info(event);
         self.mouse.x = (event.offsetX / self.domElement.clientWidth) * 2 - 1;
         self.mouse.y = - (event.offsetY / self.domElement.clientHeight) * 2 + 1;
-        // update the picking ray with the camera and mouse position
         self.raycaster.setFromCamera(self.mouse, self.camera);
         // reset opacity for all scene objects
         self.scene.traverse(function (obj) {
@@ -277,9 +270,9 @@ FOUR.Viewcube = (function () {
             }
         });
         // calculate objects intersecting the picking ray
-        var intersects = self.raycaster.intersectObjects(self.scene.children, true);
+        var intersects = self.raycaster.intersectObjects(self.cube.children, false);
         if (intersects.length > 0 && intersects[0].object.name !== 'labels') {
-            console.info('over', intersects[0].object.name);
+            console.info('over', intersects[0].object.name, intersects);
             intersects[0].object.material.opacity = self.FACE_OPACITY_MOUSE_OVER;
         }
     };
@@ -288,6 +281,7 @@ FOUR.Viewcube = (function () {
 
     Viewcube.prototype.onMouseUp = function (event) {
         var self = this;
+        //console.info(event);
         // calculate mouse position in normalized device coordinates
         // (-1 to +1) for both components
         self.mouse.x = (event.offsetX / self.domElement.clientWidth) * 2 - 1;
@@ -295,9 +289,9 @@ FOUR.Viewcube = (function () {
         // update the picking ray with the camera and mouse position
         self.raycaster.setFromCamera(self.mouse, self.camera);
         // calculate objects intersecting the picking ray
-        var intersects = self.raycaster.intersectObjects(self.scene.children, true);
+        var intersects = self.raycaster.intersectObjects(self.cube.children, false);
         if (intersects.length > 0) {
-            console.info('click', intersects[0].object.name);
+            console.info('click', intersects[0].object.name, intersects);
             self.setView(intersects[0].object.name);
         }
     };
@@ -320,10 +314,6 @@ FOUR.Viewcube = (function () {
 
     Viewcube.prototype.setupGeometry = function () {
         var self = this;
-        // set up direction
-        self.compass.up = new THREE.Vector3(0,0,1);
-        self.control.up = new THREE.Vector3(0,0,1);
-        self.cube.up = new THREE.Vector3(0,0,1);
         // build cube control
         if (self.display.cube) {
             // FIXME this is a duplicate
@@ -419,24 +409,32 @@ FOUR.Viewcube = (function () {
             var compass = self.makeCompass('compass', 0, 0, -55, 90, 64, self.COMPASS_COLOR, self.COMPASS_OPACITY);
             self.control.add(compass);
         }
+
         self.scene.add(self.control);
     };
 
     Viewcube.prototype.setupLights = function () {
-        // attach the lights to the scene camera to ensure that we always have
-        // light on the controls
         var self = this;
-        var ambientLight = new THREE.AmbientLight(0x383838);
-        //self.camera.add(ambientLight);
+
+        // ambient light
+        //var ambientLight = new THREE.AmbientLight(0x383838);
+        var ambientLight = new THREE.AmbientLight(0x545454);
         self.scene.add(ambientLight);
 
-        // add spotlight for the shadows
-        var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.lookAt(0,0,0);
-        spotLight.position.set(250, -250, 250);
-        spotLight.intensity = 2;
-        //self.camera.add(spotLight);
-        self.scene.add(spotLight);
+        // top, left spotlight
+        var topLeftSpot = new THREE.SpotLight(0xffffff);
+        topLeftSpot.lookAt(0,0,0);
+        topLeftSpot.position.set(250, -250, 250);
+        topLeftSpot.intensity = 2;
+
+        // top, right spotlight
+        var topRightSpot = new THREE.SpotLight(0xffffff);
+        topRightSpot.lookAt(0,0,0);
+        topRightSpot.position.set(250, 250, 250);
+        topRightSpot.intensity = 0.75;
+
+        self.scene.add(topLeftSpot);
+        self.scene.add(topRightSpot);
     };
 
     Viewcube.prototype.setupMaterials = function () {
@@ -447,37 +445,37 @@ FOUR.Viewcube = (function () {
         // labels
         var label1 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/top.png'),
+            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/top.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
         var label2 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/front.png'),
+            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/front.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
         var label3 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/right.png'),
+            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/right.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
         var label4 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/left.png'),
+            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/left.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
         var label5 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/back.png'),
+            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/back.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
         var label6 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/bottom.png'),
+            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/bottom.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
@@ -490,15 +488,19 @@ FOUR.Viewcube = (function () {
         switch (view) {
             case self.FACES.BACK:
                 self.tweenControlRotation(0,0, Math.PI);
+                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI)});
                 break;
             case self.FACES.BACK_LEFT_EDGE:
-                self.tweenControlRotation(0,0, -Math.PI * 1.25);
+                self.tweenControlRotation(0,0, Math.PI * 0.75);
+                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI * 0.75)});
                 break;
             case self.FACES.BACK_RIGHT_EDGE:
-                self.tweenControlRotation(0,0, -Math.PI * 0.75);
+                self.tweenControlRotation(0,0, Math.PI * 1.25);
+                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI * 1.25)});
                 break;
             case self.FACES.BOTTOM:
-                self.tweenControlRotation(0,-Math.PI/2,0);
+                self.tweenControlRotation(0, Math.PI * 1.5, 0);
+                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI * 1.5)});
                 break;
             case self.FACES.BOTTOM_BACK_EDGE:
                 self.tweenControlRotation(0,-Math.PI / 4, Math.PI);
@@ -567,7 +569,7 @@ FOUR.Viewcube = (function () {
                 self.tweenControlRotation(0, Math.PI / 4, -Math.PI * 0.5);
                 break;
             default:
-                console.info('view not found', view);
+                console.warn('view not found', view);
         }
     };
 
@@ -603,7 +605,7 @@ FOUR.Viewcube = (function () {
         });
     };
 
-    Viewcube.prototype.tweenControlRotation = function (rx, ry, rz) {
+    Viewcube.prototype.tweenControlRotation = function (rx, ry, rz, duration) {
         var self = this;
         return new Promise(function (resolve) {
             var targetEuler = new THREE.Euler(rx, ry, rz);
@@ -613,7 +615,7 @@ FOUR.Viewcube = (function () {
             var start = {t: 0};
             var finish = {t: 1};
 
-            var tween = new TWEEN.Tween(start).to(finish, 1000);
+            var tween = new TWEEN.Tween(start).to(finish, duration || 1000);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
                 THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.control.quaternion, this.t);
@@ -637,6 +639,12 @@ FOUR.Viewcube = (function () {
         if (self.renderContinuous) {
             requestAnimationFrame(self.update.bind(self));
         }
+    };
+
+    Viewcube.prototype.updateOrientation = function () {
+        var self = this;
+        self.control.quaternion.copy(self.viewport.camera.quaternion.inverse());
+        self.render();
     };
 
     return Viewcube;

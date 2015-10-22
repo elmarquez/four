@@ -11,3 +11,16 @@ FOUR.MOUSE_STATE = {
 };
 
 FOUR.SINGLE_CLICK_TIMEOUT = 400;
+
+/**
+ * Orthographic views
+ * @type {Object|String}
+ */
+FOUR.VIEW = {
+  TOP: 'top',
+  FRONT: 'front',
+  RIGHT: 'right',
+  BACK: 'back',
+  LEFT: 'left',
+  BOTTOM: 'bottom'
+};

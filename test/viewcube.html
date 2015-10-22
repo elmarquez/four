@@ -102,8 +102,16 @@
 
     // viewcube
     var viewcubeElement = document.getElementById('viewcube');
-    var viewcube = window.viewcube = new FOUR.Viewcube({domElement:viewcubeElement, display: {compass:false, cube:true, labels:true}, viewport:viewport});
+    var viewcube = window.viewcube = new FOUR.Viewcube({
+      domElement:viewcubeElement,
+      display: {compass:false, cube:true, labels:true},
+      viewport:viewport
+    });
     viewcube.enable();
+
+    trackball.addEventListener('update', function () {
+      viewcube.updateOrientation();
+    });
 
     window.addEventListener('keyup', function (event) {
       // 1 - 0
