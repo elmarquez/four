@@ -1,12 +1,12 @@
 {
-  "name": "threejs-cad",
+  "name": "four",
   "version": "0.1.31",
-  "description": "Threejs CAD application components",
+  "description": "Application components for web based CAD",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
   "license": "MIT",
-  "private": true,
+  "private": false,
   "devDependencies": {
     "bower": "1.4.1",
     "grunt": "^0.4.1",
@@ -28,7 +28,5 @@
   },
   "optionalDependencies": {},
   "scripts": {},
-  "dependencies": {
-    "golden-layout": "^1.0.10"
-  }
+  "dependencies": {}
 }

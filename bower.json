@@ -1,7 +1,7 @@
 {
-  "name": "threejs-cad",
+  "name": "four",
   "version": "0.1.31",
-  "description": "Threejs CAD application components",
+  "description": "Application components for web based CAD",
   "authors": [
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
@@ -18,21 +18,28 @@
     "vendor",
     "test"
   ],
-  "devDependencies": {
-    "angular": "~1.4.6",
-    "slickgrid": "~2.1.0",
-    "jqTree": "jqtree#~1.2.1",
-    "qtip2": "~2.2.1",
-    "font-awesome": "fontawesome#~4.4.0",
-    "jquery.event.dragdrop": "*",
-    "ol3": "openlayers3-dist#~3.10.1",
-    "TweenJS": "~0.6.1"
-  },
   "dependencies": {
-    "bluebird": "~2.10.0",
     "jquery": "~2.x.x",
     "mousetrap": "~1.5.x",
     "three.js": "0.72.0",
     "tweenjs": "~16.3.x"
-  }
+  },
+  "devDependencies": {
+    "angular": "~1.4.6",
+    "font-awesome": "fontawesome#~4.4.0",
+    "jqTree": "jqtree#~1.2.1",
+    "jquery.event.dragdrop": "*",
+    "ol3": "openlayers3-dist#~3.10.1",
+    "qtip2": "~2.2.1",
+    "slickgrid": "~2.1.0",
+    "TweenJS": "~0.6.1"
+  },
+  "keywords": [
+    "3D",
+    "CAD",
+    "computer aided design",
+    "fabrication",
+    "threejs",
+    "webgl"
+  ]
 }

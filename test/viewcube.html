@@ -21,13 +21,13 @@
     #viewcube {
       background-color: transparent;
       /*border: 1px solid rgba(255,0,0,0.5);*/
-      height: 200px;
+      height: 180px;
       overflow: hidden;
       position: absolute;
       right: 0;
       top: 0;
-      width: 200px;
-      z-index: 500;
+      width: 180px;
+      z-index: 180;
     }
     #viewport {
       bottom: 0;
@@ -62,9 +62,9 @@
     lights[1] = new THREE.PointLight(0xffffff, 1, 0);
     lights[2] = new THREE.PointLight(0xffffff, 1, 0);
 
-    lights[0].position.set(0, 200, 0);
-    lights[1].position.set(100, 200, 100);
-    lights[2].position.set(-100, -200, -100);
+    lights[0].position.set(0, 180, 0);
+    lights[1].position.set(100, 180, 100);
+    lights[2].position.set(-100, -180, -100);
 
     scene.add(lights[0]);
     scene.add(lights[1]);
@@ -99,7 +99,7 @@
 
     // viewcube
     var viewcubeElement = document.getElementById('viewcube');
-    var viewcube = window.viewcube = new FOUR.Viewcube({domElement:viewcubeElement, display: {compass:false, cube:true}, viewport:viewport});
+    var viewcube = window.viewcube = new FOUR.Viewcube({domElement:viewcubeElement, display: {compass:false, cube:true, labels:true}, viewport:viewport});
     viewcube.enable();
 
     viewport.update();
