@@ -104,7 +104,12 @@
     var viewcubeElement = document.getElementById('viewcube');
     var viewcube = window.viewcube = new FOUR.Viewcube({
       domElement:viewcubeElement,
-      display: {axis:true, compass:false, cube:true, labels:true},
+      display: {
+        compass:false,
+        cube:true,
+        labels:true,
+        sceneAxis: true
+      },
       viewport:viewport
     });
     viewcube.enable();
