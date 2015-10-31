@@ -79,6 +79,9 @@ FOUR.PathPlanner = (function () {
             var tween = new TWEEN.Tween(start).to(finish, 1000);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
+                camera.setUp(new THREE.Vector3(this.x, this.y, this.z));
+                emit('update');
+                emit('continuous-update-end');
                 resolve();
             });
             tween.onUpdate(function () {
@@ -86,6 +89,7 @@ FOUR.PathPlanner = (function () {
                 emit('update');
             });
             tween.start();
+            emit('continuous-update-start');
             emit('update');
         });
     };
@@ -116,7 +120,6 @@ FOUR.PathPlanner = (function () {
             var cameraDistance = distance(camera.position, position);
             var targetDistance = distance(camera.target, target);
             var dist = cameraDistance > targetDistance ? cameraDistance : targetDistance;
-
             // animate
             var tween = new TWEEN.Tween(start).to(finish, 1500);
             tween.easing(TWEEN.Easing.Cubic.InOut);
@@ -127,6 +130,7 @@ FOUR.PathPlanner = (function () {
                 camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
                 camera.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
                 emit('update');
+                emit('continuous-update-end');
                 resolve();
             });
             tween.onUpdate(function () {
@@ -139,6 +143,7 @@ FOUR.PathPlanner = (function () {
                 emit('update');
             });
             tween.start();
+            emit('continuous-update-start');
             emit('update');
         });
     };

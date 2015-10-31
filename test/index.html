@@ -8,7 +8,7 @@
     <script src="../vendor/angular/angular.js"></script>
     <script src="../vendor/mousetrap/mousetrap.js"></script>
     <script src="../vendor/three.js/three.js"></script>
-    <script src="../vendor/tweenjs/src/Tween.js"></script>
+    <script src="../vendor/tween.js/src/Tween.js"></script>
 
     <!-- lib -->
     <script src="../lib/controls/OrbitController.js"></script>
@@ -183,25 +183,50 @@
         var keyinput = window.keyinput = new FOUR.KeyInputController();
 
         var domElement = document.getElementById('viewport1');
+
+        // scene
         var scene = window.scene = new FOUR.Scene();
-        scene.createDefaultCamera({height: domElement.clientHeight, width: domElement.clientWidth});
 
-        var pathObj = new THREE.Object3D();
-        scene.helpers.add(pathObj);
-
-        // Basic scene lighting
+        // lights
         var ambientLight = new THREE.AmbientLight(0x383838);
         ambientLight.name = 'ambient';
         scene.lights.add(ambientLight);
 
-        // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);
         spotLight.intensity = 2;
         spotLight.name = 'spotlight';
         spotLight.position.set(100, 140, 130);
         scene.lights.add(spotLight);
 
+        // camera
+        var camera = new FOUR.TargetCamera(45, domElement.clientWidth/domElement.clientHeight, 0.1, 1000);
+        camera.name = 'camera1';
+//        camera.lookAt(0,0,0);
+//        camera.position.set(-50,-50,50);
+//        camera.target.set(0,0,0);
+//        camera.setPositionAndTarget(new THREE.Vector3(-50, -50, 50), new THREE.Vector3(), false);
+        scene.cameras.add(camera);
+
+        // selection set
         var selectionSet = new FOUR.SelectionSet();
+
+        // viewport
+        var viewport1 = window.viewport1 = new FOUR.Viewport3D({
+            camera:camera,
+            continuousUpdate: true,
+            domElement:domElement,
+            scene:scene
+        });
+        viewport1.addEventListener('update', viewport1.render.bind(viewport1), false);
+        viewport1.render();
+        viewport1.update();
+
+        // events
+        camera.addEventListener('update', function () { viewport1.render(); });
+
+
+        var pathObj = new THREE.Object3D();
+        scene.helpers.add(pathObj);
 
         // Sample geometry
         var obj, geometry, material;
@@ -262,9 +287,12 @@
         // update the bounding box
         scene.boundingBox.update(scene.children);
 
-        // keyboard input
-        // TODO remove
-        var getViewBoundingBox = function () {
+        setupKeyboardBindings();
+        setupControllers();
+
+        viewport1.render();
+
+        function getViewBoundingBox() {
             // FIXME
             var self = this;
             if (self.scene.selection.count > 0) {
@@ -274,23 +302,7 @@
                 bbox.update(self.scene.model.children);
                 return bbox;
             }
-        };
-
-        var camera = scene.getCamera(scene.DEFAULT_CAMERA_NAME);
-
-        // viewport1
-        var viewport1 = window.viewport1 = new FOUR.Viewport3D({
-            camera:camera,
-            continuousUpdate: true,
-            domElement:domElement,
-            scene:scene
-        });
-        viewport1.addEventListener('update', viewport1.render.bind(viewport1), false);
-        viewport1.render();
-        viewport1.update();
-
-        setupKeyboardBindings();
-        setupControllers();
+        }
 
         function setupKeyboardBindings() {
             // selection

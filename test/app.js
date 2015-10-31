@@ -44,10 +44,10 @@ angular
 
         $scope.init = function () {
             setTimeout(function () {
-                $scope.VIEWS = window['viewport'].camera.VIEWS;
-                $scope.camera = window['viewport'].camera;
-                $scope.mode = $scope.MODES.SELECTION;
-                $scope.view = window['viewport'].camera.VIEWS.PERSPECTIVE;
+                //$scope.VIEWS = window['viewport'].camera.VIEWS;
+                //$scope.camera = window['viewport'].camera;
+                //$scope.mode = $scope.MODES.SELECTION;
+                //$scope.view = window['viewport'].camera.VIEWS.PERSPECTIVE;
             }, 2000);
         };
 

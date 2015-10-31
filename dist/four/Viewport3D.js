@@ -43,9 +43,9 @@ FOUR.Viewport3D = (function () {
     self.domElement.appendChild(self.renderer.domElement);
     // listen for events
     self.scene.addEventListener('update', self.render.bind(self), false);
-    window.addEventListener('keydown', self.render.bind(self), false);
-    window.addEventListener('mousedown', self.render.bind(self), false);
-    window.addEventListener('mousemove', self.render.bind(self), false);
+    //window.addEventListener('keydown', self.render.bind(self), false);
+    //window.addEventListener('mousedown', self.render.bind(self), false);
+    //window.addEventListener('mousemove', self.render.bind(self), false);
     window.addEventListener('resize', self.handleResize.bind(self), false);
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
@@ -149,10 +149,11 @@ FOUR.Viewport3D = (function () {
 
   /**
    * Update the controller and global tween state.
+   * @param {Boolean} force Force update
    */
-  Viewport3D.prototype.update = function () {
+  Viewport3D.prototype.update = function (force) {
     var self = this;
-    if (self.continuousUpdate) {
+    if (self.continuousUpdate || (force && force === true)) {
       // enqueue next update
       requestAnimationFrame(self.update.bind(self));
       // update tween state

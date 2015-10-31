@@ -83,8 +83,9 @@ FOUR.TargetCamera = (function () {
     /**
      * Reset camera orientation so that camera.up aligns with +Z.
      * @param {Function} progress Progress callback
+     * @param {Boolean} animate Animate the change
      */
-    TargetCamera.prototype.resetOrientation = function (progress) {
+    TargetCamera.prototype.resetOrientation = function (progress, animate) {
         var self = this;
         return self.planner.tweenToOrientation(self, new THREE.Vector3(0,0,1), progress || self.emit.bind(self));
     };
@@ -94,9 +95,10 @@ FOUR.TargetCamera = (function () {
      * fixed and move the camera position as required.  Animate the transition
      * to the new orientation.
      * @param {Number} dist Distance from target to camera
+     * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setDistance = function (dist) {
+    TargetCamera.prototype.setDistance = function (dist, animate) {
         //console.log('update the camera distance from target');
         var offset, next, self = this;
         self.distance = dist;
@@ -119,9 +121,10 @@ FOUR.TargetCamera = (function () {
      * distance the same as it currently is. Update the target position as
      * required. Animate the transition to the new orientation.
      * @param {THREE.Vector3} lookAt Look at direction
+     * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setLookAt = function (lookAt) {
+    TargetCamera.prototype.setLookAt = function (lookAt, animate) {
         var offset, self = this;
         // direction from camera to new look at position
         offset = new THREE.Vector3().subVectors(lookAt, self.position);
@@ -134,9 +137,10 @@ FOUR.TargetCamera = (function () {
      * Move the camera to the specified position. Maintain the current target
      * position.
      * @param {THREE.Vector3} pos Position
+     * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setPosition = function (pos) {
+    TargetCamera.prototype.setPosition = function (pos, animate) {
         var offset, self = this, target;
         // offset from current position to new position
         offset = new THREE.Vector3().subVectors(self.position, pos);
@@ -148,9 +152,10 @@ FOUR.TargetCamera = (function () {
      * Set camera position and target. Animate the transition.
      * @param {THREE.Vector3} pos Camera position
      * @param {THREE.Vector3} target Target position
+     * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setPositionAndTarget = function (pos, target) {
+    TargetCamera.prototype.setPositionAndTarget = function (pos, target, animate) {
         var self = this;
         return self.planner.tweenToPosition(self, pos, target, self.emit.bind(self));
     };
@@ -159,9 +164,10 @@ FOUR.TargetCamera = (function () {
      * Set the camera target. Maintain the distance from the camera to the
      * target.
      * @param {THREE.Vector3} target Target position
+     * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setTarget = function (target) {
+    TargetCamera.prototype.setTarget = function (target, animate) {
         var offset, next, self = this;
         // get the current direction from the target to the camera
         offset = new THREE.Vector3().subVectors(self.position, self.target);
@@ -177,8 +183,10 @@ FOUR.TargetCamera = (function () {
      * bounding box is visible within the camera view.
      * @param {String} view View
      * @param {BoundingBox} bbox View bounding box
+     * @param {Boolean} animate Animate the change
+     * @returns {Promise}
      */
-    TargetCamera.prototype.setView = function (view, bbox) {
+    TargetCamera.prototype.setView = function (view, bbox, animate) {
         var dist, height, offset, self = this;
         var center = bbox.getCenter();
         // new camera position and target
@@ -248,7 +256,7 @@ FOUR.TargetCamera = (function () {
     /**
      * Zoom in incrementally.
      */
-    TargetCamera.prototype.zoomIn = function () {
+    TargetCamera.prototype.zoomIn = function (animate) {
         //console.log('zoom in');
         var offset, distance, next, self = this;
         // get the direction and current distance from the target to the camera
@@ -264,7 +272,7 @@ FOUR.TargetCamera = (function () {
     /**
      * Zoom out incrementally.
      */
-    TargetCamera.prototype.zoomOut = function () {
+    TargetCamera.prototype.zoomOut = function (animate) {
         //console.log('zoom out');
         var offset, distance, next, self = this;
         // get the direction and current distance from the target to the camera
@@ -281,7 +289,7 @@ FOUR.TargetCamera = (function () {
      * Zoom to fit the bounding box.
      * @param {BoundingBox} bbox Bounding box
      */
-    TargetCamera.prototype.zoomToFit = function (bbox) {
+    TargetCamera.prototype.zoomToFit = function (bbox, animate) {
         //console.log('zoom to fit all or selected items');
         var distance, next, offset, self = this;
         // get the direction from the current target to the camera
@@ -299,7 +307,7 @@ FOUR.TargetCamera = (function () {
     /**
      * Zoom the view to fit the window selection.
      */
-    TargetCamera.prototype.zoomToWindow = function () {
+    TargetCamera.prototype.zoomToWindow = function (animate) {
         throw new Error('zoom in to window');
     };
 

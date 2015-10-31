@@ -22,7 +22,7 @@
     "jquery": "~2.x.x",
     "mousetrap": "~1.5.x",
     "three.js": "0.72.0",
-    "tweenjs": "~16.3.x"
+    "tween.js": "tweenjs#~16.3.1"
   },
   "devDependencies": {
     "angular": "~1.4.6",
@@ -32,7 +32,7 @@
     "ol3": "openlayers3-dist#~3.10.1",
     "qtip2": "~2.2.1",
     "slickgrid": "~2.1.0",
-    "TweenJS": "~0.6.1"
+    "dexie": "~1.2.0"
   },
   "keywords": [
     "3D",

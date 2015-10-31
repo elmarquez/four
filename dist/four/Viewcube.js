@@ -17,15 +17,17 @@ FOUR.Viewcube = (function () {
 
         self.CUBE_FACE_SIZE = 70;
         self.CUBE_EDGE_SIZE = 15;
-        self.CUBE_LABEL_SIZE = 95; // dimension of cube that has label map
+        self.CUBE_LABEL_SIZE = 99;
         self.COMPASS_COLOR = 0x666666;
         self.COMPASS_OPACITY = 0.8;
 
-        //self.FACE_COLOUR = 0x4a5f70;
-        self.FACE_COLOUR = 0xff0000;
+        self.FACE_COLOUR = 0x4a5f70;
         self.FACE_OPACITY_MOUSE_OFF = 0;
-        self.FACE_OPACITY_MOUSE_NOT_OVER = 1.0;
+        self.FACE_OPACITY_MOUSE_NOT_OVER = 0.1;
         self.FACE_OPACITY_MOUSE_OVER = 0.8;
+        //self.FACE_COLOUR = 0xff0000;
+        //self.FACE_OPACITY_MOUSE_NOT_OVER = 1;
+        //self.FACE_OPACITY_MOUSE_OVER = 1;
         self.FACES = {
             TOP: 0,
             FRONT: 1,
@@ -71,6 +73,10 @@ FOUR.Viewcube = (function () {
         self.ROTATION_270 = Math.PI * 1.5;
         self.ROTATION_360 = Math.PI * 2;
 
+        self.X_AXIS = new THREE.Vector3(1, 0, 0);
+        self.Y_AXIS = new THREE.Vector3(0, 1, 0);
+        self.Z_AXIS = new THREE.Vector3(0, 0, 1);
+
         self.camera = null; // viewcube camera
         self.compass = new THREE.Object3D();
         self.control = new THREE.Object3D();
@@ -79,7 +85,8 @@ FOUR.Viewcube = (function () {
             axis: false,
             compass: true,
             cube: true,
-            labels: true
+            labels: true,
+            normals: false
         };
         self.domElement = config.domElement;
         self.enabled = false;
@@ -108,6 +115,7 @@ FOUR.Viewcube = (function () {
         self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
         self.domElement.appendChild(self.renderer.domElement);
 
+        self.scene.add(self.control);
         self.scene.add(self.view);
 
         self.setupCamera();
@@ -192,7 +200,7 @@ FOUR.Viewcube = (function () {
         face3.name = name;
         face3.position.setY(w / 2);
         face3.position.setZ(-w / 2);
-        face3.rotateOnAxis(new THREE.Vector3(0,1,0), Math.PI / 2);
+        face3.rotateOnAxis(new THREE.Vector3(0,1,0), -Math.PI / 2);
 
         obj.add(face1);
         obj.add(face2);
@@ -240,14 +248,7 @@ FOUR.Viewcube = (function () {
     Viewcube.prototype.makeFace = function (name, w, x, y, z, rotations) {
         var face, geometry, material, self = this;
         geometry = new THREE.PlaneGeometry(w, w);
-        //material = self.materials.face.clone();
-        if (name === self.FACES.RIGHT) {
-            material = new THREE.MeshBasicMaterial({opacity: 1, transparent:true, color: 0xff0000});
-            //material.side = THREE.DoubleSide;
-        } else {
-            material = new THREE.MeshBasicMaterial({opacity: 0, transparent:true});
-        }
-        //material.side = THREE.DoubleSide;
+        material = self.materials.face.clone();
         self.materials.faces.push(material);
 
         face = new THREE.Mesh(geometry, material);
@@ -290,7 +291,7 @@ FOUR.Viewcube = (function () {
             }
         });
         // calculate objects intersecting the picking ray
-        var intersects = self.raycaster.intersectObjects(self.cube.children, false);
+        var intersects = self.raycaster.intersectObjects(self.cube.children, true);
         if (intersects.length > 0 && intersects[0].object.name !== 'labels') {
             console.info('over', intersects[0].object.name, intersects);
             intersects[0].object.material.opacity = self.FACE_OPACITY_MOUSE_OVER;
@@ -309,7 +310,7 @@ FOUR.Viewcube = (function () {
         // update the picking ray with the camera and mouse position
         self.raycaster.setFromCamera(self.mouse, self.camera);
         // calculate objects intersecting the picking ray
-        var intersects = self.raycaster.intersectObjects(self.cube.children, false);
+        var intersects = self.raycaster.intersectObjects(self.cube.children, true);
         if (intersects.length > 0) {
             console.info('click', intersects[0].object.name, intersects);
             self.setView(intersects[0].object.name);
@@ -343,10 +344,6 @@ FOUR.Viewcube = (function () {
             var ROTATE_270 = Math.PI * 1.5;
             var ROTATE_360 = Math.PI * 2;
 
-            var X_AXIS = new THREE.Vector3(1, 0, 0);
-            var Y_AXIS = new THREE.Vector3(0, 1, 0);
-            var Z_AXIS = new THREE.Vector3(0, 0, 1);
-
             if (self.display.labels) {
                 var geometry = new THREE.BoxGeometry(self.CUBE_LABEL_SIZE, self.CUBE_LABEL_SIZE, self.CUBE_LABEL_SIZE);
                 var labels = new THREE.Mesh(geometry, self.materials.labels);
@@ -355,40 +352,40 @@ FOUR.Viewcube = (function () {
             }
 
             // faces
-            var topFace    = self.makeFace(self.FACES.TOP,    70,   0,   0,  50, [{axis:Z_AXIS, rad:ROTATE_90}]);
-            var frontFace  = self.makeFace(self.FACES.FRONT,  70,  50,   0,   0, [{axis:Y_AXIS, rad:ROTATE_90},{axis:Z_AXIS, rad:ROTATE_90}]);
-            var rightFace  = self.makeFace(self.FACES.RIGHT,  70,   0,  50,   0, [{axis:Y_AXIS, rad:ROTATE_0},{axis:Z_AXIS, rad:ROTATE_0}]);
-            var leftFace   = self.makeFace(self.FACES.LEFT,   70,   0, -50,   0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Z_AXIS, rad:ROTATE_360}]);
-            var backFace   = self.makeFace(self.FACES.BACK,   70, -50,   0,   0, [{axis:Y_AXIS, rad:ROTATE_270},{axis:Z_AXIS, rad:ROTATE_90}]);
-            var bottomFace = self.makeFace(self.FACES.BOTTOM, 70,   0,   0, -50, [{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}]);
+            var topFace    = self.makeFace(self.FACES.TOP,    70,   0,   0,  50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var frontFace  = self.makeFace(self.FACES.FRONT, 70,   0, -50,   0, [{axis:self.X_AXIS, rad:ROTATE_90}]);
+            var rightFace  = self.makeFace(self.FACES.RIGHT,  70,  50,   0,   0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_90}]);
+            var backFace   = self.makeFace(self.FACES.BACK,    70,   0,  50,   0, [{axis:self.X_AXIS, rad:ROTATE_270}]);
+            var leftFace   = self.makeFace(self.FACES.LEFT,   70, -50,   0,   0, [{axis:self.Y_AXIS, rad:ROTATE_270},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var bottomFace = self.makeFace(self.FACES.BOTTOM, 70,   0,   0, -50, [{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
             self.frontFace = frontFace;
 
             // edges
-            var topFrontEdge    = self.makeEdge(self.FACES.TOP_FRONT_EDGE, 70, 15,  50,   0, 50, [{axis:Z_AXIS, rad:ROTATE_90}]);
-            var topRightEdge    = self.makeEdge(self.FACES.TOP_RIGHT_EDGE, 70, 15,   0,  50, 50, [{axis:Z_AXIS, rad:ROTATE_180}]);
-            var topBackEdge     = self.makeEdge(self.FACES.TOP_BACK_EDGE, 70, 15, -50,   0, 50, [{axis:Z_AXIS, rad:ROTATE_270}]);
-            var topLeftEdge     = self.makeEdge(self.FACES.TOP_LEFT_EDGE, 70, 15,   0, -50, 50, [{axis:Z_AXIS, rad:ROTATE_360}]);
+            var topFrontEdge    = self.makeEdge(self.FACES.TOP_FRONT_EDGE, 70, 15,  50,   0, 50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var topRightEdge    = self.makeEdge(self.FACES.TOP_RIGHT_EDGE, 70, 15,   0,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_180}]);
+            var topBackEdge     = self.makeEdge(self.FACES.TOP_BACK_EDGE, 70, 15, -50,   0, 50, [{axis:self.Z_AXIS, rad:ROTATE_270}]);
+            var topLeftEdge     = self.makeEdge(self.FACES.TOP_LEFT_EDGE, 70, 15,   0, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_360}]);
 
-            var bottomFrontEdge = self.makeEdge(self.FACES.BOTTOM_FRONT_EDGE, 70, 15,  50,   0, -50, [{axis:Z_AXIS, rad:ROTATE_90}, {axis:Y_AXIS, rad:ROTATE_180}]);
-            var bottomRightEdge = self.makeEdge(self.FACES.BOTTOM_RIGHT_EDGE, 70, 15,   0,  50, -50, [{axis:Z_AXIS, rad:ROTATE_180},{axis:Y_AXIS, rad:ROTATE_180}]);
-            var bottomBackEdge  = self.makeEdge(self.FACES.BOTTOM_BACK_EDGE, 70, 15, -50,   0, -50, [{axis:Z_AXIS, rad:ROTATE_270},{axis:Y_AXIS, rad:ROTATE_180}]);
-            var bottomLeftEdge  = self.makeEdge(self.FACES.BOTTOM_LEFT_EDGE, 70, 15,   0, -50, -50, [{axis:Z_AXIS, rad:ROTATE_360},{axis:Y_AXIS, rad:ROTATE_180}]);
+            var bottomFrontEdge = self.makeEdge(self.FACES.BOTTOM_FRONT_EDGE, 70, 15,  50,   0, -50, [{axis:self.Z_AXIS, rad:ROTATE_90}, {axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomRightEdge = self.makeEdge(self.FACES.BOTTOM_RIGHT_EDGE, 70, 15,   0,  50, -50, [{axis:self.Z_AXIS, rad:ROTATE_180},{axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomBackEdge  = self.makeEdge(self.FACES.BOTTOM_BACK_EDGE, 70, 15, -50,   0, -50, [{axis:self.Z_AXIS, rad:ROTATE_270},{axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomLeftEdge  = self.makeEdge(self.FACES.BOTTOM_LEFT_EDGE, 70, 15,   0, -50, -50, [{axis:self.Z_AXIS, rad:ROTATE_360},{axis:self.Y_AXIS, rad:ROTATE_180}]);
 
-            var frontRightEdge  = self.makeEdge(self.FACES.FRONT_RIGHT_EDGE, 70, 15,  50,  50, 0, [{axis:X_AXIS, rad:ROTATE_180},{axis:Y_AXIS, rad:ROTATE_90},{axis:Z_AXIS, rad:0}]);
-            var backRightEdge   = self.makeEdge(self.FACES.BACK_RIGHT_EDGE, 70, 15, -50,  50, 0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}]);
-            var backLeftEdge    = self.makeEdge(self.FACES.BACK_LEFT_EDGE, 70, 15, -50, -50, 0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_270},{axis:Z_AXIS, rad:ROTATE_90}]);
-            var frontLeftEdge   = self.makeEdge(self.FACES.FRONT_LEFT_EDGE, 70, 15,  50, -50, 0, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_360},{axis:Z_AXIS, rad:ROTATE_90}]);
+            var frontRightEdge  = self.makeEdge(self.FACES.FRONT_RIGHT_EDGE, 70, 15,  50,  50, 0, [{axis:self.X_AXIS, rad:ROTATE_180},{axis:self.Y_AXIS, rad:ROTATE_90},{axis:self.Z_AXIS, rad:0}]);
+            var backRightEdge   = self.makeEdge(self.FACES.BACK_RIGHT_EDGE, 70, 15, -50,  50, 0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var backLeftEdge    = self.makeEdge(self.FACES.BACK_LEFT_EDGE, 70, 15, -50, -50, 0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_270},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var frontLeftEdge   = self.makeEdge(self.FACES.FRONT_LEFT_EDGE, 70, 15,  50, -50, 0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_360},{axis:self.Z_AXIS, rad:ROTATE_90}]);
 
             // corners
-            var topFrontLeftCorner  = self.makeCorner(self.FACES.TOP_FRONT_LEFT_CORNER, 15,  50, -50, 50, [{axis:Z_AXIS, rad:ROTATE_90}]);
-            var topFrontRightCorner = self.makeCorner(self.FACES.TOP_FRONT_RIGHT_CORNER, 15,  50,  50, 50, [{axis:Z_AXIS, rad:ROTATE_180}]);
-            var topBackRightCorner  = self.makeCorner(self.FACES.TOP_BACK_RIGHT_CORNER, 15, -50,  50, 50, [{axis:Z_AXIS, rad:ROTATE_270}]);
-            var topBackLeftCorner   = self.makeCorner(self.FACES.TOP_BACK_LEFT_CORNER, 15, -50, -50, 50, [{axis:Z_AXIS, rad:ROTATE_360}]);
+            var topFrontLeftCorner  = self.makeCorner(self.FACES.TOP_FRONT_LEFT_CORNER, 15,  50, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var topFrontRightCorner = self.makeCorner(self.FACES.TOP_FRONT_RIGHT_CORNER, 15,  50,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_180}]);
+            var topBackRightCorner  = self.makeCorner(self.FACES.TOP_BACK_RIGHT_CORNER, 15, -50,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_270}]);
+            var topBackLeftCorner   = self.makeCorner(self.FACES.TOP_BACK_LEFT_CORNER, 15, -50, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_360}]);
 
-            var bottomFrontLeftCorner  = self.makeCorner(self.FACES.BOTTOM_FRONT_LEFT_CORNER, 15,  50, -50, -50, [{axis:X_AXIS, rad:ROTATE_0},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_0}]);
-            var bottomFrontRightCorner = self.makeCorner(self.FACES.BOTTOM_FRONT_RIGHT_CORNER, 15,  50,  50, -50, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_0}]);
-            var bottomBackRightCorner  = self.makeCorner(self.FACES.BOTTOM_BACK_RIGHT_CORNER, 15, -50,  50, -50, [{axis:X_AXIS, rad:ROTATE_90},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}]);
-            var bottomBackLeftCorner   = self.makeCorner(self.FACES.BOTTOM_BACK_LEFT_CORNER, 15, -50, -50, -50, [{axis:X_AXIS, rad:ROTATE_0},{axis:Y_AXIS, rad:ROTATE_180},{axis:Z_AXIS, rad:ROTATE_90}]);
+            var bottomFrontLeftCorner  = self.makeCorner(self.FACES.BOTTOM_FRONT_LEFT_CORNER, 15,  50, -50, -50, [{axis:self.X_AXIS, rad:ROTATE_0},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_0}]);
+            var bottomFrontRightCorner = self.makeCorner(self.FACES.BOTTOM_FRONT_RIGHT_CORNER, 15,  50,  50, -50, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_0}]);
+            var bottomBackRightCorner  = self.makeCorner(self.FACES.BOTTOM_BACK_RIGHT_CORNER, 15, -50,  50, -50, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var bottomBackLeftCorner   = self.makeCorner(self.FACES.BOTTOM_BACK_LEFT_CORNER, 15, -50, -50, -50, [{axis:self.X_AXIS, rad:ROTATE_0},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
 
             self.cube.add(topFace);
             self.cube.add(frontFace);
@@ -397,53 +394,53 @@ FOUR.Viewcube = (function () {
             self.cube.add(leftFace);
             self.cube.add(bottomFace);
 
-            //self.cube.add(topFrontEdge);
-            //self.cube.add(topRightEdge);
-            //self.cube.add(topBackEdge);
-            //self.cube.add(topLeftEdge);
-            //
-            //self.cube.add(bottomFrontEdge);
-            //self.cube.add(bottomRightEdge);
-            //self.cube.add(bottomBackEdge);
-            //self.cube.add(bottomLeftEdge);
-            //
-            //self.cube.add(frontRightEdge);
-            //self.cube.add(backRightEdge);
-            //self.cube.add(backLeftEdge);
-            //self.cube.add(frontLeftEdge);
-            //
-            //self.cube.add(topFrontLeftCorner);
-            //self.cube.add(topFrontRightCorner);
-            //self.cube.add(topBackRightCorner);
-            //self.cube.add(topBackLeftCorner);
-            //
-            //self.cube.add(bottomFrontLeftCorner);
-            //self.cube.add(bottomFrontRightCorner);
-            //self.cube.add(bottomBackRightCorner);
-            //self.cube.add(bottomBackLeftCorner);
+            self.cube.add(topFrontEdge);
+            self.cube.add(topRightEdge);
+            self.cube.add(topBackEdge);
+            self.cube.add(topLeftEdge);
+
+            self.cube.add(bottomFrontEdge);
+            self.cube.add(bottomRightEdge);
+            self.cube.add(bottomBackEdge);
+            self.cube.add(bottomLeftEdge);
+
+            self.cube.add(frontRightEdge);
+            self.cube.add(backRightEdge);
+            self.cube.add(backLeftEdge);
+            self.cube.add(frontLeftEdge);
+
+            self.cube.add(topFrontLeftCorner);
+            self.cube.add(topFrontRightCorner);
+            self.cube.add(topBackRightCorner);
+            self.cube.add(topBackLeftCorner);
+
+            self.cube.add(bottomFrontLeftCorner);
+            self.cube.add(bottomFrontRightCorner);
+            self.cube.add(bottomBackRightCorner);
+            self.cube.add(bottomBackLeftCorner);
 
             self.control.add(self.cube);
         }
-        // build compass control
+
         if (self.display.compass) {
             var compass = self.makeCompass('compass', 0, 0, -55, 90, 64, self.COMPASS_COLOR, self.COMPASS_OPACITY);
             self.control.add(compass);
         }
 
-        if (self.display.axis) {
-            //var axis1 = new THREE.AxisHelper(100);
-            //self.cube.add(axis1);
-
-            var axis2 = new THREE.AxisHelper(150);
-            self.scene.add(axis2);
-
-            //var axis3 = new THREE.AxisHelper(100);
-            //self.view.add(axis3);
+        if (self.display.controlAxis) {
+            var controlAxis = new THREE.AxisHelper(100);
+            self.cube.add(controlAxis);
         }
 
-        //self.cube.rotateOnAxis(new THREE.Vector3(-1,0,0), Math.PI / 2);
-        //self.cube.rotateOnAxis(new THREE.Vector3(0,-1,0), Math.PI / 2);
-        self.cube.rotateOnAxis(new THREE.Vector3(0,0,-1), Math.PI / 2);
+        if (self.display.sceneAxis) {
+            var sceneAxis = new THREE.AxisHelper(150);
+            self.scene.add(sceneAxis);
+        }
+
+        if (self.display.cameraAxis) {
+            var cameraAxis = new THREE.AxisHelper(100);
+            self.view.add(cameraAxis);
+        }
 
         self.scene.add(self.control);
     };
@@ -474,8 +471,14 @@ FOUR.Viewcube = (function () {
     Viewcube.prototype.setupMaterials = function () {
         var self = this;
         // faces
-        self.materials.face = new THREE.MeshBasicMaterial({color: self.FACE_COLOUR, opacity: self.FACE_OPACITY_MOUSE_OFF, transparent: true, alphaTest: 0.5});
-        self.materials.face.side = THREE.DoubleSide;
+        self.materials.face = new THREE.MeshBasicMaterial({
+            alphaTest: 0.5,
+            color: self.FACE_COLOUR,
+            opacity: self.FACE_OPACITY_MOUSE_OFF,
+            transparent: true
+        });
+        //self.materials.face = new THREE.MeshBasicMaterial({color: self.FACE_COLOUR, alphaTest: 0.5});
+        //self.materials.face.side = THREE.DoubleSide;
         // labels
         var label1 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
@@ -513,94 +516,136 @@ FOUR.Viewcube = (function () {
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
-        var labels = [label2, label5, label3, label4, label1, label6];
+        var labels = [label3, label4, label5, label2, label1, label6];
         self.materials.labels = new THREE.MeshFaceMaterial(labels);
     };
 
     Viewcube.prototype.setView = function (view) {
-        var self = this;
+        var euler, self = this;
         switch (view) {
             case self.FACES.BACK:
-                self.tweenControlRotation(0,0, Math.PI);
-                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI)});
+                self.tweenViewRotation(Math.PI / 2, Math.PI, 0);
+                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(Math.PI / 2, Math.PI, 0)});
                 break;
             case self.FACES.BACK_LEFT_EDGE:
-                self.tweenControlRotation(0,0, Math.PI * 0.75);
-                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI * 0.75)});
+                self.tweenViewRotation(Math.PI / 2, Math.PI * 1.25, 0);
                 break;
             case self.FACES.BACK_RIGHT_EDGE:
-                self.tweenControlRotation(0,0, Math.PI * 1.25);
-                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI * 1.25)});
+                self.tweenViewRotation(Math.PI / 2, Math.PI * 0.75, 0);
                 break;
             case self.FACES.BOTTOM:
-                self.tweenControlRotation(0, Math.PI * 1.5, 0);
-                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(0, 0, Math.PI * 1.5)});
+                self.tweenViewRotation(Math.PI, 0, 0);
                 break;
             case self.FACES.BOTTOM_BACK_EDGE:
-                self.tweenControlRotation(0,-Math.PI / 4, Math.PI);
+                self.tweenViewRotation(Math.PI * 1.25, 0, Math.PI);
                 break;
             case self.FACES.BOTTOM_BACK_LEFT_CORNER:
-                self.tweenControlRotation(0, -Math.PI / 4, Math.PI * 0.75);
+                self.tweenViewRotation(-Math.PI * 0.75, -Math.PI / 4, Math.PI * 0.75);
                 break;
             case self.FACES.BOTTOM_BACK_RIGHT_CORNER:
-                self.tweenControlRotation(0, -Math.PI / 4, Math.PI * 1.25);
+                self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.25, Math.PI * 1.25);
                 break;
             case self.FACES.BOTTOM_FRONT_EDGE:
-                self.tweenControlRotation(0,-Math.PI / 4,0);
+                self.tweenViewRotation(Math.PI * 0.75, 0, 0);
                 break;
             case self.FACES.BOTTOM_FRONT_LEFT_CORNER:
-                self.tweenControlRotation(0, -Math.PI / 4, Math.PI * 0.25);
+                self.tweenViewRotation(0, -Math.PI / 4, Math.PI * 0.25);
                 break;
             case self.FACES.BOTTOM_FRONT_RIGHT_CORNER:
-                self.tweenControlRotation(0, -Math.PI / 4, Math.PI * 1.75);
+                euler = new THREE
+                    .Euler(0,0,0)
+                    .setFromVector3(new THREE.Vector3(1.5,1.5,-2).normalize());
+                self.tweenViewRotation(euler.x, euler.y, euler.z);
                 break;
             case self.FACES.BOTTOM_LEFT_EDGE:
-                self.tweenControlRotation(0,-Math.PI / 4, Math.PI * 0.5);
+                self.tweenViewRotation(0, Math.PI * 1.25, Math.PI * 1.5);
                 break;
             case self.FACES.BOTTOM_RIGHT_EDGE:
-                self.tweenControlRotation(0,-Math.PI / 4, Math.PI * 1.5);
+                self.tweenViewRotation(0, Math.PI * 0.75, Math.PI / 2);
                 break;
             case self.FACES.FRONT:
-                self.tweenControlRotation(0,0,0);
+                self.tweenViewRotation(Math.PI / 2, 0, 0);
                 break;
             case self.FACES.FRONT_LEFT_EDGE:
-                self.tweenControlRotation(0,0,Math.PI / 4);
+                self.tweenViewRotation(Math.PI / 2, Math.PI * 1.75, 0);
                 break;
             case self.FACES.FRONT_RIGHT_EDGE:
-                self.tweenControlRotation(0,0,-Math.PI / 4);
+                self.tweenViewRotation(Math.PI / 2, Math.PI / 4, 0);
                 break;
             case self.FACES.LEFT:
-                self.tweenControlRotation(0,0,Math.PI / 2);
+                self.tweenViewRotation(Math.PI / 2, Math.PI * 1.5, 0);
                 break;
             case self.FACES.RIGHT:
-                self.tweenControlRotation(0,0,-Math.PI / 2);
+                self.tweenViewRotation(Math.PI / 2, Math.PI / 2, 0);
                 break;
             case self.FACES.TOP:
-                self.tweenControlRotation(0, Math.PI / 2,0);
+                self.tweenViewRotation(0,0,0);
                 break;
             case self.FACES.TOP_BACK_EDGE:
-                self.tweenControlRotation(0, Math.PI / 4, Math.PI);
+                self.tweenViewRotation(Math.PI * 1.75, 0, Math.PI);
                 break;
             case self.FACES.TOP_BACK_LEFT_CORNER:
-                self.tweenControlRotation(0, Math.PI / 4, Math.PI * 0.75);
+                euler = new THREE
+                    .Euler(0,0,0)
+                    .setFromVector3(new THREE.Vector3(-1.5,-1.5,2.75).normalize()); // good
+                self.tweenViewRotation(euler.x, euler.y, euler.z * Math.PI * 1.5);
                 break;
             case self.FACES.TOP_BACK_RIGHT_CORNER:
-                self.tweenControlRotation(0, Math.PI / 4, Math.PI * 1.25);
+                euler = new THREE
+                    .Euler(0,0,0)
+                    .setFromVector3(new THREE.Vector3(-1.5,1.5,2.5).normalize());
+                    //.setFromVector3(new THREE.Vector3(-Math.sqrt(2),Math.sqrt(2),2.5).normalize());
+                self.tweenViewRotation(euler.x, euler.y, euler.z * Math.PI);
                 break;
             case self.FACES.TOP_FRONT_EDGE:
-                self.tweenControlRotation(0, Math.PI / 4,0);
+                self.tweenViewRotation(Math.PI / 4, 0, 0);
                 break;
             case self.FACES.TOP_FRONT_LEFT_CORNER:
-                self.tweenControlRotation(0, Math.PI / 4, Math.PI * 0.25);
+                euler = new THREE
+                    .Euler(0,0,0)
+                    .setFromVector3(new THREE.Vector3(1.5,-1.5,-2).normalize());
+                    //.setFromVector3(new THREE.Vector3(Math.sqrt(2),-Math.sqrt(2),-2).normalize());
+                self.tweenViewRotation(euler.x, euler.y, euler.z);
                 break;
             case self.FACES.TOP_FRONT_RIGHT_CORNER:
-                self.tweenControlRotation(0, Math.PI / 4, Math.PI * 1.75);
+                euler = new THREE
+                    .Euler(0,0,0)
+                    .setFromVector3(new THREE.Vector3(1.5,1.5,2).normalize());
+                    //.setFromVector3(new THREE.Vector3(Math.sqrt(2),Math.sqrt(2),2).normalize());
+                self.tweenViewRotation(euler.x, euler.y, euler.z);
+
+                //self.tweenViewRotation(0.5, 0.5, Math.PI / 8);
+                //self.tweenViewRotation(Math.sqrt(Math.PI) / 2, Math.sqrt(Math.PI) / 2, Math.PI / 4);
+                //self.tweenViewRotation(Math.sqrt(Math.PI) / 4, Math.sqrt(Math.PI) / 4, Math.PI / 4);
+                //self.tweenViewRotation(Math.sqrt(Math.PI) / 8, Math.sqrt(Math.PI) / 8, Math.PI / 4);
+                //self.tweenViewRotation(Math.PI * 0.09, Math.PI * 0.09, Math.PI / 4);
+                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 0.5); // close
+                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI * 0.5); // close
+                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI * 1.5);
+                //self.tweenViewRotation(-Math.PI * 0.25, -Math.PI * 1.25, -Math.PI * 0.5); // close
+
+                //self.tweenViewRotation(Math.PI * 1.25, Math.PI * 0.75, -Math.PI * 0.5);
+                //self.tweenViewRotation(Math.PI * 1.25, Math.PI * 1.25, -Math.PI * 1.5);
+                //self.tweenViewRotation(Math.PI * 1.25, -Math.PI * 0.75, -Math.PI * 1.5);
+                //self.tweenViewRotation(-Math.PI * 1.25, -Math.PI * 1.25, -Math.PI * 1.5);
+                //self.tweenViewRotation(-Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 1.5);
+                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 1.5);
+                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 1.5);
+                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 1.5);
+                //self.tweenViewRotation(-Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 1.5);
+                //self.tweenViewRotation(-Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 1.5);
+                //self.tweenViewRotation(-Math.PI * 0.75, Math.PI * 0.75, Math.PI * 1.5);
+                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 0.5);
+                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 0.5);
+                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI / 2);
+                //self.tweenViewRotation(1, Math.PI / 5, 1 / Math.PI);
+                //self.tweenViewRotation(Math.PI / 4, Math.PI / 8, Math.PI / 2);
                 break;
             case self.FACES.TOP_LEFT_EDGE:
-                self.tweenControlRotation(0, Math.PI / 4, -Math.PI * 1.5);
+                self.tweenViewRotation(0, Math.PI * 1.75, Math.PI * 1.5);
                 break;
             case self.FACES.TOP_RIGHT_EDGE:
-                self.tweenControlRotation(0, Math.PI / 4, -Math.PI * 0.5);
+                self.tweenViewRotation(0, Math.PI  / 4, Math.PI / 2);
                 break;
             default:
                 console.warn('view not found', view);
@@ -643,11 +688,11 @@ FOUR.Viewcube = (function () {
         });
     };
 
-    Viewcube.prototype.tweenControlRotation = function (rx, ry, rz, duration) {
+    Viewcube.prototype.tweenViewRotation = function (rx, ry, rz, duration) {
         var self = this;
         return new Promise(function (resolve) {
             var targetEuler = new THREE.Euler(rx, ry, rz);
-            var startQuaternion = self.control.quaternion.clone();
+            var startQuaternion = self.view.quaternion.clone();
             var endQuaternion = new THREE.Quaternion().setFromEuler(targetEuler);
 
             var start = {t: 0};
@@ -656,13 +701,13 @@ FOUR.Viewcube = (function () {
             var tween = new TWEEN.Tween(start).to(finish, duration || 1000);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
-                THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.control.quaternion, this.t);
+                THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.view.quaternion, this.t);
                 self.render();
                 self.renderContinuous = false;
                 resolve();
             });
             tween.onUpdate(function () {
-                THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.control.quaternion, this.t);
+                THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.view.quaternion, this.t);
                 self.render();
             });
             self.renderContinuous = true;
