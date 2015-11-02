@@ -191,6 +191,15 @@
             domElement:domElement,
             scene:scene
         });
+
+        // selection
+        var selection = new FOUR.SelectionSet();
+        var boundingBox = new FOUR.BoundingBox('scene-bounding-box');
+        scene.helpers.add(boundingBox);
+        selection.addEventListener('update', function () {
+            boundingBox.update(selection.getObjects());
+        });
+
         viewport.render();
         viewport.update();
 
