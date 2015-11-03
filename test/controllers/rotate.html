@@ -2,7 +2,7 @@
 <html>
 <head lang="en">
   <meta charset="UTF-8">
-  <title>FOUR - Zoom Controller</title>
+  <title>FOUR - Rotate Controller</title>
   <!-- vendor -->
   <script src="../../vendor/jquery/dist/jquery.js"></script>
   <script src="../../vendor/mousetrap/mousetrap.js"></script>
@@ -10,7 +10,7 @@
   <script src="../../vendor/tween.js/src/Tween.js"></script>
 
   <!-- lib -->
-  <script src="../../lib/controls/ZoomController.js"></script>
+  <script src="../../lib/controls/RotateController.js"></script>
   <script src="../../lib/path/PathPlanner.js"></script>
   <script src="../../lib/Scene.js"></script>
   <script src="../../lib/TargetCamera.js"></script>
@@ -40,7 +40,7 @@
 <div id="webgl"></div>
 <script>
   $(document).ready(function () {
-    var camera, controller, domElement, geometry, i, light, material, mesh, scene, viewport;
+    var camera, controller, domElement, geometry, helper, i, light, material, mesh, scene, viewport;
 
     // scene
     scene = new FOUR.Scene();
@@ -48,6 +48,7 @@
     // camera
 //        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
     camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.y = -100;
     scene.cameras.add(camera);
 
     // lights
@@ -62,7 +63,6 @@
     light = new THREE.AmbientLight(0x222222);
     scene.lights.add(light);
 
-    // helpers
     helper = new THREE.AxisHelper(10);
     scene.helpers.add(helper);
 
@@ -70,11 +70,13 @@
     domElement = document.getElementById('webgl');
     viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-    // controls
-    controller = new FOUR.ZoomController({viewport: viewport});
+    window.addEventListener('mousemove', viewport.render.bind(viewport));
 
-    viewport.addController(controller, 'zoom');
-    viewport.setActiveController('zoom');
+    // controls
+    controller = new FOUR.RotationController({viewport: viewport});
+
+    viewport.addController(controller, 'rotate');
+    viewport.setActiveController('rotate');
 
     // world
     geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
