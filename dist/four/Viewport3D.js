@@ -54,6 +54,8 @@ FOUR.Viewport3D = (function () {
 
   Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
 
+  Viewport3D.prototype.constructor = Viewport3D;
+
   /**
    * Add controller to viewport.
    * @param {FOUR.Controller} controller Controller
@@ -102,6 +104,7 @@ FOUR.Viewport3D = (function () {
    * Render the viewport once.
    */
   Viewport3D.prototype.render = function () {
+    //console.log('render');
     this.renderer.render(this.scene, this.camera);
   };
 

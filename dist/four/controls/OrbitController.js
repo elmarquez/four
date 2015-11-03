@@ -5,6 +5,7 @@ var FOUR = FOUR || {};
 /**
  * A reimplementation of the THREE.OrbitController.
  * @see http://threejs.org/examples/js/controls/OrbitControls.js
+ * @todo add key/RMB combo
  */
 FOUR.OrbitController = (function () {
 
@@ -267,12 +268,6 @@ FOUR.OrbitController = (function () {
 		self.state = self.STATE.NONE;
 		self.viewport = config.viewport;
 		self.zoomSpeed = 1.0;
-
-		// TODO do we need these?
-		// for reset
-		self.target0 = self.target.clone();
-		self.position0 = self.camera.position.clone();
-		self.zoom0 = self.camera.zoom;
 	}
 
 	OrbitController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -464,20 +459,6 @@ FOUR.OrbitController = (function () {
 		self.constraint.pan(deltaX, deltaY, element.clientWidth, element.clientHeight);
 	};
 
-	OrbitController.prototype.reset = function () {
-		var self = this;
-		self.state = self.STATE.NONE;
-
-		self.target.copy(self.target0);
-		self.camera.position.copy(self.position0);
-		self.camera.zoom = self.zoom0;
-
-		self.camera.updateProjectionMatrix();
-		self.dispatchEvent(self.EVENT.UPDATE);
-
-		self.update();
-	};
-
 	OrbitController.prototype.update = function () {
 		var self = this;
 		if (self.autoRotate && self.state === self.STATE.NONE) {
@@ -548,74 +529,45 @@ FOUR.OrbitController = (function () {
 			get: function () {
 				return this.constraint.minPolarAngle;
 			},
-
 			set: function (value) {
 				this.constraint.minPolarAngle = value;
 			}
 		},
 
 		maxPolarAngle : {
-
 			get: function () {
-
 				return this.constraint.maxPolarAngle;
-
 			},
-
 			set: function (value) {
-
 				this.constraint.maxPolarAngle = value;
-
 			}
-
 		},
 
 		minAzimuthAngle : {
-
 			get: function () {
-
 				return this.constraint.minAzimuthAngle;
-
 			},
-
 			set: function (value) {
-
 				this.constraint.minAzimuthAngle = value;
-
 			}
-
 		},
 
 		maxAzimuthAngle : {
-
 			get: function () {
-
 				return this.constraint.maxAzimuthAngle;
-
 			},
-
 			set: function (value) {
-
 				this.constraint.maxAzimuthAngle = value;
-
 			}
-
 		},
 
 		enableDamping : {
-
 			get: function () {
-
 				return this.constraint.enableDamping;
-
 			},
-
 			set: function (value) {
-
 				this.constraint.enableDamping = value;
-
 			}
-
 		},
 
 		dampingFactor : {
@@ -623,74 +575,6 @@ FOUR.OrbitController = (function () {
 				return this.constraint.dampingFactor;
 			},
 			set: function (value) {
-				this.constraint.dampingFactor = value;
-			}
-		},
-
-		// backward compatibility
-
-		noZoom: {
-			get: function () {
-				console.warn('THREE.OrbitControls: .noZoom has been deprecated. Use .enableZoom instead.');
-				return ! this.enableZoom;
-			},
-			set: function (value) {
-				console.warn('THREE.OrbitControls: .noZoom has been deprecated. Use .enableZoom instead.');
-				this.enableZoom = ! value;
-			}
-		},
-
-		noRotate: {
-			get: function () {
-				console.warn('THREE.OrbitControls: .noRotate has been deprecated. Use .enableRotate instead.');
-				return ! this.enableRotate;
-			},
-			set: function (value) {
-				console.warn('THREE.OrbitControls: .noRotate has been deprecated. Use .enableRotate instead.');
-				this.enableRotate = ! value;
-			}
-		},
-
-		noPan: {
-			get: function () {
-				console.warn('THREE.OrbitControls: .noPan has been deprecated. Use .enablePan instead.');
-				return ! this.enablePan;
-			},
-			set: function (value) {
-				console.warn('THREE.OrbitControls: .noPan has been deprecated. Use .enablePan instead.');
-				this.enablePan = ! value;
-			}
-		},
-
-		noKeys: {
-			get: function () {
-				console.warn('THREE.OrbitControls: .noKeys has been deprecated. Use .enableKeys instead.');
-				return ! this.enableKeys;
-			},
-			set: function (value) {
-				console.warn('THREE.OrbitControls: .noKeys has been deprecated. Use .enableKeys instead.');
-				this.enableKeys = ! value;
-			}
-		},
-
-		staticMoving : {
-			get: function () {
-				console.warn('THREE.OrbitControls: .staticMoving has been deprecated. Use .enableDamping instead.');
-				return ! this.constraint.enableDamping;
-			},
-			set: function (value) {
-				console.warn('THREE.OrbitControls: .staticMoving has been deprecated. Use .enableDamping instead.');
-				this.constraint.enableDamping = ! value;
-			}
-		},
-
-		dynamicDampingFactor : {
-			get: function () {
-				console.warn('THREE.OrbitControls: .dynamicDampingFactor has been renamed. Use .dampingFactor instead.');
-				return this.constraint.dampingFactor;
-			},
-			set: function (value) {
-				console.warn('THREE.OrbitControls: .dynamicDampingFactor has been renamed. Use .dampingFactor instead.');
 				this.constraint.dampingFactor = value;
 			}
 		}

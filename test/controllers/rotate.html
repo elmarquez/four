@@ -73,7 +73,7 @@
     window.addEventListener('mousemove', viewport.render.bind(viewport));
 
     // controls
-    controller = new FOUR.RotationController({viewport: viewport});
+    controller = new FOUR.RotateController({viewport: viewport});
 
     viewport.addController(controller, 'rotate');
     viewport.setActiveController('rotate');

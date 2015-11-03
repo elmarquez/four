@@ -36,8 +36,9 @@ FOUR.TargetCamera = (function () {
         self.planner = new FOUR.PathPlanner();
 
         // set default target and distance values
+        self.position.set(0,-1,0);
         self.distance = self.getDistance(self.position, self.target);
-        self.lookAt(self.target); // TODO need to be able to intercept this call
+        self.lookAt(self.target);
     }
 
     TargetCamera.prototype = Object.create(THREE.PerspectiveCamera.prototype);
@@ -52,6 +53,7 @@ FOUR.TargetCamera = (function () {
     };
 
     TargetCamera.prototype.getDistance = function () {
+        this.distance = new THREE.Vector3().subVectors(this.position, this.target).length();
         return this.distance;
     };
 
@@ -59,17 +61,12 @@ FOUR.TargetCamera = (function () {
         return this.target;
     };
 
-    TargetCamera.prototype.handleResize = function () {
-        // TODO handle resize event
-        throw new Error('not implemented');
-    };
-
     /**
      * Hide the camera frustrum.
      */
     TargetCamera.prototype.hideFrustrum = function () {
         this.frustrum.visible = false;
-        this.emit('update');
+        this.dispatchEvent({type:'update'});
     };
 
     /**
@@ -77,7 +74,15 @@ FOUR.TargetCamera = (function () {
      */
     TargetCamera.prototype.hideTarget = function () {
         this.targetHelper.visible = false;
-        this.emit('update');
+        this.dispatchEvent({type:'update'});
+    };
+
+    /**
+     * Handle window resize.
+     */
+    TargetCamera.prototype.onWindowResize = function () {
+        // TODO handle resize event
+        throw new Error('not implemented');
     };
 
     /**
@@ -92,28 +97,29 @@ FOUR.TargetCamera = (function () {
 
     /**
      * Set the distance from the camera to the target. Keep the target position
-     * fixed and move the camera position as required.  Animate the transition
-     * to the new orientation.
+     * fixed and move the camera position as required.
      * @param {Number} dist Distance from target to camera
-     * @param {Boolean} animate Animate the change
-     * @returns {Promise}
      */
-    TargetCamera.prototype.setDistance = function (dist, animate) {
+    TargetCamera.prototype.setDistance = function (dist) {
         //console.log('update the camera distance from target');
         var offset, next, self = this;
         self.distance = dist;
-        // get the direction from the target to the camera
+        // get the offset from the target to the camera
         offset = new THREE.Vector3().subVectors(self.position, self.target);
+        if (offset.equals(new THREE.Vector3())) {
+            offset.y = 1;
+        }
         // compute the new camera position
-        offset.setLength(self.distance);
+        offset.setLength(dist);
         next = new THREE.Vector3().addVectors(self.target, offset);
-        // move the camera to the new position
-        return self.planner.tweenToPosition(self, next, self.target, self.emit.bind(self));
+        // set the position and lookAt direction
+        self.position.copy(next);
+        self.lookAt(self.target);
     };
 
     TargetCamera.prototype.setUp = function (vec) {
         this.up = vec;
-        this.emit('update');
+        this.dispatchEvent({type:'update'});
     };
 
     /**
@@ -235,7 +241,7 @@ FOUR.TargetCamera = (function () {
     TargetCamera.prototype.showFrustrum = function () {
         var self = this;
         self.frustrum.visible = true;
-        this.emit('update');
+        this.dispatchEvent({type:'update'});
     };
 
     /**
@@ -243,7 +249,7 @@ FOUR.TargetCamera = (function () {
      */
     TargetCamera.prototype.showTarget = function () {
         this.targetHelper.visible = true;
-        this.emit('update');
+        this.dispatchEvent({type:'update'});
     };
 
     TargetCamera.prototype.translate = function (x, y, z) {
