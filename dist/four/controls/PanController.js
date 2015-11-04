@@ -13,20 +13,21 @@ FOUR.PanController = (function () {
         config = config || {};
         var self = this;
 
+        self.CURSOR = {
+            DEFAULT: 'default',
+            PAN: 'all-scroll'
+        };
         self.EPS = 0.000001;
-        self.EVENTS = {
+        self.EVENT = {
             END: {type: 'end'},
             START: {type: 'start'},
             UPDATE: {type: 'update'}
         };
         self.KEY = {
-            PAN: 17
-        };
-        self.MOUSE_STATE = {
-            UP: 0,
-            DOWN: 1
+            CTRL: 17
         };
 
+        self.active = false;
         self.camera = config.camera || config.viewport.camera;
         self.domElement = config.domElement || config.viewport.domElement;
         self.dynamicDampingFactor = 0.2;
@@ -35,7 +36,6 @@ FOUR.PanController = (function () {
         self.listeners = {};
         self.maxDistance = Infinity;
         self.minDistance = 1;
-        self.mouse = self.MOUSE_STATE.UP;
         self.offset = new THREE.Vector3();
         self.pan = {
             cameraUp: new THREE.Vector3(),
@@ -45,7 +45,7 @@ FOUR.PanController = (function () {
             start: new THREE.Vector3(),
             vector: new THREE.Vector2()
         };
-        self.panSpeed = 0.5;
+        self.panSpeed = 1;
         self.viewport = config.viewport;
 
         Object.keys(config).forEach(function (key) {
@@ -74,7 +74,6 @@ FOUR.PanController = (function () {
             };
             element.addEventListener(event, self.listeners[event].fn, false);
         }
-        addListener(self.domElement, 'contextmenu', self.onContextMenu);
         addListener(self.domElement, 'mousedown', self.onMouseDown);
         addListener(self.domElement, 'mousemove', self.onMouseMove);
         addListener(self.domElement, 'mouseup', self.onMouseUp);
@@ -85,54 +84,55 @@ FOUR.PanController = (function () {
 
     PanController.prototype.getMouseOnCircle = function (pageX, pageY) {
         this.pan.vector.set(
-          ((pageX - this.domElement.clientWidth * 0.5) / (this.domElement.clientWidth * 0.5)),
-          ((this.domElement.clientHeight + 2 * pageY) / this.domElement.clientWidth) // screen.width intentional
+          (pageX - this.domElement.clientWidth * 0.5) / (this.domElement.clientWidth * 0.5),
+          (this.domElement.clientHeight + 2 * pageY) / this.domElement.clientWidth
         );
         return this.pan.vector;
     };
 
-    PanController.prototype.getMouseOnScreen = function (pageX, pageY) {
-        this.pan.vector.set(pageX / this.domElement.clientWidth, pageY / this.domElement.clientHeight);
+    PanController.prototype.getMouseOnScreen = function (elementX, elementY) {
+        this.pan.vector.set(elementX / this.domElement.clientWidth, elementY / this.domElement.clientHeight);
         return this.pan.vector;
     };
 
-    PanController.prototype.onContextMenu = function (event) {
-        event.preventDefault();
-    };
-
     PanController.prototype.onKeyDown = function (event) {
-        if (event.keyCode === this.KEY.PAN) {
+        if (event.keyCode === this.KEY.CTRL) {
             this.keydown = true;
         }
     };
 
     PanController.prototype.onKeyUp = function (event) {
-        if (event.keyCode === this.KEY.PAN) {
+        if (event.keyCode === this.KEY.CTRL) {
             this.keydown = false;
         }
     };
 
     PanController.prototype.onMouseDown = function (event) {
         event.preventDefault();
-        event.stopPropagation();
-        this.mouse = this.MOUSE_STATE.DOWN;
-        this.pan.start.copy(this.getMouseOnScreen(event.offsetX, event.offsetY));
-        this.pan.end.copy(this.pan.start);
-        this.dispatchEvent(this.EVENTS.START);
+        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.RIGHT) {
+            this.active = true;
+            this.domElement.style.cursor = this.CURSOR.PAN;
+            this.pan.start.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
+            this.pan.end.copy(this.pan.start);
+            this.dispatchEvent(this.EVENT.START);
+        }
     };
 
     PanController.prototype.onMouseMove = function (event) {
-        if (this.mouse === this.MOUSE_STATE.DOWN) {
-            this.pan.end.copy(this.getMouseOnScreen(event.clientX, event.clientY));
+        event.preventDefault();
+        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.RIGHT) {
+            this.pan.end.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
         }
     };
 
     PanController.prototype.onMouseUp = function (event) {
         event.preventDefault();
-        event.stopPropagation();
-        this.mouse = this.MOUSE_STATE.UP;
-        this.pan.delta.set(0,0);
-        this.dispatchEvent(this.EVENTS.END);
+        if (this.active === true) {
+            this.active = false;
+            this.domElement.style.cursor = this.CURSOR.DEFAULT;
+            this.pan.delta.set(0,0);
+            this.dispatchEvent(this.EVENT.END);
+        }
     };
 
     PanController.prototype.update = function () {
@@ -140,7 +140,7 @@ FOUR.PanController = (function () {
         if (self.enabled === false) {
             return;
         }
-        if (this.mouse === this.MOUSE_STATE.DOWN) {
+        if (this.active === true) {
             self.pan.eye.subVectors(self.camera.position, self.camera.target);
             self.pan.delta.copy(self.pan.end).sub(self.pan.start);
             if (self.pan.delta.lengthSq() > self.EPS) {
@@ -156,7 +156,7 @@ FOUR.PanController = (function () {
                 // consume the change
                 this.pan.start.copy(this.pan.end);
 
-                self.dispatchEvent(self.EVENTS.UPDATE);
+                self.dispatchEvent(self.EVENT.UPDATE);
             }
         }
     };

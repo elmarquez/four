@@ -2001,11 +2001,9 @@ FOUR.Viewport3D = (function () {
     // add the viewport to the DOM
     self.domElement.appendChild(self.renderer.domElement);
     // listen for events
+    self.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self));
     self.scene.addEventListener('update', self.render.bind(self), false);
-    //window.addEventListener('keydown', self.render.bind(self), false);
-    //window.addEventListener('mousedown', self.render.bind(self), false);
-    //window.addEventListener('mousemove', self.render.bind(self), false);
-    window.addEventListener('resize', self.handleResize.bind(self), false);
+    window.addEventListener('resize', self.onWindowResize.bind(self), false);
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
     });
@@ -2041,9 +2039,17 @@ FOUR.Viewport3D = (function () {
   };
 
   /**
+   * Handle context menu event.
+   * @param {Object} event Mouse event
+   */
+  Viewport3D.prototype.onContextMenu = function (event) {
+    event.preventDefault();
+  };
+
+  /**
    * Handle window resize event.
    */
-  Viewport3D.prototype.handleResize = function () {
+  Viewport3D.prototype.onWindowResize = function () {
     var ctrl, self = this;
     var height = self.domElement.clientHeight;
     var width = self.domElement.clientWidth;
@@ -2838,53 +2844,22 @@ FOUR.LookController = (function () {
 
 var FOUR = FOUR || {};
 
-/**
- * Hybrid selection, editing, trackball, orbit, first person controller.
- * Emits the following events:
- *
- * - change: Controller change
- *
- * @todo listen for camera change on the viewport
- * @todo listen for domelement resize events
- * @todo handle mouse position, sizing differences between document and domelements
- */
 FOUR.MultiController = (function () {
 
     /**
-     * Multi-mode interaction controller.
-     * @param viewport Viewport 3D
-     * @param domElement Viewport DOM element
+     * Multiple interaction controller.
+     * @param {Object} config Configuration
      * @constructor
      */
-    function MultiController (viewport, domElement) {
+    function MultiController (config) {
         THREE.EventDispatcher.call(this);
+        config = config || {};
 
         var self = this;
-
-        self.EVENTS = {
-            UPDATE: { type: 'update' },
-            END: { type: 'end' },
-            START: { type: 'start' }
-        };
-        self.KEY = {
-            ESC: 27,
-            TILDE: 192,
-            Q: 81,
-            W: 87,
-            E: 69,
-            R: 82,
-            ONE: 49,
-            TWO: 50,
-            THREE: 51,
-            FOUR: 52
-        };
-
-        self.controller = null;
         self.controllers = {};
-        self.domElement = domElement;
+        self.domElement = config.domElement;
         self.listeners = {};
-        self.viewport = viewport;
-        self.viewports = {};
+        self.viewport = config.viewport;
     }
 
     MultiController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -2892,91 +2867,44 @@ FOUR.MultiController = (function () {
     MultiController.prototype.constructor = MultiController;
 
     MultiController.prototype.addController = function (controller, name) {
+        var self = this;
+        function addListener(name, ctrl, event, fn) {
+            self.listeners[name] = {
+                ctrl: ctrl,
+                event: event,
+                fn: fn.bind(self)
+            };
+            ctrl.addEventListener(event, self.listeners[name].fn, false);
+        }
         this.controllers[name] = controller;
+        addListener(name, controller, 'update', function () {
+            self.dispatchEvent({type:'update'});
+        });
     };
 
     MultiController.prototype.disable = function () {
         var self = this;
-        Object.keys(self.listeners).forEach(function (key) {
-            var listener = self.listeners[key];
-            listener.element.removeEventListener(listener.event, listener.fn);
+        Object.keys(self.controllers).forEach(function (key) {
+            self.controllers[key].disable();
         });
     };
 
     MultiController.prototype.enable = function () {
         var self = this;
-        function addListener(element, event, fn) {
-            self.listeners[event] = {
-                element: element,
-                event: event,
-                fn: fn.bind(self)
-            };
-            element.addEventListener(event, self.listeners[event].fn, false);
-        }
-        addListener(window, 'keydown', self.onKeyDown);
-        addListener(window, 'keyup', self.onKeyDown);
+        Object.keys(self.controllers).forEach(function (key) {
+            self.controllers[key].enable();
+        });
     };
 
-    MultiController.prototype.init = function () {
-        var self = this;
-        self.controllers.orbit = new FOUR.OrbitController();
-        self.controllers.trackball = new FOUR.TrackballController();
-        self.controllers.walk = new FOUR.WalkController();
+    MultiController.prototype.removeController = function (name) {
+        delete this.controllers[name];
     };
 
-    MultiController.prototype.onKeyDown = function () {};
-
-    MultiController.prototype.onKeyUp = function () {
+    MultiController.prototype.update = function (delta) {
         var self = this;
-        if (!self.enabled) {
-            return;
-        }
-        switch(event.keyCode) {
-            case self.KEY.ESC:
-                // cancel all current operations
-                // revert to default controller
-                break;
-            case self.KEY.TILDE:
-                // reset camera orientation
-                break;
-            case self.KEY.ONE:
-                // trackball
-                break;
-            case self.KEY.TWO:
-                // first person
-                break;
-            case self.KEY.THREE:
-                // tour
-                break;
-            case self.KEY.Q:
-                // selection
-                break;
-            case self.KEY.W:
-                // edit translate
-                break;
-            case self.KEY.E:
-                // edit rotate
-                break;
-            case self.KEY.R:
-                // edit scale
-                break;
-        }
-    };
-
-    /**
-     * Set the active viewport controller.
-     * @param {String} name Controller name
-     */
-    MultiController.prototype.setActiveController = function (name) {
-        var self = this;
-        self.controller.disable();
-        if (!self.controllers[name]) {
-            console.error('Controller ' + name + ' does not exist');
-        } else {
-            self.controller = self.controllers[name];
-            self.controller.enable();
-            self.dispatchEvent(self.EVENTS.UPDATE);
-        }
+        Object.keys(self.controllers).forEach(function (key) {
+            self.controllers[key].update(delta);
+        });
     };
 
     return MultiController;
@@ -3583,20 +3511,21 @@ FOUR.PanController = (function () {
         config = config || {};
         var self = this;
 
+        self.CURSOR = {
+            DEFAULT: 'default',
+            PAN: 'all-scroll'
+        };
         self.EPS = 0.000001;
-        self.EVENTS = {
+        self.EVENT = {
             END: {type: 'end'},
             START: {type: 'start'},
             UPDATE: {type: 'update'}
         };
         self.KEY = {
-            PAN: 17
-        };
-        self.MOUSE_STATE = {
-            UP: 0,
-            DOWN: 1
+            CTRL: 17
         };
 
+        self.active = false;
         self.camera = config.camera || config.viewport.camera;
         self.domElement = config.domElement || config.viewport.domElement;
         self.dynamicDampingFactor = 0.2;
@@ -3605,7 +3534,6 @@ FOUR.PanController = (function () {
         self.listeners = {};
         self.maxDistance = Infinity;
         self.minDistance = 1;
-        self.mouse = self.MOUSE_STATE.UP;
         self.offset = new THREE.Vector3();
         self.pan = {
             cameraUp: new THREE.Vector3(),
@@ -3615,7 +3543,7 @@ FOUR.PanController = (function () {
             start: new THREE.Vector3(),
             vector: new THREE.Vector2()
         };
-        self.panSpeed = 0.5;
+        self.panSpeed = 1;
         self.viewport = config.viewport;
 
         Object.keys(config).forEach(function (key) {
@@ -3644,7 +3572,6 @@ FOUR.PanController = (function () {
             };
             element.addEventListener(event, self.listeners[event].fn, false);
         }
-        addListener(self.domElement, 'contextmenu', self.onContextMenu);
         addListener(self.domElement, 'mousedown', self.onMouseDown);
         addListener(self.domElement, 'mousemove', self.onMouseMove);
         addListener(self.domElement, 'mouseup', self.onMouseUp);
@@ -3655,54 +3582,55 @@ FOUR.PanController = (function () {
 
     PanController.prototype.getMouseOnCircle = function (pageX, pageY) {
         this.pan.vector.set(
-          ((pageX - this.domElement.clientWidth * 0.5) / (this.domElement.clientWidth * 0.5)),
-          ((this.domElement.clientHeight + 2 * pageY) / this.domElement.clientWidth) // screen.width intentional
+          (pageX - this.domElement.clientWidth * 0.5) / (this.domElement.clientWidth * 0.5),
+          (this.domElement.clientHeight + 2 * pageY) / this.domElement.clientWidth
         );
         return this.pan.vector;
     };
 
-    PanController.prototype.getMouseOnScreen = function (pageX, pageY) {
-        this.pan.vector.set(pageX / this.domElement.clientWidth, pageY / this.domElement.clientHeight);
+    PanController.prototype.getMouseOnScreen = function (elementX, elementY) {
+        this.pan.vector.set(elementX / this.domElement.clientWidth, elementY / this.domElement.clientHeight);
         return this.pan.vector;
     };
 
-    PanController.prototype.onContextMenu = function (event) {
-        event.preventDefault();
-    };
-
     PanController.prototype.onKeyDown = function (event) {
-        if (event.keyCode === this.KEY.PAN) {
+        if (event.keyCode === this.KEY.CTRL) {
             this.keydown = true;
         }
     };
 
     PanController.prototype.onKeyUp = function (event) {
-        if (event.keyCode === this.KEY.PAN) {
+        if (event.keyCode === this.KEY.CTRL) {
             this.keydown = false;
         }
     };
 
     PanController.prototype.onMouseDown = function (event) {
         event.preventDefault();
-        event.stopPropagation();
-        this.mouse = this.MOUSE_STATE.DOWN;
-        this.pan.start.copy(this.getMouseOnScreen(event.offsetX, event.offsetY));
-        this.pan.end.copy(this.pan.start);
-        this.dispatchEvent(this.EVENTS.START);
+        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.RIGHT) {
+            this.active = true;
+            this.domElement.style.cursor = this.CURSOR.PAN;
+            this.pan.start.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
+            this.pan.end.copy(this.pan.start);
+            this.dispatchEvent(this.EVENT.START);
+        }
     };
 
     PanController.prototype.onMouseMove = function (event) {
-        if (this.mouse === this.MOUSE_STATE.DOWN) {
-            this.pan.end.copy(this.getMouseOnScreen(event.clientX, event.clientY));
+        event.preventDefault();
+        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.RIGHT) {
+            this.pan.end.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
         }
     };
 
     PanController.prototype.onMouseUp = function (event) {
         event.preventDefault();
-        event.stopPropagation();
-        this.mouse = this.MOUSE_STATE.UP;
-        this.pan.delta.set(0,0);
-        this.dispatchEvent(this.EVENTS.END);
+        if (this.active === true) {
+            this.active = false;
+            this.domElement.style.cursor = this.CURSOR.DEFAULT;
+            this.pan.delta.set(0,0);
+            this.dispatchEvent(this.EVENT.END);
+        }
     };
 
     PanController.prototype.update = function () {
@@ -3710,7 +3638,7 @@ FOUR.PanController = (function () {
         if (self.enabled === false) {
             return;
         }
-        if (this.mouse === this.MOUSE_STATE.DOWN) {
+        if (this.active === true) {
             self.pan.eye.subVectors(self.camera.position, self.camera.target);
             self.pan.delta.copy(self.pan.end).sub(self.pan.start);
             if (self.pan.delta.lengthSq() > self.EPS) {
@@ -3726,7 +3654,7 @@ FOUR.PanController = (function () {
                 // consume the change
                 this.pan.start.copy(this.pan.end);
 
-                self.dispatchEvent(self.EVENTS.UPDATE);
+                self.dispatchEvent(self.EVENT.UPDATE);
             }
         }
     };
@@ -3743,7 +3671,6 @@ var FOUR = FOUR || {};
  * mouse button or the combination of a keypress, left mouse button down and
  * mouse move. A reimplementation of the THREE.OrbitController.
  * @see http://threejs.org/examples/js/controls/OrbitControls.js
- * @todo add key/RMB combo
  */
 FOUR.RotateController = (function () {
 
@@ -3874,18 +3801,17 @@ FOUR.RotateController = (function () {
 
         var self = this;
 
+        self.CURSOR = {
+            DEFAULT: 'default',
+            ROTATE: 'crosshair'
+        };
         self.EVENT = {
             UPDATE: {type:'update'},
             END: {type:'end'},
             START: {type:'start'}
         };
-        self.KEYS = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
+        self.KEY = {ALT: 18, LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
         self.STATE = {NONE: -1, ROTATE: 0};
-
-        // Set to true to automatically rotate around the target
-        // If auto-rotate is enabled, you must call controls.update() in your animation loop
-        self.autoRotate = false;
-        self.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
 
         self.camera = config.camera || config.viewport.camera;
         self.constraint = new OrbitConstraint(self.camera);
@@ -3895,7 +3821,6 @@ FOUR.RotateController = (function () {
         self.enableRotate = true;
         self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
         self.listeners = {};
-        self.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
         self.rotateDelta = new THREE.Vector2();
         self.rotateEnd = new THREE.Vector2();
         self.rotateSpeed = 1.0;
@@ -3907,10 +3832,6 @@ FOUR.RotateController = (function () {
     RotateController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
     RotateController.prototype.constructor = RotateController;
-
-    RotateController.prototype.contextmenu = function (event) {
-        event.preventDefault();
-    };
 
     RotateController.prototype.disable = function () {
         var self = this;
@@ -3931,7 +3852,6 @@ FOUR.RotateController = (function () {
             };
             element.addEventListener(event, self.listeners[event].fn, false);
         }
-        addListener(self.domElement, 'contextmenu', self.contextmenu);
         addListener(self.domElement, 'mousedown', self.onMouseDown);
         addListener(self.domElement, 'mousemove', self.onMouseMove);
         addListener(self.domElement, 'mouseup', self.onMouseUp);
@@ -3940,98 +3860,69 @@ FOUR.RotateController = (function () {
         self.enabled = true;
     };
 
-    RotateController.prototype.getAutoRotationAngle = function () {
-        var self = this;
-        return 2 * Math.PI / 60 / 60 * self.autoRotateSpeed;
+    RotateController.prototype.onKeyDown = function (event) {
+        if (event.keyCode === this.KEY.ALT) {
+            this.keydown = true;
+        }
     };
 
-    RotateController.prototype.getAzimuthalAngle = function () {
-        return this.constraint.getAzimuthalAngle();
+    RotateController.prototype.onKeyUp = function (event) {
+        if (event.keyCode === this.KEY.ALT) {
+            this.keydown = false;
+        }
     };
-
-    RotateController.prototype.getPolarAngle = function () {
-        return this.constraint.getPolarAngle();
-    };
-
-    RotateController.prototype.onKeyDown = function (event) {};
-
-    RotateController.prototype.onKeyUp = function (event) {};
 
     RotateController.prototype.onMouseDown = function (event) {
-        var self = this;
-        if (self.enabled === false) {
+        if (this.enabled === false) {
             return;
         }
-        event.preventDefault();
-        if (event.button === self.mouseButtons.ORBIT) {
-            if (self.enableRotate === false) {
-                return;
-            }
-            self.state = self.STATE.ROTATE;
-            self.rotateStart.set(event.clientX, event.clientY);
-        }
-        if (self.state !== self.STATE.NONE) {
-            self.dispatchEvent(self.EVENT.START);
+        if (this.keydown && event.button === THREE.MOUSE.LEFT) {
+            this.state = this.STATE.ROTATE;
+            this.domElement.style.cursor = this.CURSOR.ROTATE;
+            this.rotateStart.set(event.clientX, event.clientY);
+            this.dispatchEvent(this.EVENT.START);
         }
     };
 
     RotateController.prototype.onMouseMove = function (event) {
-        var self = this;
-        if (self.enabled === false) {
+        if (this.enabled === false) {
             return;
         }
-        event.preventDefault();
-        var element = self.domElement;
-        if (self.state === self.STATE.ROTATE) {
-            if (self.enableRotate === false) {
-                return;
-            }
-            self.rotateEnd.set(event.clientX, event.clientY);
-            self.rotateDelta.subVectors(self.rotateEnd, self.rotateStart);
+        if (this.state === this.STATE.ROTATE) {
+            this.rotateEnd.set(event.clientX, event.clientY);
+            this.rotateDelta.subVectors(this.rotateEnd, this.rotateStart);
             // rotating across whole screen goes 360 degrees around
-            self.constraint.rotateLeft(2 * Math.PI * self.rotateDelta.x / element.clientWidth * self.rotateSpeed);
+            this.constraint.rotateLeft(2 * Math.PI * this.rotateDelta.x / this.domElement.clientWidth * this.rotateSpeed);
             // rotating up and down along whole screen attempts to go 360, but limited to 180
-            self.constraint.rotateUp(2 * Math.PI * self.rotateDelta.y / element.clientHeight * self.rotateSpeed);
-            self.rotateStart.copy(self.rotateEnd);
+            this.constraint.rotateUp(2 * Math.PI * this.rotateDelta.y / this.domElement.clientHeight * this.rotateSpeed);
+            this.rotateStart.copy(this.rotateEnd);
         }
-        if (self.state !== self.STATE.NONE) {
-            self.update();
+        if (this.state !== this.STATE.NONE) {
+            this.update();
         }
     };
 
-    RotateController.prototype.onMouseUp = function (event) {
-        var self = this;
-        if (self.enabled === false) {
-            return;
+    RotateController.prototype.onMouseUp = function () {
+        if (this.state === this.STATE.ROTATE) {
+            this.domElement.style.cursor = this.CURSOR.DEFAULT;
+            this.state = this.STATE.NONE;
+            this.dispatchEvent(this.EVENT.END);
         }
-        self.dispatchEvent(self.EVENT.END);
-        self.state = self.STATE.NONE;
     };
 
-    RotateController.prototype.onMouseWheel = function (event) {};
-
-    RotateController.prototype.onWindowResize = function () {};
+    RotateController.prototype.setCamera = function (camera) {
+        this.constraint.camera = camera;
+    };
 
     RotateController.prototype.update = function () {
-        var self = this;
-        if (self.autoRotate && self.state === self.STATE.NONE) {
-            self.constraint.rotateLeft(self.getAutoRotationAngle());
-        }
-        if (self.constraint.update() === true) {
-            self.dispatchEvent(self.EVENT.UPDATE);
+        if (this.state === this.STATE.ROTATE) {
+            if (this.constraint.update() === true) {
+                this.dispatchEvent(this.EVENT.UPDATE);
+            }
         }
     };
 
     Object.defineProperties(RotateController.prototype, {
-        //camera: {
-        //	get: function () {
-        //		return this.constraint.camera;
-        //	},
-        //	set: function (value) {
-        //		this.constraint.camera = camera;
-        //	}
-        //},
-
         minDistance : {
             get: function () {
                 return this.constraint.minDistance;
@@ -6294,7 +6185,6 @@ FOUR.WalkController = (function () {
         );
         // handle single and double click events
         if (self.timeout !== null) {
-            //console.log('double click');
             clearTimeout(self.timeout);
             self.timeout = null;
             // calculate mouse position in normalized device coordinates (-1 to +1)
@@ -6310,7 +6200,6 @@ FOUR.WalkController = (function () {
             }
         } else {
             self.timeout = setTimeout(function () {
-                //console.log('single click');
                 clearTimeout(self.timeout);
                 self.timeout = null;
             }, self.SINGLE_CLICK_TIMEOUT);
@@ -6421,7 +6310,6 @@ FOUR.WalkController = (function () {
             self.camera.target.copy(next);
             change = true;
         }
-        //console.info(self.camera.position, self.camera.target);
 
         if (change) {
             self.dispatchEvent(self.EVENT.UPDATE);
@@ -6448,12 +6336,16 @@ FOUR.ZoomController = (function () {
         config = config || {};
         var self = this;
 
+        self.CURSOR = {
+            DEFAULT: 'default',
+            ZOOM: 'ns-resize'
+        };
         self.EPS = 0.000001;
-        self.EVENTS = {
+        self.EVENT = {
             UPDATE: {type: 'update'}
         };
         self.KEY = {
-            ZOOM: 17
+            ZOOM: 16
         };
         self.MOUSE_STATE = {
             UP: 0,
@@ -6469,6 +6361,7 @@ FOUR.ZoomController = (function () {
         self.maxDistance = Infinity;
         self.minDistance = 1;
         self.mouse = self.MOUSE_STATE.UP;
+        self.timeout = null;
         self.viewport = config.viewport;
         self.wheelZoomSpeed = 500;
         self.zoom = {
@@ -6532,15 +6425,17 @@ FOUR.ZoomController = (function () {
 
     ZoomController.prototype.onMouseDown = function (event) {
         event.preventDefault();
-        event.stopPropagation();
-        this.domElement.style.cursor = 'ns-resize';
-        this.mouse = this.MOUSE_STATE.DOWN;
-        this.zoom.end.set(0,0);
-        this.zoom.start.set(event.offsetX, event.offsetY);
+        if (this.keydown && event.button === THREE.MOUSE.LEFT) {
+            this.domElement.style.cursor = this.CURSOR.ZOOM;
+            this.mouse = this.MOUSE_STATE.DOWN;
+            this.zoom.end.set(0,0);
+            this.zoom.start.set(event.offsetX, event.offsetY);
+        }
     };
 
     ZoomController.prototype.onMouseMove = function (event) {
-        if (this.keydown && this.mouse === this.MOUSE_STATE.DOWN) {
+        event.preventDefault();
+        if (this.keydown && event.button === THREE.MOUSE.LEFT && this.mouse === this.MOUSE_STATE.DOWN) {
             this.zoom.end.copy(this.zoom.start);
             this.zoom.start.set(event.offsetX, event.offsetY);
             this.zoom.delta = -((this.zoom.end.y - this.zoom.start.y) / this.domElement.clientHeight) * this.wheelZoomSpeed;
@@ -6549,10 +6444,11 @@ FOUR.ZoomController = (function () {
 
     ZoomController.prototype.onMouseUp = function (event) {
         event.preventDefault();
-        event.stopPropagation();
-        this.domElement.style.cursor = 'default';
-        this.mouse = this.MOUSE_STATE.UP;
-        this.zoom.delta = 0;
+        if (event.button === THREE.MOUSE.LEFT) {
+            this.domElement.style.cursor = this.CURSOR.DEFAULT;
+            this.mouse = this.MOUSE_STATE.UP;
+            this.zoom.delta = 0;
+        }
     };
 
     /**
@@ -6565,8 +6461,6 @@ FOUR.ZoomController = (function () {
             return;
         }
         event.preventDefault();
-        event.stopPropagation();
-        //this.domElement.style.cursor = 'move';
         if (event.wheelDeltaY) {
             // WebKit / Opera / Explorer 9
             self.zoom.delta = event.wheelDeltaY / 40;
@@ -6576,6 +6470,16 @@ FOUR.ZoomController = (function () {
         } else {
             self.zoom.delta = 0;
         }
+        // show the move cursor
+        self.domElement.style.cursor = self.CURSOR.ZOOM;
+        if (self.timeout !== null) {
+            clearTimeout(self.timeout);
+            self.timeout = setTimeout(function () {
+                self.domElement.style.cursor = self.CURSOR.DEFAULT;
+                self.timeout = null;
+            }, 250);
+        }
+        self.dispatchEvent(self.EVENT.UPDATE);
     };
 
     ZoomController.prototype.update = function () {
@@ -6589,7 +6493,7 @@ FOUR.ZoomController = (function () {
                 distance = distance < self.minDistance ? self.minDistance : distance;
                 if (Math.abs(distance) > self.EPS) {
                     self.camera.setDistance(distance);
-                    self.dispatchEvent(self.EVENTS.UPDATE);
+                    self.dispatchEvent(self.EVENT.UPDATE);
                 }
             } else if (self.camera instanceof THREE.PerspectiveCamera) {
                 lookAt = new THREE.Vector3(0, 0, -1).applyQuaternion(self.camera.quaternion);
@@ -6597,7 +6501,7 @@ FOUR.ZoomController = (function () {
                 if (Math.abs(distance) > self.EPS) {
                     lookAt.setLength(distance);
                     self.camera.position.add(lookAt);
-                    self.dispatchEvent(self.EVENTS.UPDATE);
+                    self.dispatchEvent(self.EVENT.UPDATE);
                 }
             }
             self.zoom.delta = 0; // consume the change

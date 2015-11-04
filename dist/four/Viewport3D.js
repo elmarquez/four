@@ -42,11 +42,9 @@ FOUR.Viewport3D = (function () {
     // add the viewport to the DOM
     self.domElement.appendChild(self.renderer.domElement);
     // listen for events
+    self.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self));
     self.scene.addEventListener('update', self.render.bind(self), false);
-    //window.addEventListener('keydown', self.render.bind(self), false);
-    //window.addEventListener('mousedown', self.render.bind(self), false);
-    //window.addEventListener('mousemove', self.render.bind(self), false);
-    window.addEventListener('resize', self.handleResize.bind(self), false);
+    window.addEventListener('resize', self.onWindowResize.bind(self), false);
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
     });
@@ -82,9 +80,17 @@ FOUR.Viewport3D = (function () {
   };
 
   /**
+   * Handle context menu event.
+   * @param {Object} event Mouse event
+   */
+  Viewport3D.prototype.onContextMenu = function (event) {
+    event.preventDefault();
+  };
+
+  /**
    * Handle window resize event.
    */
-  Viewport3D.prototype.handleResize = function () {
+  Viewport3D.prototype.onWindowResize = function () {
     var ctrl, self = this;
     var height = self.domElement.clientHeight;
     var width = self.domElement.clientWidth;
