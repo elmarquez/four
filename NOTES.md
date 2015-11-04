@@ -1,23 +1,30 @@
 Work to be Done
 ===============
 
-X refactor code into separate modules
-X use EventEmitter as base class
-X reimplement the TrackBall control
-X FirstPerson control
-X work on selection tools
-- reimplement the OrbitControl
-- create tour controller
-- tour path is computed in a worker
-- simulated annealing method of computing path
-- look around control
+ - look controller
+ - viewcube
+ - viewaxis
+    - labels orient toward camera
+    - mouseenter/mouseleave
+    - configure the xy plane color
+ - target camera
+    - tests
+    - object properties to intercept changes on the camera
+ - tour controller
+    - simulated annealing method
+ - undo
+ - marquee selection
+ - transform controller
+ - documentation
+ - update repo name, make a web site for it
+ 
+Bugs
 
-- demo switches between controllers without issue
-- point, face, object selection
+ - improve smoothness of camera motion
 
-- integrate
-- on selection set change:
-    - update walk path (depends on the size of the set)
+Maybe
+
+ - re-reimplemented trackball, orbit controllers
 
 
 Marquee Selection
@@ -28,6 +35,10 @@ Marquee Selection
 
 User Interface Mockup
 ---------------------
+
+ - Angular based
+ - multiple viewports
+ - scene graph
 
 
 Alternate Camera Implementations

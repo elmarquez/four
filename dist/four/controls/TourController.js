@@ -40,7 +40,6 @@ FOUR.TourController = (function () {
         self.path = [];
         self.planner = new FOUR.PathPlanner();
         self.planningStrategy = self.PLANNING_STRATEGY.GENETIC_EVOLUTION;
-        self.selection = config.selection;
         self.viewport = config.viewport;
     }
 
@@ -71,14 +70,6 @@ FOUR.TourController = (function () {
         var dy = Math.abs(p2.y - p1.y);
         var dz = Math.abs(p2.z - p1.z);
         return Math.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-    };
-
-    /**
-     * Emit event.
-     * @param {String} type Event type
-     */
-    TourController.prototype.emit = function (type) {
-        this.dispatchEvent({type: type});
     };
 
     /**
@@ -192,11 +183,9 @@ FOUR.TourController = (function () {
         // reset the current feature index
         self.current = -1;
         self.path = [];
-        // get the list of features
-        var features = objs || self.selection.getObjects();
         // generate the tour path
         return self.planner
-          .generateTourSequence(features)
+          .generateTourSequence(objs)
           .then(function (path) {
               self.path = path;
           }, function (err) {
@@ -220,6 +209,14 @@ FOUR.TourController = (function () {
             self.current--;
         }
         return self.navigate(self.current);
+    };
+
+    /**
+     * Set camera.
+     * @param {THREE.PerspectiveCamera} camera Camera
+     */
+    TourController.prototype.setCamera = function (camera) {
+        this.camera = camera;
     };
 
     /**

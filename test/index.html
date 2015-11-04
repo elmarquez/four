@@ -2,7 +2,7 @@
 <html ng-app="cad">
 <head lang="en">
     <meta charset="UTF-8">
-    <title>FOUR - Multi-mode Navigation</title>
+    <title>FOUR - Kitchen Sink</title>
     <!-- vendor -->
     <script src="../vendor/jquery/dist/jquery.js"></script>
     <script src="../vendor/angular/angular.js"></script>
@@ -16,6 +16,7 @@
     <script src="../lib/controls/TourController.js"></script>
     <script src="../lib/controls/TrackballController.js"></script>
     <script src="../lib/controls/WalkController.js"></script>
+    <script src="../lib/fonts/helvetiker_regular.typeface.js"></script>
     <script src="../lib/path/TravellingSalesman.js"></script>
     <script src="../lib/BoundingBox.js"></script>
     <script src="../lib/KeyInputController.js"></script>
@@ -23,6 +24,8 @@
     <script src="../lib/Scene.js"></script>
     <script src="../lib/SelectionSet.js"></script>
     <script src="../lib/TargetCamera.js"></script>
+    <script src="../lib/ViewAxis.js"></script>
+    <script src="../lib/Viewcube.js"></script>
     <script src="../lib/Viewport3D.js"></script>
 
     <!-- demo application -->
@@ -44,6 +47,26 @@
             min-height: 400px;
             width: 400px;
             z-index: 800;
+        }
+        #viewaxis {
+            background-color: transparent;
+            bottom: 0;
+            height: 120px;
+            left: 0;
+            overflow: hidden;
+            position: absolute;
+            width: 120px;
+            z-index: 600;
+        }
+        #viewcube {
+            background-color: transparent;
+            height: 180px;
+            overflow: hidden;
+            position: absolute;
+            right: 0;
+            top: 20px;
+            width: 180px;
+            z-index: 600;
         }
 
         #viewport {
@@ -94,26 +117,6 @@
             margin-right: 20px;
         }
 
-        .orientation-control {
-            background-color: rgba(255, 255, 255, 1);
-            height: 92px;
-            position: absolute;
-            right: 20px;
-            top: 68px;
-            width: 92px;
-            z-index: 900;
-        }
-
-        .axis-control {
-            background-color: rgba(255, 255, 255, 1);
-            bottom: 20px;
-            height: 48px;
-            position: absolute;
-            left: 20px;
-            width: 48px;
-            z-index: 900;
-        }
-
         .viewport:focus {
             outline: none;
         }
@@ -147,6 +150,8 @@
         </button>
     </div>
 </div>
+<div id="viewaxis"></div>
+<div id="viewcube"></div>
 <div id="viewport" class="viewport"></div>
 <div id="commandbox"></div>
 <div class="orientation-control">
@@ -267,6 +272,20 @@
 
         // update the bounding box
         boundingBox.update(scene.children);
+
+
+        var viewaxisElement = document.getElementById('viewaxis');
+        var viewaxis = window.viewaxis = new FOUR.ViewAxis({domElement:viewaxisElement, viewport:viewport});
+        viewaxis.render();
+        viewaxis.update();
+
+        var viewcubeElement = document.getElementById('viewcube');
+        var viewcube = new FOUR.Viewcube({domElement:viewcubeElement, viewport:viewport});
+        viewcube.enable();
+
+//        trackball.addEventListener('update', function () {
+//            viewcube.updateOrientation();
+//        });
 
         setupKeyboardBindings();
         setupControllers();

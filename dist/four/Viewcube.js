@@ -161,6 +161,16 @@ FOUR.Viewcube = (function () {
         self.enabled = true;
     };
 
+    Viewcube.prototype.getFaceLabel = function (val) {
+        var match = null, self = this;
+        Object.keys(self.FACES).forEach(function (key) {
+            if (self.FACES[key] === val) {
+                match = key;
+            }
+        });
+        return match;
+    };
+
     Viewcube.prototype.makeCompass = function (name, x, y, z, radius, segments, color, opacity) {
         var obj = new THREE.Object3D();
         var material = new THREE.MeshBasicMaterial({color: color});
@@ -293,7 +303,8 @@ FOUR.Viewcube = (function () {
         // calculate objects intersecting the picking ray
         var intersects = self.raycaster.intersectObjects(self.cube.children, true);
         if (intersects.length > 0 && intersects[0].object.name !== 'labels') {
-            console.info('over', intersects[0].object.name, intersects);
+            var label = self.getFaceLabel(intersects[0].object.name);
+            console.info('over', label, intersects);
             intersects[0].object.material.opacity = self.FACE_OPACITY_MOUSE_OVER;
         }
     };
@@ -312,7 +323,8 @@ FOUR.Viewcube = (function () {
         // calculate objects intersecting the picking ray
         var intersects = self.raycaster.intersectObjects(self.cube.children, true);
         if (intersects.length > 0) {
-            console.info('click', intersects[0].object.name, intersects);
+            var label = self.getFaceLabel(intersects[0].object.name);
+            console.info('click', label, intersects);
             self.setView(intersects[0].object.name);
         }
     };
@@ -361,31 +373,31 @@ FOUR.Viewcube = (function () {
             self.frontFace = frontFace;
 
             // edges
-            var topFrontEdge    = self.makeEdge(self.FACES.TOP_FRONT_EDGE, 70, 15,  50,   0, 50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
-            var topRightEdge    = self.makeEdge(self.FACES.TOP_RIGHT_EDGE, 70, 15,   0,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_180}]);
-            var topBackEdge     = self.makeEdge(self.FACES.TOP_BACK_EDGE, 70, 15, -50,   0, 50, [{axis:self.Z_AXIS, rad:ROTATE_270}]);
-            var topLeftEdge     = self.makeEdge(self.FACES.TOP_LEFT_EDGE, 70, 15,   0, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_360}]);
+            var topFrontEdge    = self.makeEdge(self.FACES.TOP_FRONT_EDGE, 70, 15,   0, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_0}]);
+            var topRightEdge    = self.makeEdge(self.FACES.TOP_RIGHT_EDGE, 70, 15,  50,   0, 50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var topBackEdge     = self.makeEdge(self.FACES.TOP_BACK_EDGE,  70, 15,   0,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_180}]);
+            var topLeftEdge     = self.makeEdge(self.FACES.TOP_LEFT_EDGE,  70, 15, -50,   0, 50, [{axis:self.Z_AXIS, rad:ROTATE_270}]);
 
-            var bottomFrontEdge = self.makeEdge(self.FACES.BOTTOM_FRONT_EDGE, 70, 15,  50,   0, -50, [{axis:self.Z_AXIS, rad:ROTATE_90}, {axis:self.Y_AXIS, rad:ROTATE_180}]);
-            var bottomRightEdge = self.makeEdge(self.FACES.BOTTOM_RIGHT_EDGE, 70, 15,   0,  50, -50, [{axis:self.Z_AXIS, rad:ROTATE_180},{axis:self.Y_AXIS, rad:ROTATE_180}]);
-            var bottomBackEdge  = self.makeEdge(self.FACES.BOTTOM_BACK_EDGE, 70, 15, -50,   0, -50, [{axis:self.Z_AXIS, rad:ROTATE_270},{axis:self.Y_AXIS, rad:ROTATE_180}]);
-            var bottomLeftEdge  = self.makeEdge(self.FACES.BOTTOM_LEFT_EDGE, 70, 15,   0, -50, -50, [{axis:self.Z_AXIS, rad:ROTATE_360},{axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomFrontEdge = self.makeEdge(self.FACES.BOTTOM_FRONT_EDGE, 70, 15,   0, -50, -50, [{axis:self.Z_AXIS, rad:ROTATE_0}, {axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomRightEdge = self.makeEdge(self.FACES.BOTTOM_RIGHT_EDGE, 70, 15,  50,   0, -50, [{axis:self.Z_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomBackEdge  = self.makeEdge(self.FACES.BOTTOM_BACK_EDGE,  70, 15,   0,  50, -50, [{axis:self.Z_AXIS, rad:ROTATE_180},{axis:self.Y_AXIS, rad:ROTATE_180}]);
+            var bottomLeftEdge  = self.makeEdge(self.FACES.BOTTOM_LEFT_EDGE,  70, 15, -50,   0, -50, [{axis:self.Z_AXIS, rad:ROTATE_270},{axis:self.Y_AXIS, rad:ROTATE_180}]);
 
-            var frontRightEdge  = self.makeEdge(self.FACES.FRONT_RIGHT_EDGE, 70, 15,  50,  50, 0, [{axis:self.X_AXIS, rad:ROTATE_180},{axis:self.Y_AXIS, rad:ROTATE_90},{axis:self.Z_AXIS, rad:0}]);
-            var backRightEdge   = self.makeEdge(self.FACES.BACK_RIGHT_EDGE, 70, 15, -50,  50, 0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
-            var backLeftEdge    = self.makeEdge(self.FACES.BACK_LEFT_EDGE, 70, 15, -50, -50, 0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_270},{axis:self.Z_AXIS, rad:ROTATE_90}]);
-            var frontLeftEdge   = self.makeEdge(self.FACES.FRONT_LEFT_EDGE, 70, 15,  50, -50, 0, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_360},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var frontRightEdge  = self.makeEdge(self.FACES.FRONT_RIGHT_EDGE, 70, 15,  50, -50, 0, [{axis:self.X_AXIS, rad:ROTATE_0}, {axis:self.Y_AXIS, rad:ROTATE_90}]);
+            var backRightEdge   = self.makeEdge(self.FACES.BACK_RIGHT_EDGE,  70, 15,  50,  50, 0, [{axis:self.X_AXIS, rad:ROTATE_180}, {axis:self.Y_AXIS, rad:ROTATE_90}]);
+            var backLeftEdge    = self.makeEdge(self.FACES.BACK_LEFT_EDGE,   70, 15, -50,  50, 0, [{axis:self.X_AXIS, rad:ROTATE_180}, {axis:self.Y_AXIS, rad:ROTATE_270}]);
+            var frontLeftEdge   = self.makeEdge(self.FACES.FRONT_LEFT_EDGE,  70, 15, -50, -50, 0, [{axis:self.X_AXIS, rad:ROTATE_0}, {axis:self.Y_AXIS, rad:ROTATE_270}]);
 
             // corners
-            var topFrontLeftCorner  = self.makeCorner(self.FACES.TOP_FRONT_LEFT_CORNER, 15,  50, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
-            var topFrontRightCorner = self.makeCorner(self.FACES.TOP_FRONT_RIGHT_CORNER, 15,  50,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_180}]);
-            var topBackRightCorner  = self.makeCorner(self.FACES.TOP_BACK_RIGHT_CORNER, 15, -50,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_270}]);
-            var topBackLeftCorner   = self.makeCorner(self.FACES.TOP_BACK_LEFT_CORNER, 15, -50, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_360}]);
+            var topFrontLeftCorner  = self.makeCorner(self.FACES.TOP_FRONT_LEFT_CORNER, 15,  -50, -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_0}]);
+            var topFrontRightCorner = self.makeCorner(self.FACES.TOP_FRONT_RIGHT_CORNER, 15,  50,  -50, 50, [{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var topBackRightCorner  = self.makeCorner(self.FACES.TOP_BACK_RIGHT_CORNER, 15, 50,  50, 50, [{axis:self.Z_AXIS, rad:ROTATE_180}]);
+            var topBackLeftCorner   = self.makeCorner(self.FACES.TOP_BACK_LEFT_CORNER, 15, -50, 50, 50, [{axis:self.Z_AXIS, rad:ROTATE_270}]);
 
-            var bottomFrontLeftCorner  = self.makeCorner(self.FACES.BOTTOM_FRONT_LEFT_CORNER, 15,  50, -50, -50, [{axis:self.X_AXIS, rad:ROTATE_0},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_0}]);
-            var bottomFrontRightCorner = self.makeCorner(self.FACES.BOTTOM_FRONT_RIGHT_CORNER, 15,  50,  50, -50, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_0}]);
-            var bottomBackRightCorner  = self.makeCorner(self.FACES.BOTTOM_BACK_RIGHT_CORNER, 15, -50,  50, -50, [{axis:self.X_AXIS, rad:ROTATE_90},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
-            var bottomBackLeftCorner   = self.makeCorner(self.FACES.BOTTOM_BACK_LEFT_CORNER, 15, -50, -50, -50, [{axis:self.X_AXIS, rad:ROTATE_0},{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var bottomFrontLeftCorner   = self.makeCorner(self.FACES.BOTTOM_FRONT_LEFT_CORNER, 15, -50, -50, -50, [{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_90}]);
+            var bottomFrontRightCorner  = self.makeCorner(self.FACES.BOTTOM_FRONT_RIGHT_CORNER, 15,  50, -50, -50, [{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_0}]);
+            var bottomBackRightCorner  = self.makeCorner(self.FACES.BOTTOM_BACK_RIGHT_CORNER, 15, 50,  50, -50, [{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_270}]);
+            var bottomBackLeftCorner   = self.makeCorner(self.FACES.BOTTOM_BACK_LEFT_CORNER, 15, -50, 50, -50, [{axis:self.Y_AXIS, rad:ROTATE_180},{axis:self.Z_AXIS, rad:ROTATE_180}]);
 
             self.cube.add(topFace);
             self.cube.add(frontFace);
@@ -478,7 +490,7 @@ FOUR.Viewcube = (function () {
             transparent: true
         });
         //self.materials.face = new THREE.MeshBasicMaterial({color: self.FACE_COLOUR, alphaTest: 0.5});
-        //self.materials.face.side = THREE.DoubleSide;
+        self.materials.face.side = THREE.DoubleSide;
         // labels
         var label1 = new THREE.MeshPhongMaterial({
             color: 0xAAAAAA,
