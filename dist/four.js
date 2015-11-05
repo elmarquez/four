@@ -624,14 +624,6 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Handle window resize.
-     */
-    TargetCamera.prototype.onWindowResize = function () {
-        // TODO handle resize event
-        throw new Error('not implemented');
-    };
-
-    /**
      * Reset camera orientation so that camera.up aligns with +Z.
      * @param {Function} progress Progress callback
      * @param {Boolean} animate Animate the change
@@ -951,7 +943,13 @@ FOUR.ViewAxis = (function () {
             xyPlane: true
         };
         self.fov = 60; // 50
+        self.label = {
+            x: null,
+            y: null,
+            z: null,
+        };
         self.labelOffset = 0.1;
+        self.labels = new THREE.Object3D();
         self.material = {
             blue: new THREE.LineBasicMaterial({
                 color: 0x0000ff,
@@ -995,6 +993,9 @@ FOUR.ViewAxis = (function () {
         self.setupGeometry();
         self.setupLights();
         self.setupNavigation();
+
+        window.addEventListener('mousemove', self.update.bind(self));
+        window.addEventListener('mousemove', self.render.bind(self));
     }
 
     ViewAxis.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -1033,31 +1034,27 @@ FOUR.ViewAxis = (function () {
         return axis;
     };
 
-    ViewAxis.prototype.createLabel = function (text, color, position) {
-
-    };
-
     ViewAxis.prototype.createLabels = function () {
-        var labels = new THREE.Object3D(), geometry, self = this, x, y, z;
+        var labels = new THREE.Object3D(), geometry, self = this;
         labels.name = 'labels';
 
         geometry = new THREE.TextGeometry('x', self.textCfg);
-        x = new THREE.Mesh(geometry, self.material.red);
-        x.name = 'x';
-        x.position.set(1 + self.labelOffset,0,0);
-        labels.add(x);
+        self.label.x = new THREE.Mesh(geometry, self.material.red);
+        self.label.x.name = 'x';
+        self.label.x.position.set(1 + self.labelOffset,0,0);
+        self.labels.add(self.label.x);
 
         geometry = new THREE.TextGeometry('y', self.textCfg);
-        y = new THREE.Mesh(geometry, self.material.green);
-        y.name = 'y';
-        y.position.set(0,1 + self.labelOffset,0);
-        labels.add(y);
+        self.label.y = new THREE.Mesh(geometry, self.material.green);
+        self.label.y.name = 'y';
+        self.label.y.position.set(0,1 + self.labelOffset,0);
+        self.labels.add(self.label.y);
 
         geometry = new THREE.TextGeometry('z', self.textCfg);
-        z = new THREE.Mesh(geometry, self.material.blue);
-        z.name = 'z';
-        z.position.set(0,0,1 + self.labelOffset);
-        labels.add(z);
+        self.label.z = new THREE.Mesh(geometry, self.material.blue);
+        self.label.z.name = 'z';
+        self.label.z.position.set(0,0,1 + self.labelOffset);
+        self.labels.add(self.label.z);
 
         return labels;
     };
@@ -1071,12 +1068,6 @@ FOUR.ViewAxis = (function () {
         plane.add(mesh);
         plane.name = 'xy_plane';
         return plane;
-    };
-
-    ViewAxis.prototype.onCameraUpdate = function () {
-        var self = this;
-        var camera = self.viewport.camera;
-        // rotate the ViewAxis to match the viewport camera
     };
 
     ViewAxis.prototype.onMouseMove = function (event) {
@@ -1145,7 +1136,7 @@ FOUR.ViewAxis = (function () {
         }
         if (self.enable.labels) {
             var labels = self.createLabels();
-            self.scene.add(labels);
+            self.scene.add(self.labels);
         }
         if (self.enable.xyPlane) {
             self.axisXYPlane = self.createXYPlane();
@@ -1166,51 +1157,25 @@ FOUR.ViewAxis = (function () {
         // bind click events to views
     };
 
-    ViewAxis.prototype.tweenCameraToPosition = function (x, y, z, rx, ry, rz) {
-        var self = this;
-        return new Promise(function (resolve) {
-            var start = {
-                x: self.camera.position.x,
-                y: self.camera.position.y,
-                z: self.camera.position.z
-            };
-            var finish = {x: x, y: y, z: z};
-            var tween = new TWEEN.Tween(start).to(finish, 2000);
-            tween.easing(TWEEN.Easing.Cubic.InOut);
-            tween.onComplete(resolve);
-            tween.onUpdate(function () {
-                self.camera.lookAt(new THREE.Vector3(0, 0, 0));
-                self.camera.position.set(this.x, this.y, this.z);
-            });
-            tween.start();
-            self.render();
-        });
-    };
-
-    ViewAxis.prototype.tweenControlRotation = function (rx, ry, rz) {
-        var self = this;
-        return new Promise(function (resolve) {
-            var start = {
-                rx: self.control.rotation.x,
-                ry: self.control.rotation.y,
-                rz: self.control.rotation.z
-            };
-            var finish = {rx: rx, ry: ry, rz: rz};
-            var tween = new TWEEN.Tween(start).to(finish, 1000);
-            tween.easing(TWEEN.Easing.Cubic.InOut);
-            tween.onComplete(resolve);
-            tween.onUpdate(function () {
-                self.control.rotation.set(this.rx, this.ry, this.rz, 'XYZ');
-            });
-            tween.start();
-            self.render();
-        });
-    };
-
     ViewAxis.prototype.update = function () {
         var self = this;
-        TWEEN.update();
+        console.info('update');
+        Object.keys(self.label).forEach(function (key) {
+            self.label[key].lookAt(self.camera.position);
+        });
         requestAnimationFrame(self.render.bind(self));
+    };
+
+    ViewAxis.prototype.updateOrientation = function () {
+        var self = this;
+        var euler = new THREE.Euler(
+            self.viewport.camera.rotation.x,
+            self.viewport.camera.rotation.y,
+            self.viewport.camera.rotation.z,
+            'XZY'
+        );
+        self.camera.quaternion.setFromEuler(euler);
+        self.render();
     };
 
     return ViewAxis;
@@ -2154,178 +2119,57 @@ FOUR.Viewport3D = (function () {
 var FOUR = FOUR || {};
 
 /**
- * Camera look controller. Rotation can be performed using the middle
- * mouse button or the combination of a keypress, left mouse button down and
- * mouse move. A reimplementation of the THREE.OrbitController.
- * @see http://threejs.org/examples/js/controls/OrbitControls.js
- * @todo add key/RMB combo
+ * Camera look controller rotates the view by moving the camera target at a
+ * fixed distance around the camera position. If a THREE.PerspectiveCamera
+ * is used, then we assume a fixed target distance of 100.
  */
 FOUR.LookController = (function () {
-
-	function OrbitConstraint (camera) {
-
-		this.camera = camera;
-
-		this.maxDistance = Infinity;
-		this.minDistance = 1;
-
-		// How far you can orbit vertically, upper and lower limits.
-		// Range is 0 to Math.PI radians.
-		this.minPolarAngle = 0; // radians
-		this.maxPolarAngle = Math.PI; // radians
-
-		// How far you can orbit horizontally, upper and lower limits.
-		// If set, must be a sub-interval of the interval [ - Math.PI, Math.PI ].
-		this.minAzimuthAngle = - Infinity; // radians
-		this.maxAzimuthAngle = Infinity; // radians
-
-		// Set to true to enable damping (inertia)
-		// If damping is enabled, you must call controls.update() in your animation loop
-		this.enableDamping = false;
-		this.dampingFactor = 0.25;
-
-		////////////
-		// internals
-
-		var scope = this;
-
-		var EPS = 0.000001;
-
-		// Current position in spherical coordinate system.
-		var theta;
-		var phi;
-
-		// Pending changes
-		var phiDelta = 0;
-		var thetaDelta = 0;
-		var scale = 1;
-
-		// Previously located in the update() closure. moved here so that we can
-		// reset them when needed
-		var offset = new THREE.Vector3();
-
-		// so camera.up is the orbit axis
-		var quat = new THREE.Quaternion().setFromUnitVectors(camera.up, new THREE.Vector3(0, 1, 0));
-		var quatInverse = quat.clone().inverse();
-
-		var lastPosition = new THREE.Vector3();
-		var lastQuaternion = new THREE.Quaternion();
-
-		//---------------------------------------------------------------------
-		// API
-
-		this.getPolarAngle = function () {
-			return phi;
-		};
-
-		this.getAzimuthalAngle = function () {
-			return theta;
-		};
-
-		this.rotateLeft = function (angle) {
-			thetaDelta -= angle;
-		};
-
-		this.rotateUp = function (angle) {
-			phiDelta -= angle;
-		};
-
-		this.update = function () {
-			var position = this.camera.position;
-			offset.copy(position).sub(this.camera.target);
-			// rotate offset to "y-axis-is-up" space
-			offset.applyQuaternion(quat);
-			// angle from z-axis around y-axis
-			theta = Math.atan2(offset.x, offset.z);
-			// angle from y-axis
-			phi = Math.atan2(Math.sqrt(offset.x * offset.x + offset.z * offset.z), offset.y);
-			theta += thetaDelta;
-			phi += phiDelta;
-			// restrict theta to be between desired limits
-			theta = Math.max(this.minAzimuthAngle, Math.min(this.maxAzimuthAngle, theta));
-			// restrict phi to be between desired limits
-			phi = Math.max(this.minPolarAngle, Math.min(this.maxPolarAngle, phi));
-			// restrict phi to be betwee EPS and PI-EPS
-			phi = Math.max(EPS, Math.min(Math.PI - EPS, phi));
-			var radius = offset.length() * scale;
-			// restrict radius to be between desired limits
-			radius = Math.max(this.minDistance, Math.min(this.maxDistance, radius));
-
-			offset.x = radius * Math.sin(phi) * Math.sin(theta);
-			offset.y = radius * Math.cos(phi);
-			offset.z = radius * Math.sin(phi) * Math.cos(theta);
-
-			// rotate offset back to "camera-up-vector-is-up" space
-			offset.applyQuaternion(quatInverse);
-			position.copy(this.camera.target).add(offset);
-			this.camera.lookAt(this.camera.target);
-			if (this.enableDamping === true) {
-				thetaDelta *= (1 - this.dampingFactor);
-				phiDelta *= (1 - this.dampingFactor);
-			} else {
-				thetaDelta = 0;
-				phiDelta = 0;
-			}
-			scale = 1;
-
-			// update condition is:
-			// min(camera displacement, camera rotation in radians)^2 > EPS
-			// using small-angle approximation cos(x/2) = 1 - x^2 / 8
-			if (lastPosition.distanceToSquared(this.camera.position) > EPS ||
-				8 * (1 - lastQuaternion.dot(this.camera.quaternion)) > EPS) {
-
-				lastPosition.copy(this.camera.position);
-				lastQuaternion.copy(this.camera.quaternion);
-
-				return true;
-			}
-			return false;
-		};
-	}
 
 	function LookController (config) {
 		THREE.EventDispatcher.call(this);
 		config = config || {};
-
 		var self = this;
 
-		self.EVENT = {
-			UPDATE: {type:'update'},
-			END: {type:'end'},
-			START: {type:'start'}
+		self.CURSOR = {
+			DEFAULT: 'default',
+			LOOK: 'crosshair'
 		};
-		self.KEYS = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
-		self.STATE = {NONE: -1, ROTATE: 0};
-
-		// Set to true to automatically rotate around the target
-		// If auto-rotate is enabled, you must call controls.update() in your animation loop
-		self.autoRotate = false;
-		self.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
+		self.EPS = 0.000001;
+		self.EVENT = {
+			UPDATE: {type: 'update'}
+		};
+		self.KEY = {
+			TILDE: 192
+		};
+		self.MOUSE_STATE = {
+			UP: 0,
+			DOWN: 1
+		};
 
 		self.camera = config.camera || config.viewport.camera;
-		self.constraint = new OrbitConstraint(self.camera);
 		self.domElement = config.domElement || config.viewport.domElement;
 		self.enabled = false;
-		self.enableKeys = true;
-		self.enableRotate = true;
-		self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 		self.listeners = {};
-		self.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
-		self.rotateDelta = new THREE.Vector2();
-		self.rotateEnd = new THREE.Vector2();
-		self.rotateSpeed = 1.0;
-		self.rotateStart = new THREE.Vector2();
-		self.state = self.STATE.NONE;
+		self.look = {
+			delta: new THREE.Vector2(),
+			dir: new THREE.Vector3(),
+			end: new THREE.Vector2(),
+			offset: new THREE.Vector3(),
+			screen: new THREE.Vector3(),
+			start: new THREE.Vector2(),
+			target: new THREE.Vector3(),
+			world: new THREE.Vector3()
+		};
+		self.lookSpeed = 0.75;
+		self.mouse = self.MOUSE_STATE.UP;
 		self.viewport = config.viewport;
+
+		Object.keys(config).forEach(function (key) {
+			self[key] = config[key];
+		});
 	}
 
 	LookController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-	LookController.prototype.constructor = LookController;
-
-	LookController.prototype.contextmenu = function (event) {
-		event.preventDefault();
-	};
 
 	LookController.prototype.disable = function () {
 		var self = this;
@@ -2346,180 +2190,72 @@ FOUR.LookController = (function () {
 			};
 			element.addEventListener(event, self.listeners[event].fn, false);
 		}
-		addListener(self.domElement, 'contextmenu', self.contextmenu);
 		addListener(self.domElement, 'mousedown', self.onMouseDown);
 		addListener(self.domElement, 'mousemove', self.onMouseMove);
 		addListener(self.domElement, 'mouseup', self.onMouseUp);
-		addListener(window, 'keydown', self.onKeyDown);
-		addListener(window, 'keyup', self.onKeyUp);
+		addListener(self.domElement, 'keyup', self.onKeyUp);
 		self.enabled = true;
 	};
 
-	LookController.prototype.getAutoRotationAngle = function () {
-		var self = this;
-		return 2 * Math.PI / 60 / 60 * self.autoRotateSpeed;
+	LookController.prototype.onKeyUp = function (event) {
+		if (event.keyCode === this.KEY.TILDE) {
+			this.camera.lookAt(this.camera.target);
+			this.dispatchEvent(this.EVENT.UPDATE);
+		}
 	};
-
-	LookController.prototype.getAzimuthalAngle = function () {
-		return this.constraint.getAzimuthalAngle();
-	};
-
-	LookController.prototype.getPolarAngle = function () {
-		return this.constraint.getPolarAngle();
-	};
-
-	LookController.prototype.onKeyDown = function (event) {};
-
-	LookController.prototype.onKeyUp = function (event) {};
 
 	LookController.prototype.onMouseDown = function (event) {
-		var self = this;
-		if (self.enabled === false) {
-			return;
-		}
-		event.preventDefault();
-		if (event.button === self.mouseButtons.ORBIT) {
-			if (self.enableRotate === false) {
-				return;
-			}
-			self.state = self.STATE.ROTATE;
-			self.rotateStart.set(event.clientX, event.clientY);
-		}
-		if (self.state !== self.STATE.NONE) {
-			self.dispatchEvent(self.EVENT.START);
+		if (event.button === THREE.MOUSE.LEFT) {
+			this.domElement.style.cursor = this.CURSOR.LOOK;
+			this.mouse = this.MOUSE_STATE.DOWN;
+			this.look.start.set(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop);
+			this.look.end.copy(this.look.start);
 		}
 	};
 
 	LookController.prototype.onMouseMove = function (event) {
-		var self = this;
-		if (self.enabled === false) {
-			return;
-		}
-		event.preventDefault();
-		var element = self.domElement;
-		if (self.state === self.STATE.ROTATE) {
-			if (self.enableRotate === false) {
-				return;
-			}
-			self.rotateEnd.set(event.clientX, event.clientY);
-			self.rotateDelta.subVectors(self.rotateEnd, self.rotateStart);
-			// rotating across whole screen goes 360 degrees around
-			self.constraint.rotateLeft(2 * Math.PI * self.rotateDelta.x / element.clientWidth * self.rotateSpeed);
-			// rotating up and down along whole screen attempts to go 360, but limited to 180
-			self.constraint.rotateUp(2 * Math.PI * self.rotateDelta.y / element.clientHeight * self.rotateSpeed);
-			self.rotateStart.copy(self.rotateEnd);
-		}
-		if (self.state !== self.STATE.NONE) {
-			self.update();
+		if (this.mouse === this.MOUSE_STATE.DOWN) {
+			this.look.end.set(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop);
 		}
 	};
 
-	LookController.prototype.onMouseUp = function (event) {
-		var self = this;
-		if (self.enabled === false) {
-			return;
-		}
-		self.dispatchEvent(self.EVENT.END);
-		self.state = self.STATE.NONE;
+	LookController.prototype.onMouseUp = function () {
+		this.domElement.style.cursor = this.CURSOR.DEFAULT;
+		this.mouse = this.MOUSE_STATE.UP;
+		this.look.start.copy(this.look.end);
 	};
-
-	LookController.prototype.onMouseWheel = function (event) {};
-
-	LookController.prototype.onWindowResize = function () {};
 
 	LookController.prototype.update = function () {
-		var self = this;
-		if (self.autoRotate && self.state === self.STATE.NONE) {
-			self.constraint.rotateLeft(self.getAutoRotationAngle());
+		if (this.enabled === false) {
+			return;
 		}
-		if (self.constraint.update() === true) {
-			self.dispatchEvent(self.EVENT.UPDATE);
+		if (this.mouse === this.MOUSE_STATE.DOWN) {
+			// calculate mouse movement
+			this.look.delta.set(this.look.end.x - this.look.start.x, this.look.end.y - this.look.start.y);
+			if (this.look.delta.length() > 0) {
+				// transform mouse screen space coordinates into world space position
+				this.look.screen.set(
+					(this.look.end.x / this.domElement.clientWidth) * 2 - 1,
+					-(this.look.end.y / this.domElement.clientHeight) * 2 + 1,
+					1);
+				this.look.screen.unproject(this.camera);
+				this.look.world.copy(this.look.screen).add(this.camera.position);
+				// get the direction from the camera to the mouse world space position
+				this.look.dir.subVectors(this.look.world, this.camera.position).normalize();
+				// get the new target position
+				this.look.target.copy(this.look.dir).multiplyScalar(this.camera.getDistance() * this.lookSpeed);
+				// move the camera target
+				if (this.camera instanceof FOUR.TargetCamera) {
+					this.camera.lookAt(this.look.target);
+					//console.info('TargetCamera', this.look.target);
+				} else if (this.camera instanceof THREE.PerspectiveCamera) {
+					//console.log('set THREE.PerspectiveCamera');
+				}
+				//this.look.end.copy(this.look.start); // consume the change
+				this.dispatchEvent(this.EVENT.UPDATE);
+			}
 		}
 	};
-
-	Object.defineProperties(LookController.prototype, {
-		//camera: {
-		//	get: function () {
-		//		return this.constraint.camera;
-		//	},
-		//	set: function (value) {
-		//		this.constraint.camera = camera;
-		//	}
-		//},
-
-		minDistance : {
-			get: function () {
-				return this.constraint.minDistance;
-			},
-			set: function (value) {
-				this.constraint.minDistance = value;
-			}
-		},
-
-		maxDistance : {
-			get: function () {
-				return this.constraint.maxDistance;
-			},
-			set: function (value) {
-				this.constraint.maxDistance = value;
-			}
-		},
-
-		minPolarAngle : {
-			get: function () {
-				return this.constraint.minPolarAngle;
-			},
-			set: function (value) {
-				this.constraint.minPolarAngle = value;
-			}
-		},
-
-		maxPolarAngle : {
-			get: function () {
-				return this.constraint.maxPolarAngle;
-			},
-			set: function (value) {
-				this.constraint.maxPolarAngle = value;
-			}
-		},
-
-		minAzimuthAngle : {
-			get: function () {
-				return this.constraint.minAzimuthAngle;
-			},
-			set: function (value) {
-				this.constraint.minAzimuthAngle = value;
-			}
-		},
-
-		maxAzimuthAngle : {
-			get: function () {
-				return this.constraint.maxAzimuthAngle;
-			},
-			set: function (value) {
-				this.constraint.maxAzimuthAngle = value;
-			}
-		},
-
-		enableDamping : {
-			get: function () {
-				return this.constraint.enableDamping;
-			},
-			set: function (value) {
-				this.constraint.enableDamping = value;
-			}
-		},
-
-		dampingFactor : {
-			get: function () {
-				return this.constraint.dampingFactor;
-			},
-			set: function (value) {
-				this.constraint.dampingFactor = value;
-			}
-		}
-
-	});
 
 	return LookController;
 
@@ -3694,12 +3430,17 @@ FOUR.SelectionController = (function () {
 
   /**
    * Mouse based selection controller. The controller emits the following
-   * events:
+   * selection events:
    *
    * add    - add one or more objects to the selection set
    * hover  - mouse over one or more objects
    * remove - remove one or more objects from the selection set
    * toggle - toggle the selection state for one or more objects
+   *
+   * The controller emits the following camera events:
+   *
+   * lookat    - look at the specified point
+   * settarget - move the camera target to the specified point
    *
    * @param {Object} config Configuration
    * @constructor
@@ -3710,15 +3451,23 @@ FOUR.SelectionController = (function () {
     var self = this;
 
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+    self.MOUSE_STATE = {DOWN: 0, UP: 1};
     self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
 
+    self.domElement = config.viewport.domElement;
     self.enabled = false;
     self.filter = function () { return true; };
     self.filters = {};
+    self.intersects = [];
     self.listeners = {};
     self.modifiers = {};
-    self.mouse = new THREE.Vector2();
+    self.mouse = {
+      end: new THREE.Vector2(),
+      start: new THREE.Vector2(),
+      state: self.MOUSE_STATE.UP
+    };
     self.raycaster = new THREE.Raycaster();
+    self.timeout = null;
     self.viewport = config.viewport;
 
     Object.keys(self.KEY).forEach(function (key) {
@@ -3751,7 +3500,6 @@ FOUR.SelectionController = (function () {
       };
       element.addEventListener(event, self.listeners[event].fn, false);
     }
-    addListener(self.viewport.domElement, 'contextmenu', self.contextMenu);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
@@ -3760,59 +3508,98 @@ FOUR.SelectionController = (function () {
     self.enabled = true;
   };
 
+  SelectionController.prototype.getSelected = function () {
+    // update the picking ray with the camera and mouse position
+    this.raycaster.setFromCamera(this.mouse.end, this.viewport.camera);
+    // calculate objects intersecting the picking ray
+    this.intersects = this.raycaster.intersectObjects(this.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
+    // update the selection set using only the nearest selected object
+    return this.intersects && this.intersects.length > 0 ? [this.intersects[0].object] : [];
+  };
+
+  SelectionController.prototype.onDoubleClick = function () {
+    var selected = this.getSelected();
+    // CTRL double click rotates the camera toward the selected point
+    if (this.modifiers[this.KEY.CTRL]) {
+      this.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
+    }
+    // double click navigates the camera to the selected point
+    else {
+      this.dispatchEvent({type:'settarget', position:selected.point, object:selected.object});
+    }
+  };
+
   SelectionController.prototype.onKeyDown = function (event) {
-    var self = this;
-    if (!self.enabled) {
+    if (!this.enabled) {
       return;
-    } else if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
-      self.modifiers[event.keyCode] = true;
+    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = true;
     }
   };
 
   SelectionController.prototype.onKeyUp = function (event) {
-    var self = this;
-    if (!self.enabled) {
+    if (!this.enabled) {
       return;
-    } else if (event.keyCode === self.KEY.ALT || event.keyCode === self.KEY.CTRL || event.keyCode === self.KEY.SHIFT) {
-      self.modifiers[event.keyCode] = false;
+    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = false;
     }
   };
 
   SelectionController.prototype.onMouseDown = function (event) {
-    event.stopPropagation();
+    event.preventDefault();
+    if (this.enabled && event.button === THREE.MOUSE.LEFT) {
+      this.mouse.state = this.MOUSE_STATE.DOWN;
+      // calculate mouse position in normalized device coordinates (-1 to +1)
+      this.mouse.start.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
+      this.mouse.start.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
+      this.mouse.end.copy(this.mouse.start);
+    }
   };
 
   SelectionController.prototype.onMouseMove = function (event) {
-    // on mouse over object
-    // self.dispatchEvent({type:'hover',items:objs});
+    if (this.enabled && this.mouse.state === this.MOUSE_STATE.DOWN) {
+      // calculate mouse position in normalized device coordinates (-1 to +1)
+      this.mouse.end.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
+      this.mouse.end.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
+      // on mouse over object
+      // this.dispatchEvent({type:'hover',items:objs});
+    }
   };
 
   SelectionController.prototype.onMouseUp = function (event) {
+    var self = this;
     event.preventDefault();
-    event.stopPropagation();
-    var intersects, objs, self = this;
     if (self.enabled) {
-      // calculate mouse position in normalized device coordinates (-1 to +1)
-      self.mouse.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
-      self.mouse.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
-      // update the picking ray with the camera and mouse position
-      self.raycaster.setFromCamera(self.mouse, self.viewport.camera);
-      // calculate objects intersecting the picking ray
-      intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
-      // update the selection set using only the nearest selected object
-      objs = intersects && intersects.length > 0 ? [intersects[0].object] : [];
-      if (self.modifiers[self.KEY.SHIFT] === true) {
-        // add objects
-        self.dispatchEvent({type:'add', items: objs});
+      self.mouse.state = self.MOUSE_STATE.UP;
+      if (self.timeout !== null) {
+        // handle double click event
+        clearTimeout(self.timeout);
+        self.timeout = null;
+        self.onDoubleClick();
+      } else {
+        // handle single click event
+        self.timeout = setTimeout(function () {
+          clearTimeout(self.timeout);
+          self.timeout = null;
+          self.onSingleClick();
+        }, self.SINGLE_CLICK_TIMEOUT);
       }
-      else if (self.modifiers[self.KEY.ALT] === true) {
-        // remove objects
-        self.dispatchEvent({type:'remove', items: objs});
-      }
-      else {
-        // toggle selection state
-        self.dispatchEvent({type:'toggle', items: objs});
-      }
+    }
+  };
+
+  SelectionController.prototype.onSingleClick = function () {
+    var selected = this.getSelected();
+    // add objects
+    if (this.modifiers[this.KEY.SHIFT] === true) {
+      this.dispatchEvent({type:'add', items: selected});
+    }
+    // remove objects
+    else if (this.modifiers[this.KEY.ALT] === true) {
+      this.dispatchEvent({type:'remove', items: selected});
+    }
+    // toggle selection state
+    else {
+      this.dispatchEvent({type:'toggle', items: selected});
     }
   };
 
@@ -5758,10 +5545,6 @@ FOUR.WalkController = (function () {
             };
             element.addEventListener(event, self.listeners[event].fn, false);
         }
-        addListener(self.domElement, 'contextmenu', self.contextMenu);
-        addListener(self.domElement, 'mousedown', self.onMouseDown);
-        addListener(self.domElement, 'mousemove', self.onMouseMove);
-        addListener(self.domElement, 'mouseup', self.onMouseUp);
         addListener(window, 'keydown', self.onKeyDown);
         addListener(window, 'keyup', self.onKeyUp);
         self.enabled = true;
@@ -5776,20 +5559,6 @@ FOUR.WalkController = (function () {
     WalkController.prototype.getWalkHeight = function (position) {
         return 0 + this.WALK_HEIGHT;
     };
-
-    WalkController.prototype.handleDoubleClick = function (selected) {
-        var self = this;
-        // CTRL double click rotates the camera toward the selected point
-        if (self.modifiers[self.KEY.CTRL]) {
-            self.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
-        }
-        // double click navigates the camera to the selected point
-        else {
-            self.dispatchEvent({type:'navigate', position:selected.point, object:selected.object});
-        }
-    };
-
-    WalkController.prototype.handleSingleClick = function () {};
 
     WalkController.prototype.onKeyDown = function (event) {
         var self = this;
@@ -5856,61 +5625,6 @@ FOUR.WalkController = (function () {
                 break;
         }
     };
-
-    WalkController.prototype.onMouseDown = function (event) {
-        var self = this;
-        self.lookChange = false;
-        self.mouse.state = self.MOUSE_STATE.DOWN;
-        // get mouse coordinates
-        self.mouse.start = new THREE.Vector2(
-            event.pageX - self.domElement.offsetLeft - self.viewHalfX,
-            event.pageY - self.domElement.offsetTop - self.viewHalfY
-        );
-        // handle single and double click events
-        if (self.timeout !== null) {
-            clearTimeout(self.timeout);
-            self.timeout = null;
-            // calculate mouse position in normalized device coordinates (-1 to +1)
-            self.mouse.end.x = (event.offsetX / self.viewport.domElement.clientWidth) * 2 - 1;
-            self.mouse.end.y = -(event.offsetY / self.viewport.domElement.clientHeight) * 2 + 1;
-            // update the picking ray with the camera and mouse position
-            self.raycaster.setFromCamera(self.mouse.end, self.viewport.camera);
-            // calculate objects intersecting the picking ray
-            var intersects = self.raycaster.intersectObjects(self.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
-            // handle the action for the nearest object
-            if (intersects && intersects.length > 0) {
-                self.handleDoubleClick(intersects[0]);
-            }
-        } else {
-            self.timeout = setTimeout(function () {
-                clearTimeout(self.timeout);
-                self.timeout = null;
-            }, self.SINGLE_CLICK_TIMEOUT);
-        }
-    };
-
-    WalkController.prototype.onMouseMove = function (event) {
-        var self = this;
-        if (self.mouse.state === self.MOUSE_STATE.DOWN) {
-            self.lookChange = true;
-            self.mouse.end = new THREE.Vector2(
-              event.pageX - self.domElement.offsetLeft - self.viewHalfX,
-              event.pageY - self.domElement.offsetTop - self.viewHalfY
-            );
-            self.mouse.direction = new THREE.Vector2(
-              (self.mouse.end.x / self.domElement.clientWidth) * 2,
-              (self.mouse.end.y / self.domElement.clientHeight) * 2
-            );
-        }
-    };
-
-    WalkController.prototype.onMouseUp = function (event) {
-        var self = this;
-        self.lookChange = false;
-        self.mouse.state = self.MOUSE_STATE.UP;
-    };
-
-    WalkController.prototype.onWindowResize = function () {};
 
     WalkController.prototype.setWalkHeight = function () {
         var self = this;

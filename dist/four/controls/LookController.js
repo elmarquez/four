@@ -3,178 +3,57 @@
 var FOUR = FOUR || {};
 
 /**
- * Camera look controller. Rotation can be performed using the middle
- * mouse button or the combination of a keypress, left mouse button down and
- * mouse move. A reimplementation of the THREE.OrbitController.
- * @see http://threejs.org/examples/js/controls/OrbitControls.js
- * @todo add key/RMB combo
+ * Camera look controller rotates the view by moving the camera target at a
+ * fixed distance around the camera position. If a THREE.PerspectiveCamera
+ * is used, then we assume a fixed target distance of 100.
  */
 FOUR.LookController = (function () {
-
-	function OrbitConstraint (camera) {
-
-		this.camera = camera;
-
-		this.maxDistance = Infinity;
-		this.minDistance = 1;
-
-		// How far you can orbit vertically, upper and lower limits.
-		// Range is 0 to Math.PI radians.
-		this.minPolarAngle = 0; // radians
-		this.maxPolarAngle = Math.PI; // radians
-
-		// How far you can orbit horizontally, upper and lower limits.
-		// If set, must be a sub-interval of the interval [ - Math.PI, Math.PI ].
-		this.minAzimuthAngle = - Infinity; // radians
-		this.maxAzimuthAngle = Infinity; // radians
-
-		// Set to true to enable damping (inertia)
-		// If damping is enabled, you must call controls.update() in your animation loop
-		this.enableDamping = false;
-		this.dampingFactor = 0.25;
-
-		////////////
-		// internals
-
-		var scope = this;
-
-		var EPS = 0.000001;
-
-		// Current position in spherical coordinate system.
-		var theta;
-		var phi;
-
-		// Pending changes
-		var phiDelta = 0;
-		var thetaDelta = 0;
-		var scale = 1;
-
-		// Previously located in the update() closure. moved here so that we can
-		// reset them when needed
-		var offset = new THREE.Vector3();
-
-		// so camera.up is the orbit axis
-		var quat = new THREE.Quaternion().setFromUnitVectors(camera.up, new THREE.Vector3(0, 1, 0));
-		var quatInverse = quat.clone().inverse();
-
-		var lastPosition = new THREE.Vector3();
-		var lastQuaternion = new THREE.Quaternion();
-
-		//---------------------------------------------------------------------
-		// API
-
-		this.getPolarAngle = function () {
-			return phi;
-		};
-
-		this.getAzimuthalAngle = function () {
-			return theta;
-		};
-
-		this.rotateLeft = function (angle) {
-			thetaDelta -= angle;
-		};
-
-		this.rotateUp = function (angle) {
-			phiDelta -= angle;
-		};
-
-		this.update = function () {
-			var position = this.camera.position;
-			offset.copy(position).sub(this.camera.target);
-			// rotate offset to "y-axis-is-up" space
-			offset.applyQuaternion(quat);
-			// angle from z-axis around y-axis
-			theta = Math.atan2(offset.x, offset.z);
-			// angle from y-axis
-			phi = Math.atan2(Math.sqrt(offset.x * offset.x + offset.z * offset.z), offset.y);
-			theta += thetaDelta;
-			phi += phiDelta;
-			// restrict theta to be between desired limits
-			theta = Math.max(this.minAzimuthAngle, Math.min(this.maxAzimuthAngle, theta));
-			// restrict phi to be between desired limits
-			phi = Math.max(this.minPolarAngle, Math.min(this.maxPolarAngle, phi));
-			// restrict phi to be betwee EPS and PI-EPS
-			phi = Math.max(EPS, Math.min(Math.PI - EPS, phi));
-			var radius = offset.length() * scale;
-			// restrict radius to be between desired limits
-			radius = Math.max(this.minDistance, Math.min(this.maxDistance, radius));
-
-			offset.x = radius * Math.sin(phi) * Math.sin(theta);
-			offset.y = radius * Math.cos(phi);
-			offset.z = radius * Math.sin(phi) * Math.cos(theta);
-
-			// rotate offset back to "camera-up-vector-is-up" space
-			offset.applyQuaternion(quatInverse);
-			position.copy(this.camera.target).add(offset);
-			this.camera.lookAt(this.camera.target);
-			if (this.enableDamping === true) {
-				thetaDelta *= (1 - this.dampingFactor);
-				phiDelta *= (1 - this.dampingFactor);
-			} else {
-				thetaDelta = 0;
-				phiDelta = 0;
-			}
-			scale = 1;
-
-			// update condition is:
-			// min(camera displacement, camera rotation in radians)^2 > EPS
-			// using small-angle approximation cos(x/2) = 1 - x^2 / 8
-			if (lastPosition.distanceToSquared(this.camera.position) > EPS ||
-				8 * (1 - lastQuaternion.dot(this.camera.quaternion)) > EPS) {
-
-				lastPosition.copy(this.camera.position);
-				lastQuaternion.copy(this.camera.quaternion);
-
-				return true;
-			}
-			return false;
-		};
-	}
 
 	function LookController (config) {
 		THREE.EventDispatcher.call(this);
 		config = config || {};
-
 		var self = this;
 
-		self.EVENT = {
-			UPDATE: {type:'update'},
-			END: {type:'end'},
-			START: {type:'start'}
+		self.CURSOR = {
+			DEFAULT: 'default',
+			LOOK: 'crosshair'
 		};
-		self.KEYS = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
-		self.STATE = {NONE: -1, ROTATE: 0};
-
-		// Set to true to automatically rotate around the target
-		// If auto-rotate is enabled, you must call controls.update() in your animation loop
-		self.autoRotate = false;
-		self.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
+		self.EPS = 0.000001;
+		self.EVENT = {
+			UPDATE: {type: 'update'}
+		};
+		self.KEY = {
+			TILDE: 192
+		};
+		self.MOUSE_STATE = {
+			UP: 0,
+			DOWN: 1
+		};
 
 		self.camera = config.camera || config.viewport.camera;
-		self.constraint = new OrbitConstraint(self.camera);
 		self.domElement = config.domElement || config.viewport.domElement;
 		self.enabled = false;
-		self.enableKeys = true;
-		self.enableRotate = true;
-		self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 		self.listeners = {};
-		self.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
-		self.rotateDelta = new THREE.Vector2();
-		self.rotateEnd = new THREE.Vector2();
-		self.rotateSpeed = 1.0;
-		self.rotateStart = new THREE.Vector2();
-		self.state = self.STATE.NONE;
+		self.look = {
+			delta: new THREE.Vector2(),
+			dir: new THREE.Vector3(),
+			end: new THREE.Vector2(),
+			offset: new THREE.Vector3(),
+			screen: new THREE.Vector3(),
+			start: new THREE.Vector2(),
+			target: new THREE.Vector3(),
+			world: new THREE.Vector3()
+		};
+		self.lookSpeed = 0.75;
+		self.mouse = self.MOUSE_STATE.UP;
 		self.viewport = config.viewport;
+
+		Object.keys(config).forEach(function (key) {
+			self[key] = config[key];
+		});
 	}
 
 	LookController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-	LookController.prototype.constructor = LookController;
-
-	LookController.prototype.contextmenu = function (event) {
-		event.preventDefault();
-	};
 
 	LookController.prototype.disable = function () {
 		var self = this;
@@ -195,180 +74,72 @@ FOUR.LookController = (function () {
 			};
 			element.addEventListener(event, self.listeners[event].fn, false);
 		}
-		addListener(self.domElement, 'contextmenu', self.contextmenu);
 		addListener(self.domElement, 'mousedown', self.onMouseDown);
 		addListener(self.domElement, 'mousemove', self.onMouseMove);
 		addListener(self.domElement, 'mouseup', self.onMouseUp);
-		addListener(window, 'keydown', self.onKeyDown);
-		addListener(window, 'keyup', self.onKeyUp);
+		addListener(self.domElement, 'keyup', self.onKeyUp);
 		self.enabled = true;
 	};
 
-	LookController.prototype.getAutoRotationAngle = function () {
-		var self = this;
-		return 2 * Math.PI / 60 / 60 * self.autoRotateSpeed;
+	LookController.prototype.onKeyUp = function (event) {
+		if (event.keyCode === this.KEY.TILDE) {
+			this.camera.lookAt(this.camera.target);
+			this.dispatchEvent(this.EVENT.UPDATE);
+		}
 	};
-
-	LookController.prototype.getAzimuthalAngle = function () {
-		return this.constraint.getAzimuthalAngle();
-	};
-
-	LookController.prototype.getPolarAngle = function () {
-		return this.constraint.getPolarAngle();
-	};
-
-	LookController.prototype.onKeyDown = function (event) {};
-
-	LookController.prototype.onKeyUp = function (event) {};
 
 	LookController.prototype.onMouseDown = function (event) {
-		var self = this;
-		if (self.enabled === false) {
-			return;
-		}
-		event.preventDefault();
-		if (event.button === self.mouseButtons.ORBIT) {
-			if (self.enableRotate === false) {
-				return;
-			}
-			self.state = self.STATE.ROTATE;
-			self.rotateStart.set(event.clientX, event.clientY);
-		}
-		if (self.state !== self.STATE.NONE) {
-			self.dispatchEvent(self.EVENT.START);
+		if (event.button === THREE.MOUSE.LEFT) {
+			this.domElement.style.cursor = this.CURSOR.LOOK;
+			this.mouse = this.MOUSE_STATE.DOWN;
+			this.look.start.set(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop);
+			this.look.end.copy(this.look.start);
 		}
 	};
 
 	LookController.prototype.onMouseMove = function (event) {
-		var self = this;
-		if (self.enabled === false) {
-			return;
-		}
-		event.preventDefault();
-		var element = self.domElement;
-		if (self.state === self.STATE.ROTATE) {
-			if (self.enableRotate === false) {
-				return;
-			}
-			self.rotateEnd.set(event.clientX, event.clientY);
-			self.rotateDelta.subVectors(self.rotateEnd, self.rotateStart);
-			// rotating across whole screen goes 360 degrees around
-			self.constraint.rotateLeft(2 * Math.PI * self.rotateDelta.x / element.clientWidth * self.rotateSpeed);
-			// rotating up and down along whole screen attempts to go 360, but limited to 180
-			self.constraint.rotateUp(2 * Math.PI * self.rotateDelta.y / element.clientHeight * self.rotateSpeed);
-			self.rotateStart.copy(self.rotateEnd);
-		}
-		if (self.state !== self.STATE.NONE) {
-			self.update();
+		if (this.mouse === this.MOUSE_STATE.DOWN) {
+			this.look.end.set(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop);
 		}
 	};
 
-	LookController.prototype.onMouseUp = function (event) {
-		var self = this;
-		if (self.enabled === false) {
-			return;
-		}
-		self.dispatchEvent(self.EVENT.END);
-		self.state = self.STATE.NONE;
+	LookController.prototype.onMouseUp = function () {
+		this.domElement.style.cursor = this.CURSOR.DEFAULT;
+		this.mouse = this.MOUSE_STATE.UP;
+		this.look.start.copy(this.look.end);
 	};
-
-	LookController.prototype.onMouseWheel = function (event) {};
-
-	LookController.prototype.onWindowResize = function () {};
 
 	LookController.prototype.update = function () {
-		var self = this;
-		if (self.autoRotate && self.state === self.STATE.NONE) {
-			self.constraint.rotateLeft(self.getAutoRotationAngle());
+		if (this.enabled === false) {
+			return;
 		}
-		if (self.constraint.update() === true) {
-			self.dispatchEvent(self.EVENT.UPDATE);
+		if (this.mouse === this.MOUSE_STATE.DOWN) {
+			// calculate mouse movement
+			this.look.delta.set(this.look.end.x - this.look.start.x, this.look.end.y - this.look.start.y);
+			if (this.look.delta.length() > 0) {
+				// transform mouse screen space coordinates into world space position
+				this.look.screen.set(
+					(this.look.end.x / this.domElement.clientWidth) * 2 - 1,
+					-(this.look.end.y / this.domElement.clientHeight) * 2 + 1,
+					1);
+				this.look.screen.unproject(this.camera);
+				this.look.world.copy(this.look.screen).add(this.camera.position);
+				// get the direction from the camera to the mouse world space position
+				this.look.dir.subVectors(this.look.world, this.camera.position).normalize();
+				// get the new target position
+				this.look.target.copy(this.look.dir).multiplyScalar(this.camera.getDistance() * this.lookSpeed);
+				// move the camera target
+				if (this.camera instanceof FOUR.TargetCamera) {
+					this.camera.lookAt(this.look.target);
+					//console.info('TargetCamera', this.look.target);
+				} else if (this.camera instanceof THREE.PerspectiveCamera) {
+					//console.log('set THREE.PerspectiveCamera');
+				}
+				//this.look.end.copy(this.look.start); // consume the change
+				this.dispatchEvent(this.EVENT.UPDATE);
+			}
 		}
 	};
-
-	Object.defineProperties(LookController.prototype, {
-		//camera: {
-		//	get: function () {
-		//		return this.constraint.camera;
-		//	},
-		//	set: function (value) {
-		//		this.constraint.camera = camera;
-		//	}
-		//},
-
-		minDistance : {
-			get: function () {
-				return this.constraint.minDistance;
-			},
-			set: function (value) {
-				this.constraint.minDistance = value;
-			}
-		},
-
-		maxDistance : {
-			get: function () {
-				return this.constraint.maxDistance;
-			},
-			set: function (value) {
-				this.constraint.maxDistance = value;
-			}
-		},
-
-		minPolarAngle : {
-			get: function () {
-				return this.constraint.minPolarAngle;
-			},
-			set: function (value) {
-				this.constraint.minPolarAngle = value;
-			}
-		},
-
-		maxPolarAngle : {
-			get: function () {
-				return this.constraint.maxPolarAngle;
-			},
-			set: function (value) {
-				this.constraint.maxPolarAngle = value;
-			}
-		},
-
-		minAzimuthAngle : {
-			get: function () {
-				return this.constraint.minAzimuthAngle;
-			},
-			set: function (value) {
-				this.constraint.minAzimuthAngle = value;
-			}
-		},
-
-		maxAzimuthAngle : {
-			get: function () {
-				return this.constraint.maxAzimuthAngle;
-			},
-			set: function (value) {
-				this.constraint.maxAzimuthAngle = value;
-			}
-		},
-
-		enableDamping : {
-			get: function () {
-				return this.constraint.enableDamping;
-			},
-			set: function (value) {
-				this.constraint.enableDamping = value;
-			}
-		},
-
-		dampingFactor : {
-			get: function () {
-				return this.constraint.dampingFactor;
-			},
-			set: function (value) {
-				this.constraint.dampingFactor = value;
-			}
-		}
-
-	});
 
 	return LookController;
 

@@ -78,14 +78,6 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Handle window resize.
-     */
-    TargetCamera.prototype.onWindowResize = function () {
-        // TODO handle resize event
-        throw new Error('not implemented');
-    };
-
-    /**
      * Reset camera orientation so that camera.up aligns with +Z.
      * @param {Function} progress Progress callback
      * @param {Boolean} animate Animate the change
