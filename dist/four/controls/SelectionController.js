@@ -78,6 +78,7 @@ FOUR.SelectionController = (function () {
       };
       element.addEventListener(event, self.listeners[event].fn, false);
     }
+    addListener(self.viewport.domElement, 'contextmenu', self.onContextMenu);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
@@ -92,8 +93,10 @@ FOUR.SelectionController = (function () {
     // calculate objects intersecting the picking ray
     this.intersects = this.raycaster.intersectObjects(this.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
     // update the selection set using only the nearest selected object
-    return this.intersects && this.intersects.length > 0 ? [this.intersects[0].object] : [];
+    return this.intersects && this.intersects.length > 0 ? this.intersects[0] : null;
   };
+
+  SelectionController.prototype.onContextMenu = function () {};
 
   SelectionController.prototype.onDoubleClick = function () {
     var selected = this.getSelected();
@@ -169,15 +172,15 @@ FOUR.SelectionController = (function () {
     var selected = this.getSelected();
     // add objects
     if (this.modifiers[this.KEY.SHIFT] === true) {
-      this.dispatchEvent({type:'add', items: selected});
+      this.dispatchEvent({type:'add', object: selected.object});
     }
     // remove objects
     else if (this.modifiers[this.KEY.ALT] === true) {
-      this.dispatchEvent({type:'remove', items: selected});
+      this.dispatchEvent({type:'remove', object: selected.object});
     }
     // toggle selection state
     else {
-      this.dispatchEvent({type:'toggle', items: selected});
+      this.dispatchEvent({type:'toggle', object: selected.object});
     }
   };
 
