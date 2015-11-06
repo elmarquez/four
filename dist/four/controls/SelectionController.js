@@ -100,13 +100,15 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.onDoubleClick = function () {
     var selected = this.getSelected();
-    // CTRL double click rotates the camera toward the selected point
-    if (this.modifiers[this.KEY.CTRL]) {
-      this.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
-    }
-    // double click navigates the camera to the selected point
-    else {
-      this.dispatchEvent({type:'settarget', position:selected.point, object:selected.object});
+    if (selected) {
+      // CTRL double click rotates the camera toward the selected point
+      if (this.modifiers[this.KEY.CTRL]) {
+        this.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
+      }
+      // double click navigates the camera to the selected point
+      else {
+        this.dispatchEvent({type:'settarget', position:selected.point, object:selected.object});
+      }
     }
   };
 
@@ -170,17 +172,19 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.onSingleClick = function () {
     var selected = this.getSelected();
-    // add objects
-    if (this.modifiers[this.KEY.SHIFT] === true) {
-      this.dispatchEvent({type:'add', object: selected.object});
-    }
-    // remove objects
-    else if (this.modifiers[this.KEY.ALT] === true) {
-      this.dispatchEvent({type:'remove', object: selected.object});
-    }
-    // toggle selection state
-    else {
-      this.dispatchEvent({type:'toggle', object: selected.object});
+    if (selected) {
+      // add objects
+      if (this.modifiers[this.KEY.SHIFT] === true) {
+        this.dispatchEvent({type:'add', object: selected.object});
+      }
+      // remove objects
+      else if (this.modifiers[this.KEY.ALT] === true) {
+        this.dispatchEvent({type:'remove', object: selected.object});
+      }
+      // toggle selection state
+      else {
+        this.dispatchEvent({type:'toggle', object: selected.object});
+      }
     }
   };
 

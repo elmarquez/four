@@ -1,7 +1,13 @@
 'use strict';
 
 module.exports = {
-  dist: {
+  fonts: {
+    cwd: 'fonts',
+    src: [ '**/*' ],
+    dest: 'dist/fonts',
+    expand: true
+  },
+  lib: {
     cwd: 'lib',
     src: [ '**/*','!controls/dist/**/*' ],
     dest: 'dist/four',

@@ -10,7 +10,8 @@ Components for threejs computer aided design applications.
  * TargetCamera - camera for CAD applications
  * ViewAxis - camera orientation controller
  * ViewCube - camera orientation controller
- * Viewport3D -  
+ * Viewport3D - 3D viewport.
+
 
 Dependencies
 ------------
@@ -23,6 +24,10 @@ Install run time dependencies:
 
     bower install
     
+The ViewAxis control requires the THREE Helvetiker Regular typeface. This font
+file is not included in the compiled FOUR library and must be loaded separately.
+However, the file itself is provided in the distribution folder.
+
 
 Compiling and Running the Demo
 ------------------------------
