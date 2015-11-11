@@ -177,52 +177,69 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Move the camera to the predefined view position. Ensure that the entire
+     * Move the camera to the predefined orientation. Ensure that the entire
      * bounding box is visible within the camera view.
-     * @param {String} view View
+     * @param {String} orientation Orientation
      * @param {BoundingBox} bbox View bounding box
      * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setView = function (view, bbox, animate) {
+    TargetCamera.prototype.setView = function (orientation, bbox, animate) {
         var dist, height, offset, self = this;
         var center = bbox.getCenter();
         // new camera position and target
         var pos = new THREE.Vector3(center.x, center.y, center.z);
         var target = new THREE.Vector3(center.x, center.y, center.z);
+
+        var look = new THREE.Vector3().subVectors(self.position, self.target);
+        var newLook = new THREE.Vector3();
+
         // reorient the camera relative to the bounding box
-        if (view === self.VIEWS.TOP) {
+        if (orientation === self.VIEWS.TOP) {
             height = bbox.getYDimension();
             offset = (bbox.getZDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             pos.z = center.z + dist + offset;
+
+            newLook.set(0,0,-1);
         }
-        else if (view === self.VIEWS.FRONT) {
+        else if (orientation === self.VIEWS.FRONT) {
             height = bbox.getZDimension();
             offset = (bbox.getYDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             pos.y = center.y - dist - offset;
+
+            newLook.set(0,-1,0);
         }
-        else if (view === self.VIEWS.BACK) {
+        else if (orientation === self.VIEWS.BACK) {
             height = bbox.getZDimension();
             offset = (bbox.getYDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             pos.y = center.y + dist + offset;
+
+            newLook.set(0,1,0);
         }
-        else if (view === self.VIEWS.RIGHT) {
+        else if (orientation === self.VIEWS.RIGHT) {
             height = bbox.getZDimension();
             offset = (bbox.getXDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             pos.x = center.x + dist + offset;
+
+            newLook.set(-1,0,0);
+
         }
-        else if (view === self.VIEWS.LEFT) {
+        else if (orientation === self.VIEWS.LEFT) {
             height = bbox.getZDimension();
             offset = (bbox.getXDimension() / 2);
             dist = height / 2 / Math.tan(Math.PI * self.fov / 360);
             pos.x = center.x - dist - offset;
+
+            newLook.set(1,0,0);
         }
-        else if (view === self.VIEWS.PERSPECTIVE) {
+        else if (orientation === self.VIEWS.PERSPECTIVE) {
             pos.set(center.x - 100, center.y - 100, center.z + 100);
+
+            newLook.set(1,1,-1);
         }
         self.planner.tweenToPosition(self, pos, target, self.emit.bind(self));
     };

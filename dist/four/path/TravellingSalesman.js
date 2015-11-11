@@ -1,16 +1,11 @@
 /* jshint unused:false */
 'use strict';
 
-var FOUR = FOUR || {};
-
 /**
  * Travelling salesman path planner.
  * Based on http://www.theprojectspot.com/tutorial-post/applying-a-genetic-algorithm-to-the-travelling-salesman-problem/5
  */
 var TravellingSalesman = (function () {
-
-    // The list of points that must be visited by the salesman.
-    var Itinerary = [];
 
     /**
      * A proposed solution.
@@ -20,9 +15,6 @@ var TravellingSalesman = (function () {
         this.distance = 0;
         this.fitness = 0;
         this.tour = [];
-        for (var i = 0; i < Itinerary.length; i++) {
-            this.tour.push(null);
-        }
     }
 
     Tour.prototype.checkForDuplicateValues = function () {
@@ -60,12 +52,8 @@ var TravellingSalesman = (function () {
         return Math.sqrt((dx * dx) + (dy * dy));
     };
 
-    Tour.prototype.generateIndividual = function () {
-        // Loop through all our destination cities and add them to our tour
-        for (var i = 0; i < Itinerary.length; i++) {
-            this.setPoint(i, Itinerary[i]);
-        }
-        // Randomly reorder the tour
+    Tour.prototype.generateRandomRoute = function (itinerary) {
+        this.tour = itinerary.slice();
         this.shuffle();
     };
 
@@ -103,12 +91,6 @@ var TravellingSalesman = (function () {
         return this.distance;
     };
 
-    Tour.prototype.init = function () {
-        for (var i = 0; i < Itinerary.length; i++) {
-            this.tour.push(null);
-        }
-    };
-
     Tour.prototype.setPoint = function (i, point) {
         this.tour[i] = point;
         this.fitness = 0;
@@ -136,21 +118,23 @@ var TravellingSalesman = (function () {
 
     /**
      * A collection of potential tour solutions.
-     * @param populationSize
-     * @param initialise
+     * @param {Array} itinerary Itinerary
+     * @param {Number} populationSize The number of solutions in the population
+     * @param {Boolean} initialise Initialize the population with random solutions
      * @constructor
      */
-    function Population(populationSize, initialise) {
+    function Population(itinerary, populationSize, initialise) {
+        var i, tour;
+        this.populationSize = populationSize;
         this.tours = [];
-        var i;
-        for (i = 0; i < populationSize; i++) {
+        for (i = 0; i < this.populationSize; i++) {
             this.tours.push(null);
         }
         if (initialise) {
-            for (i = 0; i < populationSize; i++) {
-                var newTour = new Tour();
-                newTour.generateIndividual();
-                this.tours[i] = newTour;
+            for (i = 0; i < this.populationSize; i++) {
+                tour = new Tour();
+                tour.generateRandomRoute(itinerary);
+                this.tours[i] = tour;
             }
         }
     }
@@ -180,14 +164,14 @@ var TravellingSalesman = (function () {
 
     /**
      * Travelling salesman.
-     * @param {Integer} Population size
      * @constructor
      */
-    function TravellingSalesman(populationSize) {
+    function TravellingSalesman() {
         this.elitism = true;
+        this.itinerary = [];
         this.mutationRate = 0.015;
         this.population = null;
-        this.populationSize = populationSize;
+        this.populationSize = 50;
         this.tournamentSize = 5;
     }
 
@@ -197,7 +181,7 @@ var TravellingSalesman = (function () {
      * @param {Object} obj Object with x and y coordinate properties
      */
     TravellingSalesman.prototype.addPoint = function (obj) {
-        Itinerary.push(obj);
+        this.itinerary.push(obj);
     };
 
     TravellingSalesman.prototype.crossover = function (parent1, parent2) {
@@ -241,6 +225,7 @@ var TravellingSalesman = (function () {
     };
 
     TravellingSalesman.prototype.evolve = function (generations) {
+        // generate subsequent solution populations based on the current population
         this.population = this.evolvePopulation(this.population);
         for (var i = 0; i < generations; i++) {
             this.population = this.evolvePopulation(this.population);
@@ -249,7 +234,7 @@ var TravellingSalesman = (function () {
 
     TravellingSalesman.prototype.evolvePopulation = function (pop) {
         var i;
-        var newPopulation = new Population(pop.getPopulationSize(), false);
+        var newPopulation = new Population(this.itinerary, pop.getPopulationSize(), false);
         // Keep our best individual if elitism is enabled
         var elitismOffset = 0;
         if (this.elitism) {
@@ -283,8 +268,11 @@ var TravellingSalesman = (function () {
         return this.population.getFittest().tour;
     };
 
+    /**
+     * Create an initial population of candidate solutions.
+     */
     TravellingSalesman.prototype.init = function () {
-        this.population = new Population(this.populationSize, true);
+        this.population = new Population(this.itinerary, this.populationSize, true);
     };
 
     TravellingSalesman.prototype.mutate = function (tour) {
@@ -304,16 +292,17 @@ var TravellingSalesman = (function () {
         }
     };
 
-    TravellingSalesman.prototype.setPoints = function (points) {
-        var tourManager = Itinerary;
-        points.forEach(function (point) {
-            tourManager.push(point);
-        });
+    TravellingSalesman.prototype.reset = function () {
+        this.itinerary = [];
+    };
+
+    TravellingSalesman.prototype.setPopulationSize = function (size) {
+        this.populationSize = size;
     };
 
     TravellingSalesman.prototype.tournamentSelection = function (pop) {
         // Create a tournament population
-        var tournament = new Population(this.tournamentSize, false);
+        var tournament = new Population(this.itinerary, this.tournamentSize, false);
         // For each place in the tournament get a random candidate tour and
         // add it
         for (var i = 0; i < this.tournamentSize; i++) {
@@ -325,4 +314,5 @@ var TravellingSalesman = (function () {
     };
 
     return TravellingSalesman;
+
 }());
