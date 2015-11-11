@@ -304,7 +304,7 @@ FOUR.Viewcube = (function () {
         var intersects = self.raycaster.intersectObjects(self.cube.children, true);
         if (intersects.length > 0 && intersects[0].object.name !== 'labels') {
             var label = self.getFaceLabel(intersects[0].object.name);
-            console.info('over', label, intersects);
+            //console.info('over', label, intersects);
             intersects[0].object.material.opacity = self.FACE_OPACITY_MOUSE_OVER;
         }
     };
@@ -317,7 +317,7 @@ FOUR.Viewcube = (function () {
         // calculate mouse position in normalized device coordinates
         // (-1 to +1) for both components
         self.mouse.x = (event.offsetX / self.domElement.clientWidth) * 2 - 1;
-        self.mouse.y = - (event.offsetX / self.domElement.clientWidth) * 2 + 1;
+        self.mouse.y = - (event.offsetY / self.domElement.clientHeight) * 2 + 1;
         // update the picking ray with the camera and mouse position
         self.raycaster.setFromCamera(self.mouse, self.camera);
         // calculate objects intersecting the picking ray
@@ -564,10 +564,9 @@ FOUR.Viewcube = (function () {
                 self.tweenViewRotation(0, -Math.PI / 4, Math.PI * 0.25);
                 break;
             case self.FACES.BOTTOM_FRONT_RIGHT_CORNER:
-                euler = new THREE
-                    .Euler(0,0,0)
-                    .setFromVector3(new THREE.Vector3(1.5,1.5,-2).normalize());
-                self.tweenViewRotation(euler.x, euler.y, euler.z);
+                //self.tweenViewRotation(Math.PI * 0.5, Math.PI * 0.25, 0);
+                //self.tweenViewRotation(0, Math.PI * 0.75, Math.PI / 2); // bottom right edge
+                self.tweenViewRotation(Math.PI, Math.PI, Math.PI * 1.75); // front right edge
                 break;
             case self.FACES.BOTTOM_LEFT_EDGE:
                 self.tweenViewRotation(0, Math.PI * 1.25, Math.PI * 1.5);
@@ -625,33 +624,6 @@ FOUR.Viewcube = (function () {
                     .setFromVector3(new THREE.Vector3(1.5,1.5,2).normalize());
                     //.setFromVector3(new THREE.Vector3(Math.sqrt(2),Math.sqrt(2),2).normalize());
                 self.tweenViewRotation(euler.x, euler.y, euler.z);
-
-                //self.tweenViewRotation(0.5, 0.5, Math.PI / 8);
-                //self.tweenViewRotation(Math.sqrt(Math.PI) / 2, Math.sqrt(Math.PI) / 2, Math.PI / 4);
-                //self.tweenViewRotation(Math.sqrt(Math.PI) / 4, Math.sqrt(Math.PI) / 4, Math.PI / 4);
-                //self.tweenViewRotation(Math.sqrt(Math.PI) / 8, Math.sqrt(Math.PI) / 8, Math.PI / 4);
-                //self.tweenViewRotation(Math.PI * 0.09, Math.PI * 0.09, Math.PI / 4);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 0.5); // close
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI * 0.5); // close
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.25, -Math.PI * 1.25, -Math.PI * 0.5); // close
-
-                //self.tweenViewRotation(Math.PI * 1.25, Math.PI * 0.75, -Math.PI * 0.5);
-                //self.tweenViewRotation(Math.PI * 1.25, Math.PI * 1.25, -Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 1.25, -Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 1.25, -Math.PI * 1.25, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 0.5);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 0.5);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI / 2);
-                //self.tweenViewRotation(1, Math.PI / 5, 1 / Math.PI);
-                //self.tweenViewRotation(Math.PI / 4, Math.PI / 8, Math.PI / 2);
                 break;
             case self.FACES.TOP_LEFT_EDGE:
                 self.tweenViewRotation(0, Math.PI * 1.75, Math.PI * 1.5);
@@ -703,7 +675,7 @@ FOUR.Viewcube = (function () {
     Viewcube.prototype.tweenViewRotation = function (rx, ry, rz, duration) {
         var self = this;
         return new Promise(function (resolve) {
-            var targetEuler = new THREE.Euler(rx, ry, rz);
+            var targetEuler = new THREE.Euler(rx, ry, rz, 'XYZ');
             var startQuaternion = self.view.quaternion.clone();
             var endQuaternion = new THREE.Quaternion().setFromEuler(targetEuler);
 

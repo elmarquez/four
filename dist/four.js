@@ -963,7 +963,7 @@ FOUR.ViewAxis = (function () {
         self.label = {
             x: null,
             y: null,
-            z: null,
+            z: null
         };
         self.labelOffset = 0.1;
         self.labels = new THREE.Object3D();
@@ -1047,6 +1047,8 @@ FOUR.ViewAxis = (function () {
         line = new THREE.Line(geometry, self.material.blue);
         line.name = 'z';
         axis.add(line);
+
+        //axis.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI * 2);
 
         return axis;
     };
@@ -1138,9 +1140,9 @@ FOUR.ViewAxis = (function () {
         var self = this;
         // position and point the camera to the center of the scene
         self.camera = new THREE.PerspectiveCamera(self.fov, self.domElement.clientWidth / self.domElement.clientHeight, 0.1, 1000);
-        self.camera.position.x = 2;
-        self.camera.position.y = 2;
-        self.camera.position.z = 2;
+        self.camera.position.x = 0;
+        self.camera.position.y = -2.5;
+        self.camera.position.z = 0;
         self.camera.up = new THREE.Vector3(0, 0, 1);
         self.camera.lookAt(new THREE.Vector3(0, 0, 0));
     };
@@ -1150,14 +1152,14 @@ FOUR.ViewAxis = (function () {
         if (self.enable.axis) {
             self.axis = self.createAxis();
             self.scene.add(self.axis);
-        }
-        if (self.enable.labels) {
-            var labels = self.createLabels();
-            self.scene.add(self.labels);
-        }
-        if (self.enable.xyPlane) {
-            self.axisXYPlane = self.createXYPlane();
-            self.axis.add(self.axisXYPlane);
+            if (self.enable.labels) {
+                self.createLabels();
+                self.axis.add(self.labels);
+            }
+            if (self.enable.xyPlane) {
+                self.axisXYPlane = self.createXYPlane();
+                self.axis.add(self.axisXYPlane);
+            }
         }
     };
 
@@ -1185,13 +1187,27 @@ FOUR.ViewAxis = (function () {
 
     ViewAxis.prototype.updateOrientation = function () {
         var self = this;
+
+        var identity = (new THREE.Matrix4()).identity();
+        identity.elements[0] = -1;
+        identity.elements[10] = -1;
+
+        //var m = self.viewport.camera.matrixWorld;
+        //self.axis.matrixWorld.extractRotation(m);
+        //var lookAtVector = new THREE.Vector3(0, 0, 1)
+        //    .applyQuaternion(self.viewport.camera.quaternion).normalize();
+        //self.axis.lookAt(lookAtVector);
+        //self.axis.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), lookAtVector);
+
         var euler = new THREE.Euler(
             self.viewport.camera.rotation.x,
             self.viewport.camera.rotation.y,
             self.viewport.camera.rotation.z,
             'XZY'
         );
-        self.camera.quaternion.setFromEuler(euler);
+        //self.camera.quaternion.setFromEuler(euler).inverse();
+        self.axis.quaternion.setFromEuler(euler).inverse();
+        self.axis.applyMatrix(identity);
         self.render();
     };
 
@@ -1504,7 +1520,7 @@ FOUR.Viewcube = (function () {
         var intersects = self.raycaster.intersectObjects(self.cube.children, true);
         if (intersects.length > 0 && intersects[0].object.name !== 'labels') {
             var label = self.getFaceLabel(intersects[0].object.name);
-            console.info('over', label, intersects);
+            //console.info('over', label, intersects);
             intersects[0].object.material.opacity = self.FACE_OPACITY_MOUSE_OVER;
         }
     };
@@ -1517,7 +1533,7 @@ FOUR.Viewcube = (function () {
         // calculate mouse position in normalized device coordinates
         // (-1 to +1) for both components
         self.mouse.x = (event.offsetX / self.domElement.clientWidth) * 2 - 1;
-        self.mouse.y = - (event.offsetX / self.domElement.clientWidth) * 2 + 1;
+        self.mouse.y = - (event.offsetY / self.domElement.clientHeight) * 2 + 1;
         // update the picking ray with the camera and mouse position
         self.raycaster.setFromCamera(self.mouse, self.camera);
         // calculate objects intersecting the picking ray
@@ -1764,10 +1780,9 @@ FOUR.Viewcube = (function () {
                 self.tweenViewRotation(0, -Math.PI / 4, Math.PI * 0.25);
                 break;
             case self.FACES.BOTTOM_FRONT_RIGHT_CORNER:
-                euler = new THREE
-                    .Euler(0,0,0)
-                    .setFromVector3(new THREE.Vector3(1.5,1.5,-2).normalize());
-                self.tweenViewRotation(euler.x, euler.y, euler.z);
+                //self.tweenViewRotation(Math.PI * 0.5, Math.PI * 0.25, 0);
+                //self.tweenViewRotation(0, Math.PI * 0.75, Math.PI / 2); // bottom right edge
+                self.tweenViewRotation(Math.PI, Math.PI, Math.PI * 1.75); // front right edge
                 break;
             case self.FACES.BOTTOM_LEFT_EDGE:
                 self.tweenViewRotation(0, Math.PI * 1.25, Math.PI * 1.5);
@@ -1825,33 +1840,6 @@ FOUR.Viewcube = (function () {
                     .setFromVector3(new THREE.Vector3(1.5,1.5,2).normalize());
                     //.setFromVector3(new THREE.Vector3(Math.sqrt(2),Math.sqrt(2),2).normalize());
                 self.tweenViewRotation(euler.x, euler.y, euler.z);
-
-                //self.tweenViewRotation(0.5, 0.5, Math.PI / 8);
-                //self.tweenViewRotation(Math.sqrt(Math.PI) / 2, Math.sqrt(Math.PI) / 2, Math.PI / 4);
-                //self.tweenViewRotation(Math.sqrt(Math.PI) / 4, Math.sqrt(Math.PI) / 4, Math.PI / 4);
-                //self.tweenViewRotation(Math.sqrt(Math.PI) / 8, Math.sqrt(Math.PI) / 8, Math.PI / 4);
-                //self.tweenViewRotation(Math.PI * 0.09, Math.PI * 0.09, Math.PI / 4);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 0.5); // close
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI * 0.5); // close
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.25, -Math.PI * 1.25, -Math.PI * 0.5); // close
-
-                //self.tweenViewRotation(Math.PI * 1.25, Math.PI * 0.75, -Math.PI * 0.5);
-                //self.tweenViewRotation(Math.PI * 1.25, Math.PI * 1.25, -Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 1.25, -Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 1.25, -Math.PI * 1.25, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 1.5);
-                //self.tweenViewRotation(-Math.PI * 0.75, Math.PI * 0.75, Math.PI * 1.5);
-                //self.tweenViewRotation(Math.PI * 0.75, -Math.PI * 0.75, Math.PI * 0.5);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, -Math.PI * 0.5);
-                //self.tweenViewRotation(Math.PI * 0.75, Math.PI * 0.75, Math.PI / 2);
-                //self.tweenViewRotation(1, Math.PI / 5, 1 / Math.PI);
-                //self.tweenViewRotation(Math.PI / 4, Math.PI / 8, Math.PI / 2);
                 break;
             case self.FACES.TOP_LEFT_EDGE:
                 self.tweenViewRotation(0, Math.PI * 1.75, Math.PI * 1.5);
@@ -1903,7 +1891,7 @@ FOUR.Viewcube = (function () {
     Viewcube.prototype.tweenViewRotation = function (rx, ry, rz, duration) {
         var self = this;
         return new Promise(function (resolve) {
-            var targetEuler = new THREE.Euler(rx, ry, rz);
+            var targetEuler = new THREE.Euler(rx, ry, rz, 'XYZ');
             var startQuaternion = self.view.quaternion.clone();
             var endQuaternion = new THREE.Quaternion().setFromEuler(targetEuler);
 
@@ -6111,16 +6099,22 @@ var SimulatedAnnealing = (function () {
  * Travelling salesman path planner.
  * Based on http://www.theprojectspot.com/tutorial-post/applying-a-genetic-algorithm-to-the-travelling-salesman-problem/5
  */
-var TravellingSalesman = (function () {
+//var TravellingSalesman = (function () {
 
     /**
      * A proposed solution.
      * @constructor
+     * @param {Number} size Itinerary size
      */
-    function Tour () {
+    function Tour (size) {
         this.distance = 0;
         this.fitness = 0;
         this.tour = [];
+        if (size) {
+            for (var i=0;i<size;i++) {
+                this.tour.push(null);
+            }
+        }
     }
 
     Tour.prototype.checkForDuplicateValues = function () {
@@ -6145,7 +6139,7 @@ var TravellingSalesman = (function () {
     Tour.prototype.containsPoint = function (p) {
         var result = false;
         this.tour.forEach(function (point) {
-            if (point && point.x === p.x && point.y === p.y) {
+            if (point !== null && point.x === p.x && point.y === p.y) {
                 result = true;
             }
         });
@@ -6221,6 +6215,9 @@ var TravellingSalesman = (function () {
         return this.tour.length;
     };
 
+    Tour.prototype.updateFitness = function () {
+        this.fitness = 1 / this.getDistance();
+    };
 
     /**
      * A collection of potential tour solutions.
@@ -6256,7 +6253,7 @@ var TravellingSalesman = (function () {
     };
 
     Population.prototype.getPopulationSize = function () {
-        return this.tours.length;
+        return this.populationSize;
     };
 
     Population.prototype.getTour = function (i) {
@@ -6288,26 +6285,44 @@ var TravellingSalesman = (function () {
      */
     TravellingSalesman.prototype.addPoint = function (obj) {
         this.itinerary.push(obj);
+        this.checkForDuplicatePoints();
     };
 
-    TravellingSalesman.prototype.crossover = function (parent1, parent2) {
-        var i, ii;
-        // Create new child tour
-        var child = new Tour();
-        // Get start and end sub tour positions for parent1's tour
-        var startPos = Math.floor(Math.random() * parent1.tourSize());
-        var endPos = Math.floor(Math.random() * parent1.tourSize());
-        // Loop and add the sub tour from parent1 to our child
-        for (i = 0; i < child.tourSize(); i++) {
+    TravellingSalesman.prototype.checkForDuplicatePoints = function () {
+        var i, p, px, py, x = [], y = [];
+        // build an index of points
+        for (i = 0; i < this.itinerary.length; i++) {
+            x.push(this.itinerary[i].x);
+            y.push(this.itinerary[i].y);
+        }
+        // check for duplicates
+        for (i = 0; i < this.itinerary.length; i++) {
+            p = this.itinerary[i];
+            px = x.lastIndexOf(p.x);
+            py = y.lastIndexOf(p.y);
+            if (px === py && px !== i) {
+                throw new Error('Tour contains a duplicate element');
+            }
+        }
+    };
+
+    TravellingSalesman.prototype.crossTours = function (parent1, parent2, start, end) {
+        var child = new Tour(parent1.tourSize()), i, ii;
+        // Loop and add the sub tour from parent1 to child
+        for (i = 0; i < parent1.tourSize(); i++) {
             // If our start position is less than the end position
-            if (startPos < endPos && i > startPos && i < endPos) {
+            if (start < end && i > start && i < end) {
                 child.setPoint(i, parent1.getPoint(i));
             }
             // If our start position is larger
-            else if (startPos > endPos) {
-                if (!(i < startPos && i > endPos)) {
+            else if (start > end) {
+                if (!(i < start && i > end)) {
                     child.setPoint(i, parent1.getPoint(i));
                 }
+            } else {
+                // mark the element so that we know we need to insert an element
+                // from parent2
+                child.setPoint(i, null);
             }
         }
         // Loop through parent2's point tour
@@ -6324,14 +6339,29 @@ var TravellingSalesman = (function () {
                 }
             }
         }
+        // force fitness value to update
+        child.updateFitness();
+        return child;
+    };
+
+    /**
+     * Crossover mutation creates a new tour comprising a subsegment of parent1
+     * combined with a subsegment of parent2.
+     * @param {Tour} parent1 Tour
+     * @param {Tour} parent2 Tour
+     * @returns {Tour}
+     */
+    TravellingSalesman.prototype.crossover = function (parent1, parent2) {
+        // Get start and end sub tour positions for parent1's tour
+        var start = Math.floor(Math.random() * parent1.tourSize());
+        var end = Math.floor(Math.random() * parent1.tourSize());
+        var child = this.crossTours(parent1, parent2, start, end);
         child.checkForNullValues();
         child.checkForDuplicateValues();
-        // force fitness value to update?
         return child;
     };
 
     TravellingSalesman.prototype.evolve = function (generations) {
-        // generate subsequent solution populations based on the current population
         this.population = this.evolvePopulation(this.population);
         for (var i = 0; i < generations; i++) {
             this.population = this.evolvePopulation(this.population);
@@ -6419,6 +6449,6 @@ var TravellingSalesman = (function () {
         return tournament.getFittest();
     };
 
-    return TravellingSalesman;
-
-}());
+//    return TravellingSalesman;
+//
+//}());

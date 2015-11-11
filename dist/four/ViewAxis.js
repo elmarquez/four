@@ -35,7 +35,7 @@ FOUR.ViewAxis = (function () {
         self.label = {
             x: null,
             y: null,
-            z: null,
+            z: null
         };
         self.labelOffset = 0.1;
         self.labels = new THREE.Object3D();
@@ -119,6 +119,8 @@ FOUR.ViewAxis = (function () {
         line = new THREE.Line(geometry, self.material.blue);
         line.name = 'z';
         axis.add(line);
+
+        //axis.rotateOnAxis(new THREE.Vector3(1,0,0), Math.PI * 2);
 
         return axis;
     };
@@ -210,9 +212,9 @@ FOUR.ViewAxis = (function () {
         var self = this;
         // position and point the camera to the center of the scene
         self.camera = new THREE.PerspectiveCamera(self.fov, self.domElement.clientWidth / self.domElement.clientHeight, 0.1, 1000);
-        self.camera.position.x = 2;
-        self.camera.position.y = 2;
-        self.camera.position.z = 2;
+        self.camera.position.x = 0;
+        self.camera.position.y = -2.5;
+        self.camera.position.z = 0;
         self.camera.up = new THREE.Vector3(0, 0, 1);
         self.camera.lookAt(new THREE.Vector3(0, 0, 0));
     };
@@ -222,14 +224,14 @@ FOUR.ViewAxis = (function () {
         if (self.enable.axis) {
             self.axis = self.createAxis();
             self.scene.add(self.axis);
-        }
-        if (self.enable.labels) {
-            var labels = self.createLabels();
-            self.scene.add(self.labels);
-        }
-        if (self.enable.xyPlane) {
-            self.axisXYPlane = self.createXYPlane();
-            self.axis.add(self.axisXYPlane);
+            if (self.enable.labels) {
+                self.createLabels();
+                self.axis.add(self.labels);
+            }
+            if (self.enable.xyPlane) {
+                self.axisXYPlane = self.createXYPlane();
+                self.axis.add(self.axisXYPlane);
+            }
         }
     };
 
@@ -257,13 +259,27 @@ FOUR.ViewAxis = (function () {
 
     ViewAxis.prototype.updateOrientation = function () {
         var self = this;
+
+        var identity = (new THREE.Matrix4()).identity();
+        identity.elements[0] = -1;
+        identity.elements[10] = -1;
+
+        //var m = self.viewport.camera.matrixWorld;
+        //self.axis.matrixWorld.extractRotation(m);
+        //var lookAtVector = new THREE.Vector3(0, 0, 1)
+        //    .applyQuaternion(self.viewport.camera.quaternion).normalize();
+        //self.axis.lookAt(lookAtVector);
+        //self.axis.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), lookAtVector);
+
         var euler = new THREE.Euler(
             self.viewport.camera.rotation.x,
             self.viewport.camera.rotation.y,
             self.viewport.camera.rotation.z,
             'XZY'
         );
-        self.camera.quaternion.setFromEuler(euler);
+        //self.camera.quaternion.setFromEuler(euler).inverse();
+        self.axis.quaternion.setFromEuler(euler).inverse();
+        self.axis.applyMatrix(identity);
         self.render();
     };
 

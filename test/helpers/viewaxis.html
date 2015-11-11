@@ -23,11 +23,11 @@
       background-color: transparent;
       /*border: 1px solid red;*/
       bottom: 0;
-      height: 120px;
+      height: 320px;
       left: 0;
       overflow: hidden;
       position: absolute;
-      width: 120px;
+      width: 320px;
       z-index: 500;
     }
     #viewport {
@@ -102,9 +102,9 @@
     var viewaxisElement = document.getElementById('viewaxis');
     var viewaxis = window.viewaxis = new FOUR.ViewAxis({domElement:viewaxisElement, viewport:viewport});
 
-//    orbit.addEventListener('update', function () {
-//      viewaxis.updateOrientation();
-//    });
+    orbit.addEventListener('update', function () {
+      viewaxis.updateOrientation();
+    });
 
     viewport.update();
     viewaxis.update();
