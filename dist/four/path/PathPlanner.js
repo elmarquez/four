@@ -42,7 +42,8 @@ FOUR.PathPlanner = (function () {
         return new Promise(function (resolve, reject) {
             var path = [];
             if (features.length > 0) {
-                var ts = new TravellingSalesman(50);
+                var ts = new TravellingSalesman();
+                ts.setPopulationSize(50);
                 // Add points to itinerary
                 features.forEach(function (obj) {
                     ts.addPoint({

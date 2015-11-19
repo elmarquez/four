@@ -1,0 +1,131 @@
+
+<html>
+<head>
+    <title>Simulated Annealing Tour Planning Test</title>
+    <script src="../../lib/path/SimulatedAnnealer.js"></script>
+    <style>
+        body {
+            background-color: #303030;
+            color: ghostwhite;
+        }
+        #map {
+            bottom: 50px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+        #controls {
+            background: black;
+            bottom: 0;
+            height: 50px;
+            left: 0;
+            position: absolute;
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="map"></canvas>
+    <div id="controls">
+        <button onclick="randomPoints();">Generate Random Points</button>
+        <button onclick="update();">Update Plan</button>
+        <button onclick="clearPath();">Clear Path</button>
+        <button onclick="clear();">Clear All</button>
+    </div>
+
+<script type="text/javascript">
+    var canvas = document.getElementById('map');
+    fitToContainer(canvas);
+
+    var ctx = canvas.getContext('2d');
+    var count = 20;
+
+    var items = [
+        [60, 200],[180, 200],[80, 180],[140, 180],[20, 160],
+        [100, 160],[200, 160],[140, 140],[40, 120],[100, 120],
+        [180, 100],[60, 80],[120, 80],[180, 60],[20, 40],
+        [100, 40],[200, 40],[20, 20],[60, 20],[160, 20]
+    ];
+
+    var sa = new SimulatedAnnealer();
+
+    function clear () {
+        ctx.fillStyle = '#303030';
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    }
+
+    function clearPath () {
+        clear();
+        drawPoints(items);
+    }
+
+    function fitToContainer(canvas){
+        // Make it visually fill the positioned parent
+        canvas.style.width ='100%';
+        canvas.style.height='100%';
+        // ...then set the internal size to match
+        canvas.width  = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+    }
+
+    function update () {
+        clear();
+        drawPoints(items);
+        sa.reset();
+
+        // Add points to itinerary.
+        items.forEach(function (p) {
+            sa.addPoint({x: p[0], y:p[1]});
+        });
+
+        // Initialize
+        sa.init();
+        console.info("Initial fitness:", sa.getDistance());
+
+        // Evolve population
+        sa.evolve(1500);
+
+        // Print final results
+        console.info("Final distance:", sa.getDistance());
+
+        var solution = sa.getSolution();
+//        console.info('Solution', solution);
+        drawRoute(solution);
+    }
+
+    function drawPoints(points) {
+        var _ctx = ctx;
+        ctx.fillStyle = 'white';
+        points.forEach(function (p) {
+            _ctx.fillRect(p[0]-2,p[1]-2,4,4);
+        });
+    }
+
+    function drawRoute(route) {
+        var i;
+        ctx.beginPath();
+        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = 'orange';
+        ctx.moveTo(route[0].x, route[0].y);
+        for (i = 1; i< route.length; i++) {
+            ctx.lineTo(route[i].x, route[i].y);
+        }
+        ctx.stroke();
+    }
+
+    function randomPoints () {
+        var i, x, y;
+        items = [];
+        clear();
+        for (i = 0;i<count;i++) {
+            x = Math.floor(Math.random() * ctx.canvas.width);
+            y = Math.floor(Math.random() * ctx.canvas.height);
+            items.push([x,y]);
+        }
+        drawPoints(items);
+    }
+</script>
+</body>
+</html>

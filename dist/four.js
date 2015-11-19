@@ -510,6 +510,9 @@ FOUR.SelectionSet = (function () {
    * @param {Array} objects List of intersecting scene objects
    */
   SelectionSet.prototype.toggle = function (objects) {
+    if (!objects || !Array.isArray(objects)){
+      return;
+    }
     var self = this;
     var selected = objects.reduce(function (map, obj) {
       map[obj.uuid] = obj;
@@ -5484,7 +5487,7 @@ FOUR.WalkController = (function () {
         self.camera = config.camera || config.viewport.camera;
         self.domElement = config.domElement || config.viewport.domElement;
         self.enabled = false;
-        self.enforceWalkHeight = false;
+        self.enforceWalkHeight = true;
         self.listeners = {};
         self.lookChange = false;
         self.lookSpeed = 0.85;
@@ -5583,24 +5586,31 @@ FOUR.WalkController = (function () {
                 break;
             case self.KEY.MOVE_TO_EYE_HEIGHT:
                 self.setWalkHeight();
+                self.emit({type:'continuous-update-start'});
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = true;
+                self.emit({type:'continuous-update-start'});
                 break;
             case self.KEY.MOVE_BACK:
                 self.move.backward = true;
+                self.emit({type:'continuous-update-start'});
                 break;
             case self.KEY.MOVE_LEFT:
                 self.move.left = true;
+                self.emit({type:'continuous-update-start'});
                 break;
             case self.KEY.MOVE_RIGHT:
                 self.move.right = true;
+                self.emit({type:'continuous-update-start'});
                 break;
             case self.KEY.MOVE_UP:
                 self.move.up = true;
+                self.emit({type:'continuous-update-start'});
                 break;
             case self.KEY.MOVE_DOWN:
                 self.move.down = true;
+                self.emit({type:'continuous-update-start'});
                 break;
         }
     };
@@ -5613,27 +5623,34 @@ FOUR.WalkController = (function () {
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
+                self.emit({type:'continuous-update-end'});
                 break;
             case self.KEY.MOVE_BACK:
                 self.move.backward = false;
+                self.emit({type:'continuous-update-end'});
                 break;
             case self.KEY.MOVE_LEFT:
                 self.move.left = false;
+                self.emit({type:'continuous-update-end'});
                 break;
             case self.KEY.MOVE_RIGHT:
                 self.move.right = false;
+                self.emit({type:'continuous-update-end'});
                 break;
             case self.KEY.MOVE_UP:
                 self.move.up = false;
+                self.emit({type:'continuous-update-end'});
                 break;
             case self.KEY.MOVE_DOWN:
                 self.move.down = false;
+                self.emit({type:'continuous-update-end'});
                 break;
             case self.KEY.CANCEL:
                 Object.keys(self.move).forEach(function (key) {
                     self.move[key] = false;
                 });
                 self.lookChange = false;
+                self.emit({type:'continuous-update-end'});
                 break;
         }
     };
@@ -5964,7 +5981,8 @@ FOUR.PathPlanner = (function () {
         return new Promise(function (resolve, reject) {
             var path = [];
             if (features.length > 0) {
-                var ts = new TravellingSalesman(50);
+                var ts = new TravellingSalesman();
+                ts.setPopulationSize(50);
                 // Add points to itinerary
                 features.forEach(function (obj) {
                     ts.addPoint({

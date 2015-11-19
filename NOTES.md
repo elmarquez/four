@@ -2,6 +2,12 @@ Work to be Done
 ===============
 
  - look controller
+    - need to make a decision as to whether the lookAt direction is the direction of travel
+      or whether it is independent
+    - need to maintain an offset direction
+    
+ 
+ - movement scaling on pan controller
  - viewcube
  - viewaxis
     - labels orient toward camera
@@ -18,13 +24,29 @@ Work to be Done
  - documentation
  - update repo name, make a web site for it
  
-Bugs
+## Bugs
 
  - improve smoothness of camera motion
 
-Maybe
+## Maybe
 
  - re-reimplemented trackball, orbit controllers
+ 
+## Modes
+
+- Select
+    - LMB
+    - SHIFT + LMB
+    - ALT + LMB
+- Pan
+    - SPACE + LMB
+    - RMB
+- Rotate
+    - MMB
+    - ALT + SPACE + LMB
+- Zoom
+    - Wheel
+    - CTRL + SPACE + LMB
 
 
 Marquee Selection

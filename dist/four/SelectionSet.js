@@ -164,6 +164,9 @@ FOUR.SelectionSet = (function () {
    * @param {Array} objects List of intersecting scene objects
    */
   SelectionSet.prototype.toggle = function (objects) {
+    if (!objects || !Array.isArray(objects)){
+      return;
+    }
     var self = this;
     var selected = objects.reduce(function (map, obj) {
       map[obj.uuid] = obj;

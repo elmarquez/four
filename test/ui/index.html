@@ -6,43 +6,43 @@
     <!-- fonts -->
     <link href='https://fonts.googleapis.com/css?family=Lato:400,300,100,700,900' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600' rel='stylesheet' type='text/css'>
-    <link href='../vendor/font-awesome/css/font-awesome.css' rel='stylesheet' type='text/css'>
-    <link href='../vendor/jqTree/jqtree.css' rel='stylesheet' type='text/css'>
-    <link href='../vendor/ol3/ol.css' rel='stylesheet' type='text/css'>
-    <link href='../vendor/slickgrid/slick.grid.css' rel='stylesheet' type='text/css'>
-    <link href='../vendor/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css' rel='stylesheet' type='text/css'>
-    <link href='../vendor/slickgrid/examples/examples.css' rel='stylesheet' type='text/css'>
+    <link href='../../vendor/font-awesome/css/font-awesome.css' rel='stylesheet' type='text/css'>
+    <link href='../../vendor/jqTree/jqtree.css' rel='stylesheet' type='text/css'>
+    <link href='../../vendor/ol3/ol.css' rel='stylesheet' type='text/css'>
+    <link href='../../vendor/slickgrid/slick.grid.css' rel='stylesheet' type='text/css'>
+    <link href='../../vendor/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css' rel='stylesheet' type='text/css'>
+    <link href='../../vendor/slickgrid/examples/examples.css' rel='stylesheet' type='text/css'>
     <link href='ui.css' rel='stylesheet' type='text/css'>
 
     <!-- vendor -->
-    <script src="../vendor/jquery/dist/jquery.js"></script>
-    <script src="../vendor/jquery.event.dragdrop/event.drag/jquery.event.drag.js"></script>
-    <script src="../vendor/jqTree/tree.jquery.js"></script>
-    <script src="../vendor/angular/angular.js"></script>
-    <script src="../vendor/mousetrap/mousetrap.js"></script>
-    <script src="../vendor/ol3/ol.js"></script>
-    <script src="../vendor/slickgrid/slick.core.js"></script>
-    <script src="../vendor/slickgrid/slick.grid.js"></script>
-    <script src="../vendor/three.js/three.js"></script>
-    <script src="../vendor/tween.js/src/Tween.js"></script>
+    <script src="../../vendor/jquery/dist/jquery.js"></script>
+    <script src="../../vendor/jquery.event.dragdrop/event.drag/jquery.event.drag.js"></script>
+    <script src="../../vendor/jqTree/tree.jquery.js"></script>
+    <script src="../../vendor/angular/angular.js"></script>
+    <script src="../../vendor/mousetrap/mousetrap.js"></script>
+    <script src="../../vendor/ol3/ol.js"></script>
+    <script src="../../vendor/slickgrid/slick.core.js"></script>
+    <script src="../../vendor/slickgrid/slick.grid.js"></script>
+    <script src="../../vendor/three.js/three.js"></script>
+    <script src="../../vendor/tween.js/src/Tween.js"></script>
 
     <!-- lib -->
-    <script src="../lib/controls/OrbitController.js"></script>
-    <script src="../lib/controls/SelectionController.js"></script>
-    <script src="../lib/controls/TourController.js"></script>
-    <script src="../lib/controls/TrackballController.js"></script>
-    <script src="../lib/controls/WalkController.js"></script>
-    <script src="../lib/path/TravellingSalesman.js"></script>
-    <script src="../lib/BoundingBox.js"></script>
-    <script src="../lib/KeyInputController.js"></script>
-    <script src="../lib/path/PathPlanner.js"></script>
-    <script src="../lib/Scene.js"></script>
-    <script src="../lib/SelectionSet.js"></script>
-    <script src="../lib/TargetCamera.js"></script>
-    <script src="../lib/Viewport3D.js"></script>
+    <script src="../../lib/controls/OrbitController.js"></script>
+    <script src="../../lib/controls/SelectionController.js"></script>
+    <script src="../../lib/controls/TourController.js"></script>
+    <script src="../../lib/controls/TrackballController.js"></script>
+    <script src="../../lib/controls/WalkController.js"></script>
+    <script src="../../lib/path/TravellingSalesman.js"></script>
+    <script src="../../lib/BoundingBox.js"></script>
+    <script src="../../lib/KeyInputController.js"></script>
+    <script src="../../lib/path/PathPlanner.js"></script>
+    <script src="../../lib/Scene.js"></script>
+    <script src="../../lib/SelectionSet.js"></script>
+    <script src="../../lib/TargetCamera.js"></script>
+    <script src="../../lib/Viewport3D.js"></script>
 
     <!-- demo application -->
-    <script src="app.js"></script>
+    <script src="../app.js"></script>
 </head>
 <body>
 <!--<div id="hud">-->
@@ -202,7 +202,9 @@
 
         var domElement = document.getElementById('viewport');
         var scene = window.scene = new FOUR.Scene();
-        scene.createDefaultCamera({height: domElement.clientHeight, width: domElement.clientWidth});
+
+        var camera = new FOUR.TargetCamera(60, domElement.clientHeight / domElement.clientWidth, 0.1, 1000);
+        scene.cameras.add(camera);
 
         var pathObj = new THREE.Object3D();
         scene.helpers.add(pathObj);
@@ -276,23 +278,26 @@
         scene.helpers.add(axisHelper);
 
         // update the bounding box
-        scene.boundingBox.update(scene.children);
+        var boundingBox = new FOUR.BoundingBox();
+        boundingBox.update(scene.children);
+        scene.helpers.add(boundingBox);
+
+        // selection set
+        var selectionSet = new FOUR.SelectionSet();
 
         // keyboard input
         // TODO remove
         var getViewBoundingBox = function () {
             // FIXME
             var self = this;
-            if (self.scene.selection.count > 0) {
-                return self.scene.selection.getBoundingBox();
+            if (selectionSet.count > 0) {
+                return selectionSet.getBoundingBox();
             } else {
                 var bbox = new FOUR.BoundingBox('scene-bounding-box');
                 bbox.update(self.scene.model.children);
                 return bbox;
             }
         };
-
-        var camera = scene.getCamera(scene.DEFAULT_CAMERA_NAME);
 
         // viewport
         var viewport = window.viewport = new FOUR.Viewport3D({domElement:domElement, scene:scene, camera:camera});
@@ -320,7 +325,7 @@
             // bounding box
             Mousetrap.bind('b', function () {
                 console.log('toggle bounding box visibility');
-                scene.boundingBox.toggleVisibility();
+                boundingBox.toggleVisibility();
                 viewport.render();
             });
 

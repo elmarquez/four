@@ -12,11 +12,14 @@
 
     <!-- lib -->
     <script src="../fonts/helvetiker_regular.typeface.js"></script>
-    <script src="../lib/controls/OrbitController.js"></script>
+    <script src="../lib/controls/LookController.js"></script>
+    <script src="../lib/controls/MultiController.js"></script>
+    <script src="../lib/controls/PanController.js"></script>
+    <script src="../lib/controls/RotateController.js"></script>
     <script src="../lib/controls/SelectionController.js"></script>
     <script src="../lib/controls/TourController.js"></script>
-    <script src="../lib/controls/TrackballController.js"></script>
     <script src="../lib/controls/WalkController.js"></script>
+    <script src="../lib/controls/ZoomController.js"></script>
     <script src="../lib/path/TravellingSalesman.js"></script>
     <script src="../lib/BoundingBox.js"></script>
     <script src="../lib/KeyInputController.js"></script>
@@ -198,11 +201,11 @@
         });
 
         // selection
-        var selection = new FOUR.SelectionSet();
         var boundingBox = new FOUR.BoundingBox('scene-bounding-box');
         scene.helpers.add(boundingBox);
-        selection.addEventListener('update', function () {
-            boundingBox.update(selection.getObjects());
+        selectionSet.addEventListener('update', function () {
+            boundingBox.update(selectionSet.getObjects());
+            viewport.render();
         });
 
         viewport.render();
@@ -296,8 +299,8 @@
         function getViewBoundingBox() {
             // FIXME
             var self = this;
-            if (selection.count > 0) {
-                return selection.getBoundingBox();
+            if (selectionSet.count > 0) {
+                return selectionSet.getBoundingBox();
             } else {
                 boundingBox.update(self.scene.model.children);
                 return boundingBox;
@@ -308,19 +311,19 @@
             // selection
             Mousetrap.bind('ctrl+a', function () {
                 console.log('select all');
-                selection.addAll(scene.model.children);
+                selectionSet.addAll(scene.model.children);
                 viewport.render();
             });
             Mousetrap.bind('ctrl+n', function () {
                 console.log('select none');
-                selection.removeAll();
+                selectionSet.removeAll();
                 viewport.render();
             });
 
             // bounding box
             Mousetrap.bind('b', function () {
                 console.log('toggle bounding box visibility');
-                scene.boundingBox.toggleVisibility();
+                boundingBox.toggleVisibility();
                 viewport.render();
             });
 
@@ -394,30 +397,7 @@
                 }
                 viewport.render();
             });
-            Mousetrap.bind('g', function () {
-                viewport.controllers.tour.plan();
-            });
-            Mousetrap.bind('/', function () {
-                console.error('switch object focus');
-            });
 
-            // camera controls
-            Mousetrap.bind('t', function () {
-                console.log('toggle camera target visibility');
-                if (camera.target.visible) {
-                    camera.hideTarget();
-                } else {
-                    camera.showTarget();
-                }
-            });
-            Mousetrap.bind('y', function () {
-                console.log('toggle camera frustrum visibility');
-                if (camera.frustrum.visible) {
-                    camera.hideFrustrum();
-                } else {
-                    camera.showFrustrum();
-                }
-            });
             Mousetrap.bind('=', function () {
                 camera.zoomIn();
             });
@@ -427,67 +407,67 @@
         }
 
         function setupControllers() {
-            viewport.controllers.selection = new FOUR.SelectionController({viewport: viewport});
-            viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
-            viewport.controllers.selection.addEventListener('add', function (event) {
-//                console.info('add', event.items);
-                selection.addAll(event.items);
-            });
-            viewport.controllers.selection.addEventListener('remove', function (event) {
-//                console.info('remove', event.items);
-                selection.removeAll(event.items);
-            });
-            viewport.controllers.selection.addEventListener('toggle', function (event) {
-//                console.info('toggle', event.items);
-                selection.toggle(event.items);
-            });
-            viewport.controllers.selection.addEventListener('hover', function (event) {
-                console.info('hover', event);
-            });
+            var look = new FOUR.LookController({viewport: viewport});
+            var pan = new FOUR.PanController({viewport: viewport});
+            var rotate = new FOUR.RotateController({viewport: viewport});
+            var tour = new FOUR.TourController({viewport: viewport});
+            var walk = new FOUR.WalkController({viewport: viewport});
+            var zoom = new FOUR.ZoomController({viewport: viewport});
 
-            // trackball controller
-            viewport.controllers.trackball = new FOUR.TrackballController({viewport: viewport});
-            viewport.controllers.trackball.dynamicDampingFactor = 0.5;
-            viewport.controllers.trackball.addEventListener('update', viewport.render.bind(viewport));
-            viewport.controllers.trackball.addEventListener('lookat', function (event) {
+            var select = new FOUR.SelectionController({viewport: viewport});
+            select.addEventListener('update', viewport.render.bind(viewport));
+            select.addEventListener('add', function (event) {
+                selectionSet.addAll([event.object]);
+                var objs = selectionSet.getObjects();
+                tour.plan(objs);
+            });
+            select.addEventListener('remove', function (event) {
+                selectionSet.removeAll([event.object]);
+                var objs = selectionSet.getObjects();
+                tour.plan(objs);
+            });
+            select.addEventListener('toggle', function (event) {
+                selectionSet.toggle([event.object]);
+                var objs = selectionSet.getObjects();
+                tour.plan(objs);
+            });
+            select.addEventListener('hover', function (event) {
+                console.info('hover', [event.object]);
+            });
+            select.addEventListener('lookat', function (event) {
                 camera.setLookAt(event.position);
             }, false);
-            viewport.controllers.trackball.addEventListener('navigate', function (event) {
+            select.addEventListener('navigate', function (event) {
                 var bbox = new FOUR.BoundingBox();
                 bbox.update([event.object]);
                 camera.zoomToFit(bbox);
             }, false);
 
-            // first person navigation controller
-            viewport.controllers.walk = new FOUR.WalkController({viewport: viewport});
-            viewport.controllers.walk.enforceWalkHeight = true;
-            viewport.controllers.walk.addEventListener('update', viewport.render.bind(viewport));
-            viewport.controllers.walk.addEventListener('lookat', function (event) {
-                camera.setLookAt(event.position);
-            }, false);
-            viewport.controllers.walk.addEventListener('navigate', function (event) {
-                var bbox = new FOUR.BoundingBox();
-                bbox.update([event.object]);
-                camera.zoomToFit(bbox);
-            }, false);
+            var orbit = new FOUR.MultiController({viewport:viewport});
+            orbit.addController(select, 'select');
+            orbit.addController(pan, 'pan');
+            orbit.addController(rotate, 'rotate');
+            orbit.addController(tour, 'tour');
+            orbit.addController(zoom, 'zoom');
 
-            // orbit controller
-            viewport.controllers.orbit = new FOUR.OrbitController({camera:camera, domElement:domElement});
-            viewport.controllers.orbit.addEventListener('update', viewport.render.bind(viewport));
+            var firstperson = new FOUR.MultiController({viewport:viewport});
+            firstperson.addController(look, 'look');
+            firstperson.addController(select, 'select');
+            firstperson.addController(tour, 'tour');
+            firstperson.addController(walk, 'walk');
 
-            // tour controller
-            viewport.controllers.tour = new FOUR.TourController({viewport: viewport, selection: selection});
-            viewport.controllers.tour.addEventListener('update', function () {
-                viewport.render.bind(viewport);
+            viewport.addController(firstperson, 'firstperson');
+            viewport.addController(orbit, 'orbit');
+
+            viewport.setActiveController('orbit');
+
+            selectionSet.addEventListener('update', function (event) {
+                var objs = [];
+                Object.keys(event.target.selection).forEach(function (key) {
+
+                });
+               console.info('selection set update', event);
             });
-
-            // keyinput controller
-//      viewport.controllers.keyinput = new FOUR.KeyInputController();
-//      window.addEventListener('keydown', viewport.controllers.walk.onKeyDown.bind(viewport.controllers.walk));
-//      window.addEventListener('keyup', viewport.controllers.walk.onKeyUp.bind(viewport.controllers.walk));
-
-            // set the viewport controller mode
-            viewport.setActiveController('selection');
         }
 
     });
