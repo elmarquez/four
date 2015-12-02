@@ -2,10 +2,11 @@
 
 module.exports = {
     test: {
-        src: 'lib/**/*.js',
+        src: 'dist/four.js',
         options: {
-            specs: 'test/spec/**/*.js',
+            specs: 'test/TargetCamera.js',
             vendor: [
+                'vendor/bluebird/js/browser/bluebird.js',
                 'vendor/jquery/dist/jquery.js',
                 'vendor/three.js/three.js',
                 'vendor/tween.js/src/Tween.js'

@@ -5,11 +5,6 @@ module.exports = {
         jshintrc: 'conf/jshintrc.json',
         reporter: require('jshint-summary')
     },
-    dist: {
-        src: [
-            'dist/**/*.js'
-        ]
-    },
     src: {
         src: [
             'Gruntfile.js',
@@ -17,7 +12,8 @@ module.exports = {
             '!dist/**/*.js',
             'lib/**/*.js',
             '!lib/controls/dist/**/*',
-            '!lib/fonts/**/*'
+            '!lib/fonts/**/*',
+            'test/**/*.js'
         ]
     }
 };

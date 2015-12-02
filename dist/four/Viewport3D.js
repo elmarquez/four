@@ -1,7 +1,3 @@
-'use strict';
-
-var FOUR = FOUR || {};
-
 /**
  * Renders the view from a scene camera to a canvas element in the DOM. Emits
  * the following change events:
@@ -34,6 +30,7 @@ FOUR.Viewport3D = (function () {
     self.controllers = {};
     self.delta = 0;
     self.domElement = config.domElement;
+    self.listeners = {};
     self.renderer = new THREE.WebGLRenderer({antialias: true});
     self.renderer.setClearColor(self.backgroundColor);
     self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
@@ -110,7 +107,7 @@ FOUR.Viewport3D = (function () {
    * Render the viewport once.
    */
   Viewport3D.prototype.render = function () {
-    //console.log('render');
+    console.info('render');
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -124,7 +121,7 @@ FOUR.Viewport3D = (function () {
       self.controller.disable();
       self.controller.removeEventListener(self.render);
     }
-    console.info('set active controller to', name);
+    console.info('Set active viewport controller to', name);
     self.controller = self.controllers[name];
     self.controller.addEventListener('update', self.render.bind(self), false);
     self.controller.enable();

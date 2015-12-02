@@ -1,7 +1,3 @@
-'use strict';
-
-var FOUR = FOUR || {};
-
 /**
  * First person navigation controller. Uses keys to control movement in
  * cardinal directions. Assumes that +Z is up. Accepts a function that

@@ -5,7 +5,7 @@
  * Travelling salesman path planner.
  * Based on http://www.theprojectspot.com/tutorial-post/applying-a-genetic-algorithm-to-the-travelling-salesman-problem/5
  */
-//var TravellingSalesman = (function () {
+var TravellingSalesman = (function () {
 
     /**
      * A proposed solution.
@@ -342,6 +342,10 @@
         this.populationSize = size;
     };
 
+    TravellingSalesman.prototype.tour = function () {
+        return new Tour();
+    };
+
     TravellingSalesman.prototype.tournamentSelection = function (pop) {
         // Create a tournament population
         var tournament = new Population(this.itinerary, this.tournamentSize, false);
@@ -355,6 +359,6 @@
         return tournament.getFittest();
     };
 
-//    return TravellingSalesman;
-//
-//}());
+    return TravellingSalesman;
+
+}());

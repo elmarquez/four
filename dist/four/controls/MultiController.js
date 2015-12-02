@@ -1,7 +1,3 @@
-'use strict';
-
-var FOUR = FOUR || {};
-
 FOUR.MultiController = (function () {
 
     /**
@@ -35,8 +31,11 @@ FOUR.MultiController = (function () {
             ctrl.addEventListener(event, self.listeners[name].fn, false);
         }
         this.controllers[name] = controller;
-        addListener(name, controller, 'update', function () {
-            self.dispatchEvent({type:'update'});
+        var events = ['continuous-update-end','continuous-update-start','update'];
+        events.forEach(function (event) {
+            addListener(name + '-' + event, controller, event, function () {
+                self.dispatchEvent({type:event});
+            });
         });
     };
 

@@ -1,7 +1,3 @@
-'use strict';
-
-var FOUR = FOUR || {};
-
 /**
  * Camera rotation controller. Rotation can be performed using the middle
  * mouse button or the combination of a keypress, left mouse button down and
@@ -205,6 +201,7 @@ FOUR.RotateController = (function () {
     RotateController.prototype.onKeyUp = function (event) {
         if (event.keyCode === this.KEY.ALT) {
             this.keydown = false;
+            this.state = this.STATE.NONE;
         }
     };
 
@@ -212,7 +209,7 @@ FOUR.RotateController = (function () {
         if (this.enabled === false) {
             return;
         }
-        if (this.keydown && event.button === THREE.MOUSE.LEFT) {
+        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.MIDDLE) {
             this.state = this.STATE.ROTATE;
             this.domElement.style.cursor = this.CURSOR.ROTATE;
             this.rotateStart.set(event.clientX, event.clientY);
@@ -232,8 +229,6 @@ FOUR.RotateController = (function () {
             // rotating up and down along whole screen attempts to go 360, but limited to 180
             this.constraint.rotateUp(2 * Math.PI * this.rotateDelta.y / this.domElement.clientHeight * this.rotateSpeed);
             this.rotateStart.copy(this.rotateEnd);
-        }
-        if (this.state !== this.STATE.NONE) {
             this.update();
         }
     };

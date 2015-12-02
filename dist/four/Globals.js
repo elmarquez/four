@@ -1,6 +1,15 @@
-'use strict';
+// default entity values
+FOUR.DEFAULT = {
+  CAMERA: {
+    far: 1000,
+    fov: 45,
+    height: 1,
+    name: 'camera',
+    near: 0.1,
+    width: 1
+  }
+};
 
-var FOUR = FOUR || {};
 
 FOUR.KEY = {};
 

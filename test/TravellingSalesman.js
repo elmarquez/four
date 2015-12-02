@@ -12,8 +12,8 @@ describe('Travelling Salesman', function () {
     describe('Tour', function () {
 
         describe('crossover operation', function () {
-            var parent1 = new Tour();
-            var parent2 = new Tour();
+            var parent1 = ts.tour();
+            var parent2 = ts.tour();
 
             beforeEach(function (done) {
                 parent1.tour = [1,2,3,4,5,6];

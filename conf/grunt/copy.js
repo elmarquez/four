@@ -6,11 +6,5 @@ module.exports = {
     src: [ '**/*' ],
     dest: 'dist/fonts',
     expand: true
-  },
-  lib: {
-    cwd: 'lib',
-    src: [ '**/*','!controls/dist/**/*' ],
-    dest: 'dist/four',
-    expand: true
   }
 };

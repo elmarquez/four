@@ -1,6 +1,17 @@
 Work to be Done
 ===============
 
+* full suite of camera tests
+* implement a new orbit controller from the individual pan, etc parts
+
+ - target camera
+    - tests
+    - object properties to intercept changes on the camera
+ - marquee selection
+
+
+
+
  - look controller
     - need to make a decision as to whether the lookAt direction is the direction of travel
       or whether it is independent
@@ -13,25 +24,19 @@ Work to be Done
     - labels orient toward camera
     - mouseenter/mouseleave
     - configure the xy plane color
- - target camera
-    - tests
-    - object properties to intercept changes on the camera
- - tour controller
-    - simulated annealing method
- - undo
- - marquee selection
  - transform controller
+ 
  - documentation
  - update repo name, make a web site for it
- 
+ x tour controller
+     x simulated annealing method
+  
 ## Bugs
 
  - improve smoothness of camera motion
+ - http://stackoverflow.com/questions/22571364/threejs-matrix-from-z-up-coordinate-system-to-y-up-coordinate-system
+ - http://stackoverflow.com/questions/19625199/threejs-geometry-flipping
 
-## Maybe
-
- - re-reimplemented trackball, orbit controllers
- 
 ## Modes
 
 - Select

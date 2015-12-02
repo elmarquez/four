@@ -1,7 +1,3 @@
-'use strict';
-
-var FOUR = FOUR || {};
-
 FOUR.ViewAxis = (function () {
 
     function ViewAxis (config) {
@@ -250,7 +246,7 @@ FOUR.ViewAxis = (function () {
 
     ViewAxis.prototype.update = function () {
         var self = this;
-        console.info('update');
+        //console.info('update');
         Object.keys(self.label).forEach(function (key) {
             self.label[key].lookAt(self.camera.position);
         });

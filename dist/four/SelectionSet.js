@@ -1,8 +1,3 @@
-/* globals THREE */
-'use strict';
-
-var FOUR = FOUR || {};
-
 FOUR.SelectionSet = (function () {
 
   /**
@@ -35,6 +30,9 @@ FOUR.SelectionSet = (function () {
    * @param {Boolean} update Emit update event
    */
   SelectionSet.prototype.add = function (obj, filter, update) {
+    if (!obj) {
+      return;
+    }
     var self = this;
     filter = filter || self.defaultFilter;
     if (filter(obj)) {
@@ -52,7 +50,7 @@ FOUR.SelectionSet = (function () {
    * @param {Array} objects List of intersecting scene objects
    */
   SelectionSet.prototype.addAll = function (objects) {
-    if (objects.length < 1) {
+    if (!objects || objects.length < 1) {
       return;
     }
     var self = this;

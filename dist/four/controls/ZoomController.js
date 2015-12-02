@@ -1,7 +1,3 @@
-'use strict';
-
-var FOUR = FOUR || {};
-
 /**
  * Camera zoom controller. Zooming can be performed using mouse wheel rotation
  * or the combination of a keypress, left mouse button down and mouse move.

@@ -1,5 +1,4 @@
-/* global THREE */
-'use strict';
+"use strict";
 
 var FOUR = FOUR || {};
 
@@ -120,9 +119,18 @@ FOUR.BoundingBox = (function () {
 
 }());
 
-;'use strict';
+;// default entity values
+FOUR.DEFAULT = {
+  CAMERA: {
+    far: 1000,
+    fov: 45,
+    height: 1,
+    name: 'camera',
+    near: 0.1,
+    width: 1
+  }
+};
 
-var FOUR = FOUR || {};
 
 FOUR.KEY = {};
 
@@ -145,11 +153,7 @@ FOUR.VIEW = {
   BACK: 'back',
   LEFT: 'left',
   BOTTOM: 'bottom'
-};;'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.KeyInputController = (function () {
+};;FOUR.KeyInputController = (function () {
 
   /**
    * Key input controller. Maintains the state of some key combinations and
@@ -232,13 +236,7 @@ FOUR.KeyInputController = (function () {
   return KeyInputController;
 
 }());
-;/* global THREE */
-/* jshint unused:false */
-'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.Scene = (function () {
+;FOUR.Scene = (function () {
 
     /**
      * Scene with predefined layers.
@@ -344,12 +342,7 @@ FOUR.Scene = (function () {
 
     return Scene;
 
-}());;/* globals THREE */
-'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.SelectionSet = (function () {
+}());;FOUR.SelectionSet = (function () {
 
   /**
    * Selection set. Emits 'update' event when the selection set changes.
@@ -381,6 +374,9 @@ FOUR.SelectionSet = (function () {
    * @param {Boolean} update Emit update event
    */
   SelectionSet.prototype.add = function (obj, filter, update) {
+    if (!obj) {
+      return;
+    }
     var self = this;
     filter = filter || self.defaultFilter;
     if (filter(obj)) {
@@ -398,7 +394,7 @@ FOUR.SelectionSet = (function () {
    * @param {Array} objects List of intersecting scene objects
    */
   SelectionSet.prototype.addAll = function (objects) {
-    if (objects.length < 1) {
+    if (!objects || objects.length < 1) {
       return;
     }
     var self = this;
@@ -547,13 +543,11 @@ FOUR.SelectionSet = (function () {
   return SelectionSet;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.TargetCamera = (function () {
+;FOUR.TargetCamera = (function () {
 
     /**
+     * The camera has a default position of 0,-1,0, a default target of 0,0,0 and
+     * distance of 1.
      * @todo setters to intercept changes on position, target, distance properties
      * @todo setters to intercept changes on THREE.Camera properties
      */
@@ -561,6 +555,8 @@ FOUR.TargetCamera = (function () {
         THREE.PerspectiveCamera.call(this);
         var self = this;
 
+        self.MAXIMUM_DISTANCE = 10000;
+        self.MINIMUM_DISTANCE = 1;
         self.VIEWS = {
             TOP: 0,
             LEFT: 1,
@@ -578,15 +574,14 @@ FOUR.TargetCamera = (function () {
         self.up = new THREE.Vector3(0, 0, 1);
         self.updateProjectionMatrix();
 
-        self.distance = 0;
+        self.distance = 1;
+        self.position.set(0,-1,0);
         self.target = new THREE.Vector3(0, 0, 0);
 
         // camera motion planner
         self.planner = new FOUR.PathPlanner();
 
-        // set default target and distance values
-        self.position.set(0,-1,0);
-        self.distance = self.getDistance(self.position, self.target);
+        // set defaults
         self.lookAt(self.target);
     }
 
@@ -602,28 +597,40 @@ FOUR.TargetCamera = (function () {
     };
 
     TargetCamera.prototype.getDistance = function () {
-        this.distance = new THREE.Vector3().subVectors(this.position, this.target).length();
         return this.distance;
     };
 
+    /**
+     * Get direction from camera to target.
+     * @returns {THREE.Vector}
+     */
+    TargetCamera.prototype.getDirection = function () {
+        return this.getOffset().normalize();
+    };
+
+    /**
+     * Get offset from camera to target.
+     * @returns {THREE.Vector}
+     */
+    TargetCamera.prototype.getOffset = function () {
+        //return new THREE.Vector3().subVectors(this.position, this.target);
+        return new THREE.Vector3().subVectors(this.target, this.position);
+    };
+
+    /**
+     * Get camera position.
+     * @returns {THREE.Vector}
+     */
+    TargetCamera.prototype.getPosition = function () {
+        return this.position;
+    };
+
+    /**
+     * Get camera target.
+     * @returns {THREE.Vector}
+     */
     TargetCamera.prototype.getTarget = function () {
         return this.target;
-    };
-
-    /**
-     * Hide the camera frustrum.
-     */
-    TargetCamera.prototype.hideFrustrum = function () {
-        this.frustrum.visible = false;
-        this.dispatchEvent({type:'update'});
-    };
-
-    /**
-     * Hide the camera target.
-     */
-    TargetCamera.prototype.hideTarget = function () {
-        this.targetHelper.visible = false;
-        this.dispatchEvent({type:'update'});
     };
 
     /**
@@ -639,30 +646,27 @@ FOUR.TargetCamera = (function () {
     /**
      * Set the distance from the camera to the target. Keep the target position
      * fixed and move the camera position as required.
-     * @param {Number} dist Distance from target to camera
+     * @param {Number} distance Distance from target to camera
+     * @param {Boolean} animate Animate the change
+     * @returns {Promise}
      */
-    TargetCamera.prototype.setDistance = function (dist) {
-        //console.log('update the camera distance from target');
-        var offset, next, self = this;
-        self.distance = dist;
-        // get the offset from the target to the camera
-        offset = new THREE.Vector3().subVectors(self.position, self.target);
-        if (offset.equals(new THREE.Vector3())) {
-            offset.y = 1;
+    TargetCamera.prototype.setDistance = function (distance, animate) {
+        var offset = this.getOffset(), position, self = this;
+        // ensure that the offset is not less than the minimum distance
+        self.distance = distance < this.MINIMUM_DISTANCE ? this.MINIMUM_DISTANCE : distance;
+        offset.setLength(self.distance);
+        // the new camera position
+        position = new THREE.Vector3().addVectors(offset.negate(), self.target);
+        if (animate) {
+            return self.tweenToPosition(position, self.target);
+        } else {
+            self.position.copy(position);
+            self.lookAt(self.target);
+            return Promise.resolve();
         }
-        // compute the new camera position
-        offset.setLength(dist);
-        next = new THREE.Vector3().addVectors(self.target, offset);
-        // set the position and lookAt direction
-        self.position.copy(next);
-        self.lookAt(self.target);
     };
 
-    TargetCamera.prototype.setUp = function (vec) {
-        this.up = vec;
-        this.dispatchEvent({type:'update'});
-    };
-
+    // FIXME update this to set the target, rotate the camera toward it or just rotate the camera
     /**
      * Orient the camera to look at the specified position. Keep the camera
      * distance the same as it currently is. Update the target position as
@@ -677,22 +681,29 @@ FOUR.TargetCamera = (function () {
         offset = new THREE.Vector3().subVectors(lookAt, self.position);
         offset.setLength(self.distance);
         var target = new THREE.Vector3().addVectors(self.position, offset);
-        return self.planner.tweenToPosition(self, self.position, target, self.emit.bind(self));
+        return self.tweenToPosition(self.position, target);
     };
 
     /**
-     * Move the camera to the specified position. Maintain the current target
-     * position.
-     * @param {THREE.Vector3} pos Position
+     * Move the camera to the specified position. Update the camera target.
+     * Maintain the current distance.
+     * @param {THREE.Vector3} position Position
      * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
-    TargetCamera.prototype.setPosition = function (pos, animate) {
-        var offset, self = this, target;
-        // offset from current position to new position
-        offset = new THREE.Vector3().subVectors(self.position, pos);
-        target = new THREE.Vector3().addVectors(self.target, offset);
-        return self.planner.tweenToPosition(self, pos, target, self.emit.bind(self));
+    TargetCamera.prototype.setPosition = function (position, animate) {
+        var offset = this.getOffset(), self = this, target;
+        animate = animate || false;
+        target = new THREE.Vector3().addVectors(offset, position);
+        if (animate) {
+            return self.tweenToPosition(position, target);
+        } else {
+            self.position.copy(position);
+            self.target.copy(target);
+            self.lookAt(self.target);
+            self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
+            return Promise.resolve();
+        }
     };
 
     /**
@@ -704,25 +715,38 @@ FOUR.TargetCamera = (function () {
      */
     TargetCamera.prototype.setPositionAndTarget = function (pos, target, animate) {
         var self = this;
-        return self.planner.tweenToPosition(self, pos, target, self.emit.bind(self));
+        return self.tweenToPosition(pos, target);
     };
 
     /**
-     * Set the camera target. Maintain the distance from the camera to the
-     * target.
+     * Move the camera so that the target is at the specified position.
+     * Maintain the current camera orientation and distance.
      * @param {THREE.Vector3} target Target position
      * @param {Boolean} animate Animate the change
      * @returns {Promise}
      */
     TargetCamera.prototype.setTarget = function (target, animate) {
-        var offset, next, self = this;
-        // get the current direction from the target to the camera
-        offset = new THREE.Vector3().subVectors(self.position, self.target);
-        offset.length(self.distance);
-        // compute the new camera position
-        next = new THREE.Vector3().addVectors(target, offset);
-        // move the camera to the new position
-        return self.planner.tweenToPosition(self, next, target, self.emit.bind(self));
+        var offset = this.getOffset().negate(), position, self = this;
+        animate = animate || false;
+        position = new THREE.Vector3().addVectors(offset, target);
+        if (animate) {
+            return self.tweenToPosition(position, target);
+        } else {
+            self.position.copy(position);
+            self.target.copy(target);
+            self.lookAt(self.target);
+            self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
+            return Promise.resolve();
+        }
+    };
+
+    /**
+     * Set camera up direction.
+     * @param {THREE.Vector3} vec Up direction
+     */
+    TargetCamera.prototype.setUp = function (vec) {
+        this.up = vec;
+        this.dispatchEvent({type:'update'});
     };
 
     /**
@@ -790,31 +814,58 @@ FOUR.TargetCamera = (function () {
 
             newLook.set(1,1,-1);
         }
-        self.planner.tweenToPosition(self, pos, target, self.emit.bind(self));
+        self.tweenToPosition(pos, target);
     };
 
     /**
-     * Show the camera frustrum.
+     * Tween the camera to the specified position.
+     * @param {THREE.Vector3} position New camera position
+     * @param {THREE.Vector3} target New camera target position
+     * @returns {Promise}
      */
-    TargetCamera.prototype.showFrustrum = function () {
+    TargetCamera.prototype.tweenToPosition = function (position, target) {
         var self = this;
-        self.frustrum.visible = true;
-        this.dispatchEvent({type:'update'});
-    };
-
-    /**
-     * Show the camera target.
-     */
-    TargetCamera.prototype.showTarget = function () {
-        this.targetHelper.visible = true;
-        this.dispatchEvent({type:'update'});
-    };
-
-    TargetCamera.prototype.translate = function (x, y, z) {
-        var self = this;
-        var pos = new THREE.Vector3(x, y, z);
-        var target = new THREE.Vector3(x, y, z);
-        self.planner.tweenToPosition(self, pos, target, self.emit.bind(self));
+        // TODO animation time needs to be relative to the distance traversed
+        // TODO need better path planning ... there is too much rotation happening right now
+        return new Promise(function (resolve) {
+            // start and end tween values
+            var start = {
+                x: self.position.x, y: self.position.y, z: self.position.z,
+                tx: self.target.x, ty: self.target.y, tz: self.target.z
+            };
+            var finish = {
+                x: position.x, y: position.y, z: position.z,
+                tx: target.x, ty: target.y, tz: target.z
+            };
+            // calculate the animation duration
+            var cameraDistance = new THREE.Vector3().subVectors(self.position, position).length;
+            var targetDistance = new THREE.Vector3().subVectors(self.target, target).length();
+            var dist = cameraDistance > targetDistance ? cameraDistance : targetDistance;
+            // animate
+            var tween = new TWEEN.Tween(start).to(finish, 1500);
+            tween.easing(TWEEN.Easing.Cubic.InOut);
+            tween.onComplete(function () {
+                var tweened = this;
+                self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
+                self.position.set(tweened.x, tweened.y, tweened.z);
+                self.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
+                self.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
+                self.dispatchEvent({type:'update'});
+                self.dispatchEvent({type:'continuous-update-end'});
+                resolve();
+            });
+            tween.onUpdate(function () {
+                var tweened = this;
+                self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
+                self.position.set(tweened.x, tweened.y, tweened.z);
+                self.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
+                self.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
+                self.dispatchEvent({type:'update'});
+            });
+            tween.start();
+            self.dispatchEvent({type:'continuous-update-start'});
+            self.dispatchEvent({type:'update'});
+        });
     };
 
     /**
@@ -830,7 +881,7 @@ FOUR.TargetCamera = (function () {
         offset.setLength(distance / self.ZOOM_FACTOR);
         next = new THREE.Vector3().addVectors(self.target, offset);
         // move the camera to the new position
-        return self.planner.tweenToPosition(self, next, self.target, self.emit.bind(self));
+        return self.tweenToPosition(next, self.target);
     };
 
     /**
@@ -846,7 +897,7 @@ FOUR.TargetCamera = (function () {
         offset.setLength(distance * self.ZOOM_FACTOR);
         next = new THREE.Vector3().addVectors(self.target, offset);
         // move the camera to the new position
-        return self.planner.tweenToPosition(self, next, self.target, self.emit.bind(self));
+        return self.tweenToPosition(next, self.target);
     };
 
     /**
@@ -865,75 +916,13 @@ FOUR.TargetCamera = (function () {
         var center = bbox.getCenter();
         next = new THREE.Vector3().addVectors(bbox.getCenter(), offset);
         // move the camera to the new position
-        return self.planner.tweenToPosition(self, next, bbox.getCenter(), self.emit.bind(self));
-    };
-
-    /**
-     * Zoom the view to fit the window selection.
-     */
-    TargetCamera.prototype.zoomToWindow = function (animate) {
-        throw new Error('zoom in to window');
+        return self.tweenToPosition(next, bbox.getCenter());
     };
 
     return TargetCamera;
 
 }());
-;/* global THREE */
-/* jshint unused:false */
-'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.Utils = (function () {
-
-    /**
-     * Utility functions.
-     * @constructor
-     */
-    function Utils (config) {
-        config = config || {};
-        var self = this;
-
-        // default entity values
-        self.DEFAULT = {
-            CAMERA: {
-                far: 1000,
-                fov: 45,
-                height: 1,
-                name: 'camera',
-                near: 0.1,
-                width: 1
-            }
-        };
-
-        Object.keys(config).forEach(function (key) {
-            self[key] = config[key];
-        });
-    }
-
-    ///**
-    // * Create a default perspective camera. A camera aspect ratio or DOM height
-    // * element and width must be specified.
-    // * @param {Object} config Configuration
-    // */
-    //Utils.prototype.createDefaultCamera = function (config) {
-    //    var cfg = {}, config = config || {};
-    //    Object.keys(config).forEach(function (key) {
-    //        cfg[key] = config[key];
-    //    });
-    //    var camera = new FOUR.TargetCamera(cfg.fov, cfg.width / cfg.height, cfg.near, cfg.far);
-    //    camera.name = cfg.name;
-    //    camera.setPositionAndTarget(new THREE.Vector3(-50, -50, 50), new THREE.Vector3()); // use position, target fields
-    //    return camera;
-    //};
-
-    return Utils;
-
-}());;'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.ViewAxis = (function () {
+;FOUR.ViewAxis = (function () {
 
     function ViewAxis (config) {
         THREE.EventDispatcher.call(this);
@@ -1181,7 +1170,7 @@ FOUR.ViewAxis = (function () {
 
     ViewAxis.prototype.update = function () {
         var self = this;
-        console.info('update');
+        //console.info('update');
         Object.keys(self.label).forEach(function (key) {
             self.label[key].lookAt(self.camera.position);
         });
@@ -1217,11 +1206,7 @@ FOUR.ViewAxis = (function () {
     return ViewAxis;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.Viewcube = (function () {
+;FOUR.Viewcube = (function () {
 
     /**
      * View orientation controller.
@@ -1942,11 +1927,7 @@ FOUR.Viewcube = (function () {
     return Viewcube;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Renders the view from a scene camera to a canvas element in the DOM. Emits
  * the following change events:
  *
@@ -1978,6 +1959,7 @@ FOUR.Viewport3D = (function () {
     self.controllers = {};
     self.delta = 0;
     self.domElement = config.domElement;
+    self.listeners = {};
     self.renderer = new THREE.WebGLRenderer({antialias: true});
     self.renderer.setClearColor(self.backgroundColor);
     self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
@@ -2054,7 +2036,7 @@ FOUR.Viewport3D = (function () {
    * Render the viewport once.
    */
   Viewport3D.prototype.render = function () {
-    //console.log('render');
+    console.info('render');
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -2068,7 +2050,7 @@ FOUR.Viewport3D = (function () {
       self.controller.disable();
       self.controller.removeEventListener(self.render);
     }
-    console.info('set active controller to', name);
+    console.info('Set active viewport controller to', name);
     self.controller = self.controllers[name];
     self.controller.addEventListener('update', self.render.bind(self), false);
     self.controller.enable();
@@ -2122,13 +2104,18 @@ FOUR.Viewport3D = (function () {
   return Viewport3D;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
- * Camera look controller rotates the view by moving the camera target at a
- * fixed distance around the camera position. If a THREE.PerspectiveCamera
+;/**
+ * The look controller rotates the view around the current camera position,
+ * emulating a first person view.
+ *
+ *
+ * by moving the camera lookAt around
+ * the current position. The camera target is maintained as the default .
+ *
+ * When the camera is disabled, the camera direction is reverted to look at the
+ * target.
+ *
+ * If a THREE.PerspectiveCamera
  * is used, then we assume a fixed target distance of 100.
  */
 FOUR.LookController = (function () {
@@ -2268,11 +2255,7 @@ FOUR.LookController = (function () {
 	return LookController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.MultiController = (function () {
+;FOUR.MultiController = (function () {
 
     /**
      * Multiple interaction controller.
@@ -2305,8 +2288,11 @@ FOUR.MultiController = (function () {
             ctrl.addEventListener(event, self.listeners[name].fn, false);
         }
         this.controllers[name] = controller;
-        addListener(name, controller, 'update', function () {
-            self.dispatchEvent({type:'update'});
+        var events = ['continuous-update-end','continuous-update-start','update'];
+        events.forEach(function (event) {
+            addListener(name + '-' + event, controller, event, function () {
+                self.dispatchEvent({type:event});
+            });
         });
     };
 
@@ -2338,11 +2324,7 @@ FOUR.MultiController = (function () {
     return MultiController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * A reimplementation of the THREE.OrbitController.
  * @see http://threejs.org/examples/js/controls/OrbitControls.js
  * @todo add key/RMB combo
@@ -2924,11 +2906,7 @@ FOUR.OrbitController = (function () {
 	return OrbitController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Camera pan controller. Panning can be performed using the right mouse button
  * or the combination of a keypress, left mouse button down and mouse move.
  */
@@ -2967,7 +2945,7 @@ FOUR.PanController = (function () {
             cameraUp: new THREE.Vector3(),
             delta: new THREE.Vector2(),
             end: new THREE.Vector3(),
-            eye: new THREE.Vector3(),
+            lookAt: new THREE.Vector3(),
             start: new THREE.Vector3(),
             vector: new THREE.Vector2()
         };
@@ -3022,9 +3000,7 @@ FOUR.PanController = (function () {
     };
 
     PanController.prototype.onKeyDown = function (event) {
-        if (event.keyCode === this.KEY.CTRL) {
-            this.keydown = true;
-        }
+        this.keydown = (event.keyCode === this.KEY.CTRL);
     };
 
     PanController.prototype.onKeyUp = function (event) {
@@ -3067,12 +3043,13 @@ FOUR.PanController = (function () {
             return;
         }
         if (this.active === true) {
-            self.pan.eye.subVectors(self.camera.position, self.camera.target);
-            self.pan.delta.copy(self.pan.end).sub(self.pan.start);
+            self.pan.lookAt.subVectors(self.camera.position, self.camera.target);
+            // TODO add a scaling factor on the mouse delta
+            self.pan.delta.subVectors(self.pan.end, self.pan.start);
             if (self.pan.delta.lengthSq() > self.EPS) {
                 // compute offset
-                self.pan.delta.multiplyScalar(self.pan.eye.length() * self.panSpeed);
-                self.offset.copy(self.pan.eye).cross(self.camera.up).setLength(self.pan.delta.x);
+                self.pan.delta.multiplyScalar(self.pan.lookAt.length() * self.panSpeed);
+                self.offset.copy(self.pan.lookAt).cross(self.camera.up).setLength(self.pan.delta.x);
                 self.offset.add(self.pan.cameraUp.copy(self.camera.up).setLength(self.pan.delta.y));
 
                 // set the new camera position
@@ -3090,11 +3067,7 @@ FOUR.PanController = (function () {
     return PanController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Camera rotation controller. Rotation can be performed using the middle
  * mouse button or the combination of a keypress, left mouse button down and
  * mouse move. A reimplementation of the THREE.OrbitController.
@@ -3297,6 +3270,7 @@ FOUR.RotateController = (function () {
     RotateController.prototype.onKeyUp = function (event) {
         if (event.keyCode === this.KEY.ALT) {
             this.keydown = false;
+            this.state = this.STATE.NONE;
         }
     };
 
@@ -3304,7 +3278,7 @@ FOUR.RotateController = (function () {
         if (this.enabled === false) {
             return;
         }
-        if (this.keydown && event.button === THREE.MOUSE.LEFT) {
+        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.MIDDLE) {
             this.state = this.STATE.ROTATE;
             this.domElement.style.cursor = this.CURSOR.ROTATE;
             this.rotateStart.set(event.clientX, event.clientY);
@@ -3324,8 +3298,6 @@ FOUR.RotateController = (function () {
             // rotating up and down along whole screen attempts to go 360, but limited to 180
             this.constraint.rotateUp(2 * Math.PI * this.rotateDelta.y / this.domElement.clientHeight * this.rotateSpeed);
             this.rotateStart.copy(this.rotateEnd);
-        }
-        if (this.state !== this.STATE.NONE) {
             this.update();
         }
     };
@@ -3428,13 +3400,7 @@ FOUR.RotateController = (function () {
     return RotateController;
 
 }());
-;/* global THREE */
-/* jshint unused:false */
-'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.SelectionController = (function () {
+;FOUR.SelectionController = (function () {
 
   /**
    * Mouse based selection controller. The controller emits the following
@@ -3445,7 +3411,7 @@ FOUR.SelectionController = (function () {
    * remove - remove one or more objects from the selection set
    * toggle - toggle the selection state for one or more objects
    *
-   * The controller emits the following camera events:
+   * The controller emits the following camera realted events:
    *
    * lookat    - look at the specified point
    * settarget - move the camera target to the specified point
@@ -3625,11 +3591,7 @@ FOUR.SelectionController = (function () {
   return SelectionController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-FOUR.TourController = (function () {
+;FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
@@ -3854,11 +3816,7 @@ FOUR.TourController = (function () {
     return TourController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Trackball controller.
  * @todo listen for camera change on the viewport
  * @todo listen for domElement resize events
@@ -5446,11 +5404,7 @@ FOUR.TrackballController = (function () {
   THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * First person navigation controller. Uses keys to control movement in
  * cardinal directions. Assumes that +Z is up. Accepts a function that
  * maintains a minimum Z position.
@@ -5745,11 +5699,7 @@ FOUR.WalkController = (function () {
     return WalkController;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Camera zoom controller. Zooming can be performed using mouse wheel rotation
  * or the combination of a keypress, left mouse button down and mouse move.
  * Zooming is clamped to a maximum and minimum zoom distance when using a
@@ -5937,13 +5887,7 @@ FOUR.ZoomController = (function () {
     return ZoomController;
 
 }());
-;/* global THREE, TravellingSalesman, TWEEN */
-/* jshint unused:false */
-'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Camera path navigation utilities.
  * @constructor
  */
@@ -5968,6 +5912,7 @@ FOUR.PathPlanner = (function () {
             GENETIC: 0,
             SIMULATED_ANNEALING: 1
         };
+        this.strategy = self.PLANNING_STRATEGY.GENETIC;
     }
 
     /**
@@ -5976,7 +5921,7 @@ FOUR.PathPlanner = (function () {
      * @param {*} strategy Planning strategy ID
      * @returns {Promise}
      */
-    PathPlanner.prototype.generateTourSequence = function (features, strategy) {
+    PathPlanner.prototype.generateTourSequence = function (features) {
         // TODO execute computation in a worker
         return new Promise(function (resolve, reject) {
             var path = [];
@@ -6010,6 +5955,10 @@ FOUR.PathPlanner = (function () {
         });
     };
 
+    PathPlanner.prototype.setPlanningStragegy = function (strategy) {
+        this.strategy = strategy;
+    };
+
     PathPlanner.prototype.tweenToOrientation = function (camera, orientation, progress) {
         // TODO animation time needs to be relative to the distance traversed
         return new Promise(function (resolve) {
@@ -6034,81 +5983,255 @@ FOUR.PathPlanner = (function () {
         });
     };
 
-    /**
-     * Tween the camera to the specified position.
-     * @param {THREE.Camera} camera Camera
-     * @param {THREE.Vector3} position New camera position
-     * @param {THREE.Vector3} target New camera target position
-     * @param {Function} progress Progress callback
-     * @returns {Promise}
-     */
-    PathPlanner.prototype.tweenToPosition = function (camera, position, target, progress) {
-        // TODO animation time needs to be relative to the distance traversed
-        // TODO need better path planning ... there is too much rotation happening right now
-        return new Promise(function (resolve) {
-            var emit = progress;
-            // start and end tween values
-            var start = {
-                x: camera.position.x, y: camera.position.y, z: camera.position.z,
-                tx: camera.target.x, ty: camera.target.y, tz: camera.target.z
-            };
-            var finish = {
-                x: position.x, y: position.y, z: position.z,
-                tx: target.x, ty: target.y, tz: target.z
-            };
-            // calculate the animation duration
-            var cameraDistance = distance(camera.position, position);
-            var targetDistance = distance(camera.target, target);
-            var dist = cameraDistance > targetDistance ? cameraDistance : targetDistance;
-            // animate
-            var tween = new TWEEN.Tween(start).to(finish, 1500);
-            tween.easing(TWEEN.Easing.Cubic.InOut);
-            tween.onComplete(function () {
-                var tweened = this;
-                camera.distance = distance(camera.position, camera.target);
-                camera.position.set(tweened.x, tweened.y, tweened.z);
-                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
-                camera.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
-                emit('update');
-                emit('continuous-update-end');
-                resolve();
-            });
-            tween.onUpdate(function () {
-                var tweened = this;
-                camera.distance = distance(camera.position, camera.target);
-                camera.position.set(tweened.x, tweened.y, tweened.z);
-                camera.target = new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz);
-                camera.lookAt(new THREE.Vector3(tweened.tx, tweened.ty, tweened.tz));
-                console.info(tweened.tx,tweened.ty,tweened.tz);
-                emit('update');
-            });
-            tween.start();
-            emit('continuous-update-start');
-            emit('update');
-        });
-    };
-
     return PathPlanner;
 
 }());
-;'use strict';
-
-var FOUR = FOUR || {};
-
-/**
+;/**
  * Simulated annealing path planner.
  * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
  */
-var SimulatedAnnealing = (function () {
+var SimulatedAnnealer = (function () {
 
     /**
-     * Simulated annealing path planner.
+     * A proposed solution.
      * @constructor
+     * @param {Number} size Itinerary size
      */
-    function SimulatedAnnealing() {
+    function Tour(size) {
+        this.distance = 0;
+        this.fitness = 0;
+        this.tour = [];
+        if (size) {
+            for (var i = 0; i < size; i++) {
+                this.tour.push(null);
+            }
+        }
     }
 
-    return SimulatedAnnealing;
+    Tour.prototype.checkForDuplicateValues = function () {
+        var i;
+        for (i = 0; i < this.tour.length; i++) {
+            var p = this.tour[i];
+            if (this.tour.lastIndexOf(p) !== i) {
+                throw new Error('Tour contains a duplicate element');
+            }
+        }
+    };
+
+    Tour.prototype.checkForNullValues = function () {
+        var i;
+        for (i = 0; i < this.tour.length; i++) {
+            if (this.tour[i] === null) {
+                throw new Error('Tour contains a null entry');
+            }
+        }
+    };
+
+    Tour.prototype.containsPoint = function (p) {
+        var result = false;
+        this.tour.forEach(function (point) {
+            if (point !== null && point.x === p.x && point.y === p.y) {
+                result = true;
+            }
+        });
+        return result;
+    };
+
+    Tour.prototype.copy = function (tour) {
+        this.tour = tour.slice();
+        this.getFitness();
+    };
+
+    Tour.prototype.distanceBetween = function (p1, p2) {
+        var dx = Math.abs(p2.x - p1.x);
+        var dy = Math.abs(p2.y - p1.y);
+        return Math.sqrt((dx * dx) + (dy * dy));
+    };
+
+    Tour.prototype.generateIndividual = function (itinerary) {
+        this.tour = itinerary.slice();
+        this.shuffle();
+        this.getFitness();
+    };
+
+    Tour.prototype.getPoint = function (i) {
+        return this.tour[i];
+    };
+
+    Tour.prototype.getFitness = function () {
+        if (this.fitness === 0) {
+            this.fitness = 1 / this.getDistance();
+        }
+        return this.fitness;
+    };
+
+    Tour.prototype.getDistance = function () {
+        if (this.distance === 0) {
+            var i, p1, p2, totalDistance = 0;
+            // Loop through our tour's cities
+            for (i = 0; i < this.tour.length; i++) {
+                // point we're travelling from
+                p1 = this.getPoint(i);
+                // Check we're not on our tour's last point, if we are set our
+                // tour's final destination point to our starting point
+                if (i + 1 < this.tour.length) {
+                    p2 = this.tour[i + 1];
+                }
+                else {
+                    p2 = this.tour[0];
+                }
+                // Get the distance between the two cities
+                totalDistance += this.distanceBetween(p1, p2);
+            }
+            this.distance = totalDistance;
+        }
+        return this.distance;
+    };
+
+    Tour.prototype.setPoint = function (i, point) {
+        this.tour[i] = point;
+        this.fitness = 0;
+        this.distance = 0;
+    };
+
+    Tour.prototype.shuffle = function () {
+        var currentIndex = this.tour.length, temporaryValue, randomIndex;
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+            // Pick a remaining element...
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+            // And swap it with the current element.
+            temporaryValue = this.tour[currentIndex];
+            this.tour[currentIndex] = this.tour[randomIndex];
+            this.tour[randomIndex] = temporaryValue;
+        }
+    };
+
+    Tour.prototype.tourSize = function () {
+        return this.tour.length;
+    };
+
+    Tour.prototype.updateFitness = function () {
+        this.fitness = 1 / this.getDistance();
+    };
+
+    function SimulatedAnnealer() {
+        this.best = null; // best solution
+        this.coolingRate = 0.003;
+        this.itinerary = [];
+        this.temp = 0;
+    }
+
+    SimulatedAnnealer.prototype.acceptanceProbability = function (energy, newEnergy, temperature) {
+        // If the new solution is better, accept it
+        if (newEnergy < energy) {
+            return 1.0;
+        }
+        // If the new solution is worse, calculate an acceptance probability
+        return Math.exp((energy - newEnergy) / temperature);
+    };
+
+    /**
+     * Add point to itinerary.
+     * @param {Object} p Point
+     */
+    SimulatedAnnealer.prototype.addPoint = function (p) {
+        this.itinerary.push(p);
+        this.checkForDuplicatePoints();
+    };
+
+    /**
+     * Check for duplicate points in the itinerary. Throw an error when a
+     * duplicate is found.
+     */
+    SimulatedAnnealer.prototype.checkForDuplicatePoints = function () {
+        var i, p, px, py, x = [], y = [];
+        // build an index of points
+        for (i = 0; i < this.itinerary.length; i++) {
+            x.push(this.itinerary[i].x);
+            y.push(this.itinerary[i].y);
+        }
+        // check for duplicates
+        for (i = 0; i < this.itinerary.length; i++) {
+            p = this.itinerary[i];
+            px = x.lastIndexOf(p.x);
+            py = y.lastIndexOf(p.y);
+            if (px === py && px !== i) {
+                throw new Error('Tour contains a duplicate element');
+            }
+        }
+    };
+
+    SimulatedAnnealer.prototype.evolve = function (temperature) {
+        var newSolution, pointSwap1, pointSwap2, currentEnergy, neighbourEnergy, tourPos1, tourPos2;
+
+        this.temp = temperature;
+
+        // Set as current best
+        this.best = new Tour(0);
+        this.best.copy(this.currentSolution.tour);
+
+        // Loop until system has cooled
+        while (this.temp > 1) {
+            // Create new neighbour tour
+            newSolution = new Tour(0);
+            newSolution.copy(this.currentSolution.tour);
+
+            // Get a random positions in the tour
+            tourPos1 = Math.floor(newSolution.tourSize() * Math.random());
+            tourPos2 = Math.floor(newSolution.tourSize() * Math.random());
+
+            // Get the cities at selected positions in the tour
+            pointSwap1 = newSolution.getPoint(tourPos1);
+            pointSwap2 = newSolution.getPoint(tourPos2);
+
+            // Swap them
+            newSolution.setPoint(tourPos2, pointSwap1);
+            newSolution.setPoint(tourPos1, pointSwap2);
+
+            // Get energy of solutions
+            currentEnergy = this.currentSolution.getDistance();
+            neighbourEnergy = newSolution.getDistance();
+
+            // Decide if we should accept the neighbour
+            if (this.acceptanceProbability(currentEnergy, neighbourEnergy, this.temp) > Math.random()) {
+                this.currentSolution = new Tour(0);
+                this.currentSolution.copy(newSolution.tour);
+            }
+
+            // Keep track of the best solution found
+            if (this.currentSolution.getDistance() < this.best.getDistance()) {
+                this.best = new Tour(0);
+                this.best.copy(this.currentSolution.tour);
+            }
+
+            // Cool system
+            this.temp *= 1 - this.coolingRate;
+        }
+    };
+
+    SimulatedAnnealer.prototype.getDistance = function () {
+        return this.best.getDistance();
+    };
+
+    SimulatedAnnealer.prototype.getSolution = function () {
+        return this.best.tour;
+    };
+
+    SimulatedAnnealer.prototype.init = function () {
+        this.currentSolution = new Tour(0);
+        this.currentSolution.generateIndividual(this.itinerary);
+        this.best = this.currentSolution;
+    };
+
+    SimulatedAnnealer.prototype.reset = function () {
+        this.itinerary = [];
+        this.best = null;
+    };
+
+    return SimulatedAnnealer;
+
 }());
 ;/* jshint unused:false */
 'use strict';
@@ -6117,7 +6240,7 @@ var SimulatedAnnealing = (function () {
  * Travelling salesman path planner.
  * Based on http://www.theprojectspot.com/tutorial-post/applying-a-genetic-algorithm-to-the-travelling-salesman-problem/5
  */
-//var TravellingSalesman = (function () {
+var TravellingSalesman = (function () {
 
     /**
      * A proposed solution.
@@ -6454,6 +6577,10 @@ var SimulatedAnnealing = (function () {
         this.populationSize = size;
     };
 
+    TravellingSalesman.prototype.tour = function () {
+        return new Tour();
+    };
+
     TravellingSalesman.prototype.tournamentSelection = function (pop) {
         // Create a tournament population
         var tournament = new Population(this.itinerary, this.tournamentSize, false);
@@ -6467,6 +6594,6 @@ var SimulatedAnnealing = (function () {
         return tournament.getFittest();
     };
 
-//    return TravellingSalesman;
-//
-//}());
+    return TravellingSalesman;
+
+}());
