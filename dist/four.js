@@ -823,12 +823,40 @@ FOUR.VIEW = {
     };
 
     /**
+     * Tween camera up orientation.
+     * @param {THREE.Euler} orientation
+     * @returns {Promise}
+     */
+    TargetCamera.prototype.tweenToOrientation = function (orientation) {
+        var self = this;
+        return new Promise(function (resolve) {
+            var start = { x: self.up.x, y: self.up.y, z: self.up.z };
+            var finish = { x: orientation.x, y: orientation.y, z: orientation.z };
+            var tween = new TWEEN.Tween(start).to(finish, 1000);
+            tween.easing(TWEEN.Easing.Cubic.InOut);
+            tween.onComplete(function () {
+                self.up.set(this.x, this.y, this.z);
+                self.dispatchEvent({type:'update'});
+                self.dispatchEvent({type:'continuous-update-end'});
+                resolve();
+            });
+            tween.onUpdate(function () {
+                self.up.set(this.x, this.y, this.z);
+                self.dispatchEvent({type:'update'});
+            });
+            tween.start();
+            self.dispatchEvent({type:'continuous-update-start'});
+        });
+    };
+
+    /**
      * Tween the camera to the specified position.
      * @param {THREE.Vector3} position New camera position
      * @param {THREE.Vector3} target New camera target position
+     * @param {THREE.Quaternion} orientation New camera orientation
      * @returns {Promise}
      */
-    TargetCamera.prototype.tweenToPosition = function (position, target) {
+    TargetCamera.prototype.tweenToPosition = function (position, target, orientation) {
         var self = this;
         return new Promise(function (resolve) {
             // start and end tween values
@@ -5973,30 +6001,6 @@ FOUR.PathPlanner = (function () {
 
     PathPlanner.prototype.setPlanningStragegy = function (strategy) {
         this.strategy = strategy;
-    };
-
-    PathPlanner.prototype.tweenToOrientation = function (camera, orientation, progress) {
-        // TODO animation time needs to be relative to the distance traversed
-        return new Promise(function (resolve) {
-            var emit = progress;
-            var start = { x: camera.up.x, y: camera.up.y, z: camera.up.z };
-            var finish = { x: orientation.x, y: orientation.y, z: orientation.z };
-            var tween = new TWEEN.Tween(start).to(finish, 1000);
-            tween.easing(TWEEN.Easing.Cubic.InOut);
-            tween.onComplete(function () {
-                camera.setUp(new THREE.Vector3(this.x, this.y, this.z));
-                emit('update');
-                emit('continuous-update-end');
-                resolve();
-            });
-            tween.onUpdate(function () {
-                camera.setUp(new THREE.Vector3(this.x, this.y, this.z));
-                emit('update');
-            });
-            tween.start();
-            emit('continuous-update-start');
-            emit('update');
-        });
     };
 
     return PathPlanner;
