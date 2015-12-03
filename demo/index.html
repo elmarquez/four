@@ -337,27 +337,27 @@
             });
             Mousetrap.bind('5', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.TOP, bbox);
+                camera.setView(camera.VIEWS.TOP, bbox, true);
             });
             Mousetrap.bind('6', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.FRONT, bbox);
+                camera.setView(camera.VIEWS.FRONT, bbox, true);
             });
             Mousetrap.bind('7', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.LEFT, bbox);
+                camera.setView(camera.VIEWS.LEFT, bbox, true);
             });
             Mousetrap.bind('8', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.RIGHT, bbox);
+                camera.setView(camera.VIEWS.RIGHT, bbox, true);
             });
             Mousetrap.bind('9', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.BACK, bbox);
+                camera.setView(camera.VIEWS.BACK, bbox, true);
             });
             Mousetrap.bind('0', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.PERSPECTIVE, bbox);
+                camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
             });
 
             // tour controls
