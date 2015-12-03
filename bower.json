@@ -19,26 +19,29 @@
     "test"
   ],
   "dependencies": {
-    "jquery": "~2.x.x",
-    "mousetrap": "~1.5.x",
     "three.js": "0.72.0",
-    "tween.js": "tweenjs#~16.3.1"
+    "tween.js": "tweenjs#~16.3.1",
+    "bluebird": "~3.0.6"
   },
   "devDependencies": {
     "angular": "~1.4.6",
+    "dexie": "~1.2.0",
     "font-awesome": "fontawesome#~4.4.0",
     "jqTree": "jqtree#~1.2.1",
+    "jquery": "~2.x.x",
     "jquery.event.dragdrop": "*",
+    "mousetrap": "~1.5.x",
     "ol3": "openlayers3-dist#~3.10.1",
     "qtip2": "~2.2.1",
-    "slickgrid": "~2.1.0",
-    "dexie": "~1.2.0"
+    "slickgrid": "~2.1.0"
   },
   "keywords": [
     "3D",
     "CAD",
     "computer aided design",
+    "design",
     "fabrication",
+    "parametric",
     "threejs",
     "webgl"
   ]
