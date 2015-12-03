@@ -775,7 +775,9 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.setView = function (orientation, bbox, animate) {
-        var center = bbox.getCenter(), direction = new THREE.Vector3(), distance, position, radius = bbox.getRadius(), self = this, target;
+        var center = bbox.getCenter(), direction = new THREE.Vector3(),
+            distance, position, radius = bbox.getRadius(), rotation,
+            self = this, target;
         animate = animate || false;
         // new camera position, target, direction, orientation
         position = new THREE.Vector3().copy(center);
@@ -784,22 +786,27 @@ FOUR.VIEW = {
         // reorient the camera relative to the bounding box
         if (orientation === self.VIEWS.TOP) {
             position.z = center.z + distance;
+            rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0));
             direction.set(0,0,-1);
         }
         else if (orientation === self.VIEWS.FRONT) {
             position.y = center.y - distance;
+            rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
             direction.set(0,-1,0);
         }
         else if (orientation === self.VIEWS.BACK) {
             position.y = center.y + distance;
+            rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI, 0));
             direction.set(0,1,0);
         }
         else if (orientation === self.VIEWS.RIGHT) {
             position.x = center.x + distance;
+            rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI / 2, 0));
             direction.set(-1,0,0);
         }
         else if (orientation === self.VIEWS.LEFT) {
             position.x = center.x - distance;
+            rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI * 1.5, 0));
             direction.set(1,0,0);
         }
         else if (orientation === self.VIEWS.BOTTOM) {
@@ -811,7 +818,7 @@ FOUR.VIEW = {
             direction.set(1,1,-1);
         }
         if (animate) {
-            return self.tweenToPosition(position, target);
+            return self.tweenToPosition(position, target, rotation);
         } else {
             self.position.copy(position);
             self.target.copy(target);
@@ -851,23 +858,30 @@ FOUR.VIEW = {
 
     /**
      * Tween the camera to the specified position.
-     * @param {THREE.Vector3} position New camera position
-     * @param {THREE.Vector3} target New camera target position
-     * @param {THREE.Quaternion} orientation New camera orientation
+     * @param {THREE.Vector3} position Camera position
+     * @param {THREE.Vector3} target Target position
+     * @param {THREE.Quaternion} rotation Camera rotation
      * @returns {Promise}
      */
-    TargetCamera.prototype.tweenToPosition = function (position, target, orientation) {
-        var self = this;
+    TargetCamera.prototype.tweenToPosition = function (position, target, rotation) {
+        var q1, q2, self = this;
         return new Promise(function (resolve) {
             // start and end tween values
             var start = {
+                i: 0,
                 x: self.position.x, y: self.position.y, z: self.position.z,
                 tx: self.target.x, ty: self.target.y, tz: self.target.z
             };
             var finish = {
+                i: 1,
                 x: position.x, y: position.y, z: position.z,
                 tx: target.x, ty: target.y, tz: target.z
             };
+            // start/end rotation values
+            if (rotation) {
+                q1 = new THREE.Quaternion().copy(self.quaternion).normalize();
+                q2 = rotation.normalize();
+            }
             // TODO calculate the animation duration
             var cameraDistance = new THREE.Vector3().subVectors(self.position, position).length;
             var targetDistance = new THREE.Vector3().subVectors(self.target, target).length();
@@ -879,7 +893,11 @@ FOUR.VIEW = {
                 var d = this;
                 self.position.set(d.x, d.y, d.z);
                 self.target.set(d.tx, d.ty, d.tz);
-                self.lookAt(self.target);
+                if (rotation) {
+                    THREE.Quaternion.slerp(q1, q2, self.quaternion, d.i);
+                } else {
+                    self.lookAt(self.target);
+                }
                 self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
                 self.dispatchEvent({type:'update'});
                 self.dispatchEvent({type:'continuous-update-end'});
@@ -889,7 +907,11 @@ FOUR.VIEW = {
                 var d = this;
                 self.position.set(d.x, d.y, d.z);
                 self.target.set(d.tx, d.ty, d.tz);
-                self.lookAt(self.target);
+                if (rotation) {
+                    THREE.Quaternion.slerp(q1, q2, self.quaternion, d.i);
+                } else {
+                    self.lookAt(self.target);
+                }
                 self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
                 self.dispatchEvent({type:'update'});
             });

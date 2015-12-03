@@ -267,9 +267,9 @@ describe('TargetCamera', function () {
     });
 
     //-------------------------------------------------------------------------
-    // Predefined views
+    // Predefined views, no tweening
 
-    describe('predefined views', function () {
+    describe('predefined views, no tweening', function () {
         var d1, d2, p1, p2, t1, t2;
         bbox = new FOUR.BoundingBox();
 
@@ -430,6 +430,64 @@ describe('TargetCamera', function () {
                 });
             });
         });
+    });
+
+    //-------------------------------------------------------------------------
+    // Predefined views, with tweened transition
+
+    xdescribe('predefined views, tweened transition', function () {
+        var d1, d2, p1, p2, t1, t2;
+        bbox = new FOUR.BoundingBox();
+
+        beforeEach(function (done) {
+            camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true).then(function () {
+                done();
+            });
+        });
+
+        describe('top', function () {
+            it ('should update the direction', function (done) {
+                d1 = camera.getDirection();
+                camera.setView(camera.VIEWS.TOP, bbox, true).then(function () {
+                    d2 = camera.getDirection();
+                    expect(d1.equals(d2)).toBe(false);
+                    done();
+                });
+            });
+            it ('should update the position', function (done) {
+                p1 = camera.getPosition();
+                t1 = camera.getTarget();
+                camera.setView(camera.VIEWS.TOP, bbox, true).then(function () {
+                    p2 = camera.getPosition();
+                    t2 = camera.getTarget();
+                    expect(p2.z >= 2).toBe(true);
+                    expect(t2.equals(bbox.position)).toBe(true);
+                    done();
+                });
+            });
+        });
+        describe('front', function () {
+            it ('should update the direction', function (done) {
+                d1 = camera.getDirection();
+                camera.setView(camera.VIEWS.FRONT, bbox, true).then(function () {
+                    d2 = camera.getDirection();
+                    expect(d1.equals(d2)).toBe(false);
+                    done();
+                });
+            });
+            it ('should update the position', function (done) {
+                p1 = camera.getPosition();
+                t1 = camera.getTarget();
+                camera.setView(camera.VIEWS.FRONT, bbox, true).then(function () {
+                    p2 = camera.getPosition();
+                    t2 = camera.getTarget();
+                    expect(p2.y <= -2).toBe(true);
+                    expect(t2.equals(bbox.position)).toBe(true);
+                    done();
+                });
+            });
+        });
+
     });
 
 });
