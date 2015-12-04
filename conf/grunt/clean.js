@@ -1,5 +1,6 @@
 'use strict';
 
 module.exports = {
-  dist: [ 'dist/**/*' ]
+  dist: [ 'dist/**/*' ],
+  docs: [ 'docs/**/*' ]
 };

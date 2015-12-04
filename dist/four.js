@@ -14,7 +14,6 @@ FOUR.DEFAULT = {
   }
 };
 
-
 FOUR.KEY = {};
 
 FOUR.MOUSE_STATE = {
@@ -36,7 +35,10 @@ FOUR.VIEW = {
   BACK: 'back',
   LEFT: 'left',
   BOTTOM: 'bottom'
-};;FOUR.KeyInputController = (function () {
+};
+;
+
+FOUR.KeyInputController = (function () {
 
   /**
    * Key input controller. Maintains the state of some key combinations and
@@ -119,7 +121,9 @@ FOUR.VIEW = {
   return KeyInputController;
 
 }());
-;FOUR.Scene = (function () {
+;
+
+FOUR.Scene = (function () {
 
     /**
      * Scene with predefined layers.
@@ -225,7 +229,9 @@ FOUR.VIEW = {
 
     return Scene;
 
-}());;FOUR.TargetCamera = (function () {
+}());;
+
+FOUR.TargetCamera = (function () {
 
     /**
      * The camera has a default position of 0,-1,0, a default target of 0,0,0 and
@@ -279,6 +285,7 @@ FOUR.VIEW = {
     };
 
     TargetCamera.prototype.getDistance = function () {
+        this.distance = new THREE.Vector3().subVectors(this.position, this.target).length();
         return this.distance;
     };
 
@@ -348,13 +355,11 @@ FOUR.VIEW = {
             return self.tweenToPosition(position, self.target);
         } else {
             self.position.copy(position);
-            self.lookAt(self.target);
             self.dispatchEvent({type:'update'});
             return Promise.resolve();
         }
     };
 
-    // FIXME update this to set the target, rotate the camera toward it or just rotate the camera
     /**
      * Orient the camera to look at the specified position. Keep the camera
      * distance the same as it currently is. Update the target position as
@@ -364,13 +369,19 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.setLookAt = function (lookAt, animate) {
+        // FIXME use quaternions!!
+        // FIXME update this to set the target, rotate the camera toward it or just rotate the camera
         var offset, self = this;
         animate = animate || false;
         // direction from camera to new look at position
         offset = new THREE.Vector3().subVectors(lookAt, self.position);
         offset.setLength(self.distance);
         var target = new THREE.Vector3().addVectors(self.position, offset);
-        return self.tweenToPosition(self.position, target);
+        if (animate) {
+            return self.tweenToPosition(self.position, target);
+        } else {
+
+        }
     };
 
     /**
@@ -381,16 +392,14 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.setPosition = function (position, animate) {
-        var offset = this.getOffset(), self = this, target;
         animate = animate || false;
-        target = new THREE.Vector3().addVectors(offset, position);
+        var offset = this.getOffset(), self = this;
+        var target = new THREE.Vector3().addVectors(offset, position);
         if (animate) {
             return self.tweenToPosition(position, target);
         } else {
             self.position.copy(position);
             self.target.copy(target);
-            self.lookAt(self.target);
-            self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
             self.dispatchEvent({type:'update'});
             return Promise.resolve();
         }
@@ -416,16 +425,14 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.setTarget = function (target, animate) {
-        var offset = this.getOffset().negate(), position, self = this;
         animate = animate || false;
-        position = new THREE.Vector3().addVectors(offset, target);
+        var offset = this.getOffset().negate(), self = this;
+        var position = new THREE.Vector3().addVectors(offset, target);
         if (animate) {
             return self.tweenToPosition(position, target);
         } else {
             self.position.copy(position);
             self.target.copy(target);
-            self.lookAt(self.target);
-            self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
             self.dispatchEvent({type:'update'});
             return Promise.resolve();
         }
@@ -608,19 +615,11 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.zoomIn = function (animate) {
-        var distance = this.getDistance() / this.ZOOM_FACTOR, offset, position, self = this;
         animate = animate || false;
+        var distance = this.getDistance() / this.ZOOM_FACTOR, self = this;
         // ensure that the distance is never less than the minimum
         distance = distance <= this.MINIMUM_DISTANCE ? this.MINIMUM_DISTANCE : distance;
-        if (animate) {
-            offset = this.getOffset();
-            offset.setLength(distance);
-            position = new THREE.Vector3().addVectors(self.target, offset);
-            return self.tweenToPosition(position, self.target);
-        } else {
-            self.setDistance(distance, false);
-            return Promise.resolve();
-        }
+        return self.setDistance(distance, animate);
     };
 
     /**
@@ -629,19 +628,11 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.zoomOut = function (animate) {
-        var distance = this.getDistance() * this.ZOOM_FACTOR, offset, position, self = this;
-        // ensure that the distance is never greater than the far clipping plane
-        distance = distance >= this.MAXIMUM_DISTANCE ? this.MAXIMUM_DISTANCE: distance;
         animate = animate || false;
-        if (animate) {
-            offset = this.getOffset();
-            offset.setLength(distance);
-            position = new THREE.Vector3().addVectors(self.target, offset);
-            return self.tweenToPosition(position, self.target);
-        } else {
-            self.setDistance(distance, false);
-            return Promise.resolve();
-        }
+        var distance = this.getDistance() * this.ZOOM_FACTOR, self = this;
+        // ensure that the distance is never greater than the maximum
+        distance = distance >= this.MAXIMUM_DISTANCE ? this.MAXIMUM_DISTANCE : distance;
+        return self.setDistance(distance, animate);
     };
 
     /**
@@ -651,26 +642,22 @@ FOUR.VIEW = {
      * @returns {Promise}
      */
     TargetCamera.prototype.zoomToFit = function (bbox, animate) {
-        var distance, offset = this.getOffset(), position, self = this, target;
         animate = animate || false;
+        var distance, self = this;
         // get the distance required to fit all entities within the view
         distance = bbox.getRadius() / Math.tan(Math.PI * self.fov / 360);
         // move the camera to the new position
-        if (animate) {
-            offset.setLength(distance);
-            target = bbox.getCenter();
-            position = new THREE.Vector3().addVectors(target, offset);
-            return self.tweenToPosition(position, target);
-        } else {
-            self.setDistance(distance);
-            return Promise.resolve();
-        }
+        return self.setTarget(bbox.getCenter(), animate).then(function () {
+            return self.setDistance(distance, animate);
+        });
     };
 
     return TargetCamera;
 
 }());
-;/**
+;
+
+/**
  * Renders the view from a scene camera to a canvas element in the DOM. Emits
  * the following change events:
  *
@@ -779,7 +766,7 @@ FOUR.Viewport3D = (function () {
    * Render the viewport once.
    */
   Viewport3D.prototype.render = function () {
-    console.info('render');
+    //console.info('render');
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -847,7 +834,9 @@ FOUR.Viewport3D = (function () {
   return Viewport3D;
 
 }());
-;FOUR.ViewAxis = (function () {
+;
+
+FOUR.ViewAxis = (function () {
 
     function ViewAxis (config) {
         THREE.EventDispatcher.call(this);
@@ -1131,7 +1120,9 @@ FOUR.Viewport3D = (function () {
     return ViewAxis;
 
 }());
-;FOUR.Viewcube = (function () {
+;
+
+FOUR.Viewcube = (function () {
 
     /**
      * View orientation controller.
@@ -1852,7 +1843,9 @@ FOUR.Viewport3D = (function () {
     return Viewcube;
 
 }());
-;/**
+;
+
+/**
  * The look controller rotates the view around the current camera position,
  * emulating a first person view.
  *
@@ -2003,7 +1996,9 @@ FOUR.LookController = (function () {
 	return LookController;
 
 }());
-;FOUR.MultiController = (function () {
+;
+
+FOUR.MultiController = (function () {
 
     /**
      * Multiple interaction controller.
@@ -2072,7 +2067,9 @@ FOUR.LookController = (function () {
     return MultiController;
 
 }());
-;/**
+;
+
+/**
  * A reimplementation of the THREE.OrbitController.
  * @see http://threejs.org/examples/js/controls/OrbitControls.js
  * @todo add key/RMB combo
@@ -2655,7 +2652,9 @@ FOUR.OrbitController = (function () {
 	return OrbitController;
 
 }());
-;/**
+;
+
+/**
  * Camera pan controller. Panning can be performed using the right mouse button
  * or the combination of a keypress, left mouse button down and mouse move.
  */
@@ -2687,7 +2686,6 @@ FOUR.PanController = (function () {
         };
 
         self.active = false;
-        self.camera = config.camera || config.viewport.camera;
         self.domElement = config.domElement || config.viewport.domElement;
         self.dynamicDampingFactor = 0.2;
         self.enabled = false;
@@ -2698,12 +2696,9 @@ FOUR.PanController = (function () {
         self.mode = self.MODES.NONE;
         self.offset = new THREE.Vector3();
         self.pan = {
-            cameraUp: new THREE.Vector3(),
             delta: new THREE.Vector2(),
-            end: new THREE.Vector3(),
-            lookAt: new THREE.Vector3(),
-            start: new THREE.Vector3(),
-            vector: new THREE.Vector2()
+            end: new THREE.Vector2(),
+            start: new THREE.Vector2()
         };
         self.panSpeed = 0.8;
         self.viewport = config.viewport;
@@ -2740,17 +2735,29 @@ FOUR.PanController = (function () {
         self.enabled = true;
     };
 
-    PanController.prototype.getMouseOnCircle = function (pageX, pageY) {
-        this.pan.vector.set(
-          (pageX - this.domElement.clientWidth * 0.5) / (this.domElement.clientWidth * 0.5),
-          (this.domElement.clientHeight + 2 * pageY) / this.domElement.clientWidth
-        );
-        return this.pan.vector;
+    /**
+     * Transform screen coordinates to normalized device coordinates (0,0 to 1,1).
+     * @param {Number} x Screen X coordinate
+     * @param {Number} y Screen Y coordinate
+     * @param {Element} element DOM element
+     * @returns {THREE.Vector2}
+     */
+    PanController.prototype.getNormalizedDeviceCoordinates = function (x, y, element) {
+        var nx = (x - element.clientLeft) / element.clientWidth;
+        var ny = (y - element.clientTop) / element.clientHeight;
+        return new THREE.Vector2(nx, ny);
     };
 
-    PanController.prototype.getMouseOnScreen = function (elementX, elementY) {
-        this.pan.vector.set(elementX / this.domElement.clientWidth, elementY / this.domElement.clientHeight);
-        return this.pan.vector;
+    /**
+     * Transform normalized device coordinates to world space coordinates for
+     * the specified camera.
+     * @param {THREE.Vector2} ndc Normalized device coordinates
+     * @param {THREE.Camera} camera Camera
+     * @returns {THREE.Vector3}
+     */
+    PanController.prototype.getWorldSpaceCoordinates = function (ndc, camera) {
+        var mouse = new THREE.Vector3().set(-ndc.x * 2 - 1, ndc.y * 2 + 1, 0.5);
+        return mouse.unproject(camera);
     };
 
     PanController.prototype.onMouseDown = function (event) {
@@ -2759,18 +2766,19 @@ FOUR.PanController = (function () {
             this.active = true;
             this.domElement.style.cursor = this.CURSOR.PAN;
             this.mode = this.MODES.PAN;
-            this.pan.start.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
-            this.pan.end.copy(this.pan.start);
+            var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
+            this.pan.start.copy(ndc);
+            this.pan.end.copy(ndc);
             this.dispatchEvent(this.EVENT.START);
         }
     };
 
     PanController.prototype.onMouseMove = function (event) {
         event.preventDefault();
-        console.info('screen position', this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
-
         if (event.button === THREE.MOUSE.RIGHT) {
-            this.pan.end.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
+            var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
+            //console.info('ndc', ndc);
+            this.pan.end.copy(ndc);
         }
     };
 
@@ -2786,28 +2794,23 @@ FOUR.PanController = (function () {
     };
 
     PanController.prototype.update = function () {
-        var self = this;
-        if (self.enabled === false) {
+        if (this.enabled === false) {
             return;
-        } else if (this.active === true) {
-            self.pan.lookAt.copy(self.camera.getDirection());
-            //
-            self.pan.delta.subVectors(self.pan.end, self.pan.start);
-
-            // TODO add a scaling factor on the mouse delta
-            if (self.pan.delta.lengthSq() > self.EPS) {
-                // compute offset
-                self.pan.delta.multiplyScalar(self.pan.delta.length() * self.panSpeed);
-                self.offset.copy(self.pan.lookAt).cross(self.camera.up).setLength(self.pan.delta.x);
-                self.offset.add(self.pan.cameraUp.copy(self.camera.up).setLength(self.pan.delta.y));
-
-                // set the new camera position
-                self.camera.setPosition(self.offset);
-
+        } else if (this.mode === this.MODES.PAN) {
+            this.pan.delta.subVectors(this.pan.end, this.pan.start);
+            if (this.pan.delta.lengthSq() > this.EPS) {
+                var camera = this.viewport.getCamera();
+                // transform screen coordinates to world space coordinates
+                var start = this.getWorldSpaceCoordinates(this.pan.start, camera);
+                var end = this.getWorldSpaceCoordinates(this.pan.end, camera);
+                // translate world space coordinates to camera movement delta
+                var delta = end.sub(start).multiplyScalar(camera.getDistance() * this.panSpeed);
+                // add delta to camera position
+                var position = new THREE.Vector3().addVectors(delta, camera.position);
+                camera.setPosition(position, false);
                 // consume the change
-                //this.pan.start.copy(this.pan.end);
-
-                self.dispatchEvent(self.EVENT.UPDATE);
+                this.pan.start.copy(this.pan.end);
+                this.dispatchEvent(this.EVENT.UPDATE);
             }
         }
     };
@@ -2815,7 +2818,9 @@ FOUR.PanController = (function () {
     return PanController;
 
 }());
-;/**
+;
+
+/**
  * Camera rotation controller. Rotation can be performed using the middle
  * mouse button or the combination of a keypress, left mouse button down and
  * mouse move. A reimplementation of the THREE.OrbitController.
@@ -3148,7 +3153,9 @@ FOUR.RotateController = (function () {
     return RotateController;
 
 }());
-;FOUR.TourController = (function () {
+;
+
+FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
@@ -3373,7 +3380,9 @@ FOUR.RotateController = (function () {
     return TourController;
 
 }());
-;/**
+;
+
+/**
  * Trackball controller.
  * @todo listen for camera change on the viewport
  * @todo listen for domElement resize events
@@ -3955,7 +3964,9 @@ FOUR.TrackballController = (function () {
     return TrackballController;
 
 }());
-;/**
+;
+
+/**
  * @author arodic / https://github.com/arodic
  */
 /* jshint latedef:false, sub:true */
@@ -4961,7 +4972,9 @@ FOUR.TrackballController = (function () {
   THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
 }());
-;/**
+;
+
+/**
  * First person navigation controller. Uses keys to control movement in
  * cardinal directions. Assumes that +Z is up. Accepts a function that
  * maintains a minimum Z position.
@@ -5256,7 +5269,9 @@ FOUR.WalkController = (function () {
     return WalkController;
 
 }());
-;/**
+;
+
+/**
  * Camera zoom controller. Zooming can be performed using mouse wheel rotation
  * or the combination of a keypress, left mouse button down and mouse move.
  * Zooming is clamped to a maximum and minimum zoom distance when using a
@@ -5444,7 +5459,9 @@ FOUR.ZoomController = (function () {
     return ZoomController;
 
 }());
-;/**
+;
+
+/**
  * Camera path navigation utilities.
  * @constructor
  */
@@ -5519,7 +5536,9 @@ FOUR.PathPlanner = (function () {
     return PathPlanner;
 
 }());
-;/**
+;
+
+/**
  * Simulated annealing path planner.
  * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
  */
@@ -5766,7 +5785,9 @@ var SimulatedAnnealer = (function () {
     return SimulatedAnnealer;
 
 }());
-;/* jshint unused:false */
+;
+
+/* jshint unused:false */
 'use strict';
 
 /**
@@ -6130,7 +6151,9 @@ var TravellingSalesman = (function () {
     return TravellingSalesman;
 
 }());
-;FOUR.BoundingBox = (function () {
+;
+
+FOUR.BoundingBox = (function () {
 
   /**
    * Bounding box object.
@@ -6247,7 +6270,9 @@ var TravellingSalesman = (function () {
 
 }());
 
-;FOUR.MarqueeSelectionController = (function () {
+;
+
+FOUR.MarqueeSelectionController = (function () {
 
   /**
    * Marquees selection controller. A wholesale copy of Josh Staples' cached
@@ -6481,7 +6506,9 @@ var TravellingSalesman = (function () {
   return MarqueeSelectionController;
 
 }());
-;FOUR.SelectionCache = (function () {
+;
+
+FOUR.SelectionCache = (function () {
 
   function SelectionCache (context) {
     this._cachedVertices = [];
@@ -6597,7 +6624,9 @@ var TravellingSalesman = (function () {
   return SelectionCache;
 
 }());
-;FOUR.SelectionController = (function () {
+;
+
+FOUR.SelectionController = (function () {
 
   /**
    * Mouse based selection controller. The controller emits the following
@@ -6788,7 +6817,9 @@ var TravellingSalesman = (function () {
   return SelectionController;
 
 }());
-;FOUR.SelectionSet = (function () {
+;
+
+FOUR.SelectionSet = (function () {
 
   /**
    * Selection set. Emits 'update' event when the selection set changes.

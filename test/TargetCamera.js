@@ -25,7 +25,7 @@ describe('TargetCamera', function () {
         });
     });
     describe('default distance', function () {
-        it ('should be 1', function (done) {
+        it('should be 1', function (done) {
             var distance = camera.getDistance();
             expect(distance).toBe(1);
             done();
@@ -41,7 +41,7 @@ describe('TargetCamera', function () {
         });
     });
     describe('default offset', function () {
-        it ('should be 0,1,0', function (done) {
+        it('should be 0,1,0', function (done) {
             var offset = camera.getOffset();
             expect(offset.equals(new THREE.Vector3(0,1,0))).toBe(true);
             done();
@@ -105,7 +105,7 @@ describe('TargetCamera', function () {
 
     describe('set target', function () {
         var t = new THREE.Vector3(0,1,0);
-        it ('should not change the direction', function (done) {
+        it('should not change the direction', function (done) {
             before = camera.getDirection();
             camera.setTarget(t).then(function () {
                 after = camera.getDirection();
@@ -113,7 +113,7 @@ describe('TargetCamera', function () {
                 done();
             });
         });
-        it ('should not change the distance', function (done) {
+        it('should not change the distance', function (done) {
             before = camera.getDistance();
             camera.setTarget(t).then(function () {
                 after = camera.getDistance();
@@ -121,7 +121,7 @@ describe('TargetCamera', function () {
                 done();
             });
         });
-        it ('should update the position', function (done) {
+        it('should update the position', function (done) {
             before = camera.getPosition();
             camera.setTarget(t).then(function () {
                 after = camera.getPosition();
@@ -129,7 +129,7 @@ describe('TargetCamera', function () {
                 done();
             });
         });
-        it ('should update the target', function (done) {
+        it('should update the target', function (done) {
             camera.setTarget(t).then(function () {
                 after = camera.target;
                 expect(after.equals(t)).toBe(true);
@@ -143,7 +143,7 @@ describe('TargetCamera', function () {
 
     describe('set distance', function () {
         var d = 2;
-        it ('should not change the direction', function (done) {
+        it('should not change the direction', function (done) {
             before = camera.getDirection();
             camera.setDistance(d).then(function () {
                 after = camera.getDirection();
@@ -151,7 +151,7 @@ describe('TargetCamera', function () {
                 done();
             });
         });
-        it ('should change the distance', function (done) {
+        it('should change the distance', function (done) {
             before = camera.getDistance();
             camera.setDistance(d).then(function () {
                 after = camera.getDistance();
@@ -159,7 +159,7 @@ describe('TargetCamera', function () {
                 done();
             });
         });
-        it ('should change the position', function (done) {
+        it('should change the position', function (done) {
             before = camera.getPosition();
             camera.setDistance(d).then(function () {
                 after = camera.getPosition();
@@ -169,7 +169,7 @@ describe('TargetCamera', function () {
                 done();
             });
         });
-        it ('should not change the target', function (done) {
+        it('should not change the target', function (done) {
             before = camera.getTarget();
             camera.setDistance(d).then(function () {
                 after = camera.getTarget();
@@ -280,7 +280,7 @@ describe('TargetCamera', function () {
         });
 
         describe('top', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.TOP, bbox, false).then(function () {
                     d2 = camera.getDirection();
@@ -288,7 +288,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.TOP, bbox, false).then(function () {
@@ -301,7 +301,7 @@ describe('TargetCamera', function () {
             });
         });
         describe('front', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.FRONT, bbox, false).then(function () {
                     d2 = camera.getDirection();
@@ -309,7 +309,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.FRONT, bbox, false).then(function () {
@@ -322,7 +322,7 @@ describe('TargetCamera', function () {
             });
         });
         describe('right', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.RIGHT, bbox, false).then(function () {
                     d2 = camera.getDirection();
@@ -330,7 +330,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.RIGHT, bbox, false).then(function () {
@@ -343,7 +343,7 @@ describe('TargetCamera', function () {
             });
         });
         describe('back', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.BACK, bbox, false).then(function () {
                     d2 = camera.getDirection();
@@ -351,7 +351,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.BACK, bbox, false).then(function () {
@@ -364,7 +364,7 @@ describe('TargetCamera', function () {
             });
         });
         describe('left', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.LEFT, bbox, false).then(function () {
                     d2 = camera.getDirection();
@@ -372,7 +372,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.LEFT, bbox, false).then(function () {
@@ -385,7 +385,7 @@ describe('TargetCamera', function () {
             });
         });
         describe('bottom', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.BOTTOM, bbox, false).then(function () {
                     d2 = camera.getDirection();
@@ -393,7 +393,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.BOTTOM, bbox, false).then(function () {
@@ -406,7 +406,7 @@ describe('TargetCamera', function () {
             });
         });
         describe('perspective', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 camera.setView(camera.VIEWS.TOP, bbox, false).then(function () {
                     d1 = camera.getDirection();
                     camera.setView(camera.VIEWS.PERSPECTIVE, bbox, false).then(function () {
@@ -416,7 +416,7 @@ describe('TargetCamera', function () {
                     });
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.PERSPECTIVE, bbox, false).then(function () {
@@ -446,7 +446,7 @@ describe('TargetCamera', function () {
         });
 
         describe('top', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.TOP, bbox, true).then(function () {
                     d2 = camera.getDirection();
@@ -454,7 +454,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.TOP, bbox, true).then(function () {
@@ -466,8 +466,9 @@ describe('TargetCamera', function () {
                 });
             });
         });
+
         describe('front', function () {
-            it ('should update the direction', function (done) {
+            it('should update the direction', function (done) {
                 d1 = camera.getDirection();
                 camera.setView(camera.VIEWS.FRONT, bbox, true).then(function () {
                     d2 = camera.getDirection();
@@ -475,7 +476,7 @@ describe('TargetCamera', function () {
                     done();
                 });
             });
-            it ('should update the position', function (done) {
+            it('should update the position', function (done) {
                 p1 = camera.getPosition();
                 t1 = camera.getTarget();
                 camera.setView(camera.VIEWS.FRONT, bbox, true).then(function () {

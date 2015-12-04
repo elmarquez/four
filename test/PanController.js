@@ -7,8 +7,7 @@ describe('Pan controller', function () {
 
     var after, before, camera, ctrl, scene, viewport;
 
-    function MockCamera () {
-    }
+    function MockCamera () {}
 
     function MockViewport () {
         this.camera = new MockCamera();

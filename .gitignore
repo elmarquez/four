@@ -4,5 +4,6 @@
 *.zip
 
 .idea
+docs
 node_modules
 vendor

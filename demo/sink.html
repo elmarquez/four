@@ -82,7 +82,7 @@
         scene.lights.add(spotLight);
 
         // camera
-        camera = new FOUR.TargetCamera(45, domElement.clientWidth/domElement.clientHeight, 0.1, 1000);
+        camera = new FOUR.TargetCamera(45, domElement.clientWidth/domElement.clientHeight, 0.1, 10000);
         camera.name = 'camera1';
         camera.lookAt(0,0,0);
         scene.cameras.add(camera);
@@ -190,10 +190,7 @@
 
         setupKeyboardBindings();
         setupControllers();
-
-        viewport.render();
-        camera.zoomToFit(boundingBox, false);
-        viewport.render();
+        camera.zoomToFit(boundingBox, true);
 
         function getViewBoundingBox() {
             // FIXME
@@ -235,7 +232,7 @@
             // view controls
             Mousetrap.bind('f', function () {
                 var bbox = getViewBoundingBox();
-                camera.zoomToFit(bbox);
+                camera.zoomToFit(bbox, true);
             });
 
             Mousetrap.bind('1', function () {
@@ -298,10 +295,10 @@
             });
 
             Mousetrap.bind('=', function () {
-                camera.zoomIn();
+                camera.zoomIn(true);
             });
             Mousetrap.bind('-', function () {
-                camera.zoomOut();
+                camera.zoomOut(true);
             });
         }
 
@@ -334,12 +331,12 @@
                 console.info('hover', [event.object]);
             });
             select.addEventListener('lookat', function (event) {
-                camera.setLookAt(event.position);
+                camera.setLookAt(event.position, true);
             }, false);
             select.addEventListener('navigate', function (event) {
                 var bbox = new FOUR.BoundingBox();
                 bbox.update([event.object]);
-                camera.zoomToFit(bbox);
+                camera.zoomToFit(bbox, true);
             }, false);
 
             var orbit = new FOUR.MultiController({viewport:viewport});
