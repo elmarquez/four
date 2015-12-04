@@ -2,7 +2,17 @@
 
 var FOUR = FOUR || {};
 
-// default entity values
+/**
+ * Cursor styles.
+ * @type {{DEFAULT: string, PAN: string, ROTATE: string, ZOOM: string}}
+ */
+FOUR.CURSOR = {
+  DEFAULT: 'default',
+  PAN: 'all-scroll',
+  ROTATE: 'crosshair',
+  ZOOM: 'ns-resize'
+};
+
 FOUR.DEFAULT = {
   CAMERA: {
     far: 1000,
@@ -36,9 +46,7 @@ FOUR.VIEW = {
   LEFT: 'left',
   BOTTOM: 'bottom'
 };
-;
-
-FOUR.KeyInputController = (function () {
+;FOUR.KeyInputController = (function () {
 
   /**
    * Key input controller. Maintains the state of some key combinations and
@@ -121,9 +129,7 @@ FOUR.KeyInputController = (function () {
   return KeyInputController;
 
 }());
-;
-
-FOUR.Scene = (function () {
+;FOUR.Scene = (function () {
 
     /**
      * Scene with predefined layers.
@@ -229,9 +235,7 @@ FOUR.Scene = (function () {
 
     return Scene;
 
-}());;
-
-FOUR.TargetCamera = (function () {
+}());;FOUR.TargetCamera = (function () {
 
     /**
      * The camera has a default position of 0,-1,0, a default target of 0,0,0 and
@@ -655,9 +659,7 @@ FOUR.TargetCamera = (function () {
     return TargetCamera;
 
 }());
-;
-
-/**
+;/**
  * Renders the view from a scene camera to a canvas element in the DOM. Emits
  * the following change events:
  *
@@ -834,9 +836,7 @@ FOUR.Viewport3D = (function () {
   return Viewport3D;
 
 }());
-;
-
-FOUR.ViewAxis = (function () {
+;FOUR.ViewAxis = (function () {
 
     function ViewAxis (config) {
         THREE.EventDispatcher.call(this);
@@ -1120,9 +1120,7 @@ FOUR.ViewAxis = (function () {
     return ViewAxis;
 
 }());
-;
-
-FOUR.Viewcube = (function () {
+;FOUR.Viewcube = (function () {
 
     /**
      * View orientation controller.
@@ -1843,9 +1841,7 @@ FOUR.Viewcube = (function () {
     return Viewcube;
 
 }());
-;
-
-/**
+;/**
  * The look controller rotates the view around the current camera position,
  * emulating a first person view.
  *
@@ -1996,9 +1992,7 @@ FOUR.LookController = (function () {
 	return LookController;
 
 }());
-;
-
-FOUR.MultiController = (function () {
+;FOUR.MultiController = (function () {
 
     /**
      * Multiple interaction controller.
@@ -2067,9 +2061,7 @@ FOUR.MultiController = (function () {
     return MultiController;
 
 }());
-;
-
-/**
+;/**
  * A reimplementation of the THREE.OrbitController.
  * @see http://threejs.org/examples/js/controls/OrbitControls.js
  * @todo add key/RMB combo
@@ -2652,9 +2644,7 @@ FOUR.OrbitController = (function () {
 	return OrbitController;
 
 }());
-;
-
-/**
+;/**
  * Camera pan controller. Panning can be performed using the right mouse button
  * or the combination of a keypress, left mouse button down and mouse move.
  */
@@ -2685,7 +2675,6 @@ FOUR.PanController = (function () {
             ZOOM: 3
         };
 
-        self.active = false;
         self.domElement = config.domElement || config.viewport.domElement;
         self.dynamicDampingFactor = 0.2;
         self.enabled = false;
@@ -2763,7 +2752,6 @@ FOUR.PanController = (function () {
     PanController.prototype.onMouseDown = function (event) {
         event.preventDefault();
         if (event.button === THREE.MOUSE.RIGHT) {
-            this.active = true;
             this.domElement.style.cursor = this.CURSOR.PAN;
             this.mode = this.MODES.PAN;
             var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
@@ -2784,8 +2772,7 @@ FOUR.PanController = (function () {
 
     PanController.prototype.onMouseUp = function (event) {
         event.preventDefault();
-        if (this.active === true) {
-            this.active = false;
+        if (this.mode === this.MODES.PAN) {
             this.domElement.style.cursor = this.CURSOR.DEFAULT;
             this.mode = this.MODES.NONE;
             this.pan.delta.set(0,0);
@@ -2818,9 +2805,7 @@ FOUR.PanController = (function () {
     return PanController;
 
 }());
-;
-
-/**
+;/**
  * Camera rotation controller. Rotation can be performed using the middle
  * mouse button or the combination of a keypress, left mouse button down and
  * mouse move. A reimplementation of the THREE.OrbitController.
@@ -3153,9 +3138,7 @@ FOUR.RotateController = (function () {
     return RotateController;
 
 }());
-;
-
-FOUR.TourController = (function () {
+;FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
@@ -3262,8 +3245,8 @@ FOUR.TourController = (function () {
     TourController.prototype.navigate = function (i) {
         var self = this;
         var feature = self.path[i];
-        self.camera.setTarget(feature.x, feature.y, feature.z);
-        // TODO zoom to fit object
+        self.camera.setTarget(new THREE.Vector3(feature.x, feature.y, feature.z), true);
+        // TODO zoom to fit object 
     };
 
     /**
@@ -3380,9 +3363,7 @@ FOUR.TourController = (function () {
     return TourController;
 
 }());
-;
-
-/**
+;/**
  * Trackball controller.
  * @todo listen for camera change on the viewport
  * @todo listen for domElement resize events
@@ -3964,9 +3945,7 @@ FOUR.TrackballController = (function () {
     return TrackballController;
 
 }());
-;
-
-/**
+;/**
  * @author arodic / https://github.com/arodic
  */
 /* jshint latedef:false, sub:true */
@@ -4972,9 +4951,7 @@ FOUR.TrackballController = (function () {
   THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
 }());
-;
-
-/**
+;/**
  * First person navigation controller. Uses keys to control movement in
  * cardinal directions. Assumes that +Z is up. Accepts a function that
  * maintains a minimum Z position.
@@ -5269,9 +5246,7 @@ FOUR.WalkController = (function () {
     return WalkController;
 
 }());
-;
-
-/**
+;/**
  * Camera zoom controller. Zooming can be performed using mouse wheel rotation
  * or the combination of a keypress, left mouse button down and mouse move.
  * Zooming is clamped to a maximum and minimum zoom distance when using a
@@ -5459,9 +5434,7 @@ FOUR.ZoomController = (function () {
     return ZoomController;
 
 }());
-;
-
-/**
+;/**
  * Camera path navigation utilities.
  * @constructor
  */
@@ -5536,9 +5509,7 @@ FOUR.PathPlanner = (function () {
     return PathPlanner;
 
 }());
-;
-
-/**
+;/**
  * Simulated annealing path planner.
  * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
  */
@@ -5785,9 +5756,7 @@ var SimulatedAnnealer = (function () {
     return SimulatedAnnealer;
 
 }());
-;
-
-/* jshint unused:false */
+;/* jshint unused:false */
 'use strict';
 
 /**
@@ -6151,9 +6120,7 @@ var TravellingSalesman = (function () {
     return TravellingSalesman;
 
 }());
-;
-
-FOUR.BoundingBox = (function () {
+;FOUR.BoundingBox = (function () {
 
   /**
    * Bounding box object.
@@ -6270,9 +6237,7 @@ FOUR.BoundingBox = (function () {
 
 }());
 
-;
-
-FOUR.MarqueeSelectionController = (function () {
+;FOUR.MarqueeSelectionController = (function () {
 
   /**
    * Marquees selection controller. A wholesale copy of Josh Staples' cached
@@ -6506,9 +6471,7 @@ FOUR.MarqueeSelectionController = (function () {
   return MarqueeSelectionController;
 
 }());
-;
-
-FOUR.SelectionCache = (function () {
+;FOUR.SelectionCache = (function () {
 
   function SelectionCache (context) {
     this._cachedVertices = [];
@@ -6624,9 +6587,7 @@ FOUR.SelectionCache = (function () {
   return SelectionCache;
 
 }());
-;
-
-FOUR.SelectionController = (function () {
+;FOUR.SelectionController = (function () {
 
   /**
    * Mouse based selection controller. The controller emits the following
@@ -6817,9 +6778,7 @@ FOUR.SelectionController = (function () {
   return SelectionController;
 
 }());
-;
-
-FOUR.SelectionSet = (function () {
+;FOUR.SelectionSet = (function () {
 
   /**
    * Selection set. Emits 'update' event when the selection set changes.
