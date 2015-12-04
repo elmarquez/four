@@ -6,6 +6,7 @@
     "Davis Marques <dmarques@unimelb.edu.au>"
   ],
   "license": "MIT",
+  "main": "dist/four.js",
   "ignore": [
     ".bowerrc",
     ".gitignore",
@@ -19,9 +20,9 @@
     "test"
   ],
   "dependencies": {
-    "three.js": "0.72.0",
-    "tween.js": "tweenjs#~16.3.1",
-    "bluebird": "~3.0.6"
+    "bluebird": "~3.0.6",
+    "three.js": "0.73.0",
+    "tween.js": "tweenjs#~16.3.1"
   },
   "devDependencies": {
     "angular": "~1.4.6",

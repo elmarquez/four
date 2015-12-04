@@ -5,7 +5,7 @@
     <title>FOUR - Demos</title>
 
     <!-- fonts -->
-    <link href='https://fonts.googleapis.com/css?family=Abril+Fatface' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>
 
     <!-- vendor -->
     <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
@@ -21,16 +21,20 @@
 
     <style>
         body {
-            background-color: #484848;
+            background-color: black;
             color: #272822;
             font-family: 'Helvetica Neue', Helvetica, Arial;
             font-size: 13px;
             line-height: 17px;
             margin: 0;
+            overflow: hidden;
             padding: 0;
         }
         .brand {
-            font-family: 'Abril Fatface', cursive;
+            font-family: Montserrat, sans-serif;
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 3px;
             padding-top: 60px;
         }
         .footer {
@@ -88,19 +92,22 @@
         <div class="inset">
             <h1 class="brand">FOUR</h1>
             <ul class="submenu">
-                <li class="heading">Controllers</li>
-                <li><a href="controllers/orbit.html" target="vp">Orbit</a></li>
-                <li><a href="controllers/firstperson.html" target="vp">First Person</a></li>
-                <li><a href="controllers/pan.html" target="vp">Pan</a></li>
-                <li><a href="controllers/rotate.html" target="vp">Rotate</a></li>
-                <li><a href="controllers/zoom.html" target="vp">Zoom</a></li>
-                <li><a href="controllers/selection.html" target="vp">Selection</a></li>
-                <li><a href="controllers/look.html" target="vp">Look</a></li>
-                <li><a href="controllers/walk.html" target="vp">Walk</a></li>
+                <li class="heading">Navigation</li>
+                <li><a href="navigation/firstperson.html" target="vp">First Person</a></li>
+                <li><a href="navigation/look.html" target="vp">Look</a></li>
+                <li><a href="navigation/orbit.html" target="vp">Orbit</a></li>
+                <li><a href="navigation/pan.html" target="vp">Pan</a></li>
+                <li><a href="navigation/rotate.html" target="vp">Rotate</a></li>
+                <li><a href="navigation/walk.html" target="vp">Walk</a></li>
+                <li><a href="navigation/zoom.html" target="vp">Zoom</a></li>
 
                 <li class="heading">Path Planning</li>
                 <li><a href="path/genetic.html" target="vp">Genetic</a></li>
                 <li><a href="path/sa.html" target="vp">Simulated Annealing</a></li>
+
+                <li class="heading">Selection</li>
+                <li><a href="selection/selection.html" target="vp">Selection</a></li>
+                <li><a href="selection/marquee.html" target="vp">Marquee Selection</a></li>
 
                 <li class="heading">Helpers</li>
                 <li><a href="helpers/viewaxis.html" target="vp">View Axis</a></li>

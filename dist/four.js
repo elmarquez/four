@@ -2,124 +2,7 @@
 
 var FOUR = FOUR || {};
 
-FOUR.BoundingBox = (function () {
-
-  /**
-   * Bounding box object.
-   * @param {String} name Bounding box name
-   * @constructor
-   */
-  function BoundingBox (name) {
-    THREE.Object3D.call(this);
-    this.depth = 0;
-    this.envelope = null;
-    this.height = 0;
-    this.name = name;
-    this.width = 0;
-    this.visible = false;
-    this.reset();
-  }
-
-  BoundingBox.prototype = Object.create(THREE.Object3D.prototype);
-
-  BoundingBox.prototype.constructor = BoundingBox;
-
-  BoundingBox.prototype.getCenter = function () {
-    return this.position;
-  };
-
-  /**
-   * Get the bounding box envelope.
-   * @returns {THREE.Box3}
-   */
-  BoundingBox.prototype.getEnvelope = function () {
-    return this.envelope;
-  };
-
-  /**
-   * Get the bounding sphere radius.
-   * @returns {Number} Radius
-   */
-  BoundingBox.prototype.getRadius = function () {
-    return this.helper.geometry.boundingSphere.radius;
-  };
-
-  BoundingBox.prototype.getXDimension = function () {
-    return this.width;
-  };
-
-  BoundingBox.prototype.getYDimension = function () {
-    return this.depth;
-  };
-
-  BoundingBox.prototype.getZDimension = function () {
-    return this.height;
-  };
-
-  BoundingBox.prototype.reset = function () {
-    var self = this;
-    self.position.set(0,0,0);
-    self.envelope = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0));
-    self.children.forEach(function (obj) {
-      self.remove(obj);
-    });
-    var geom = new THREE.BoxGeometry(1, 1, 1);
-    var mesh = new THREE.Mesh(geom);
-    self.helper = new THREE.BoxHelper(mesh);
-  };
-
-  /**
-   * Toggle visibility.
-   */
-  BoundingBox.prototype.toggleVisibility = function () {
-    var self = this;
-    self.visible = !self.visible;
-  };
-
-  /**
-   * Update the bounding box geometry and position.
-   * @param {Array} objects List of scene objects
-   */
-  BoundingBox.prototype.update = function (objects) {
-    //console.log('bounding box update');
-    var self = this;
-    // reset values to base case
-    self.reset();
-    // update the bounding box geometry
-    if (objects && objects.length > 0) {
-      // set the starting envelope to be the first object
-      self.envelope.setFromObject(objects[0]);
-      // expand the envelope to accommodate the remaining objects
-      objects.forEach(function (obj) {
-        var objEnv = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0));
-        objEnv.setFromObject(obj);
-        self.envelope.union(objEnv);
-      });
-      // bounding box dimensions
-      self.width = self.envelope.max.x - self.envelope.min.x;
-      self.depth = self.envelope.max.y - self.envelope.min.y;
-      self.height = self.envelope.max.z - self.envelope.min.z;
-      // create a mesh to represent the bounding box volume
-      var geom = new THREE.BoxGeometry(self.width, self.depth, self.height);
-      var mesh = new THREE.Mesh(geom);
-      self.helper = new THREE.BoxHelper(mesh);
-      self.add(self.helper);
-    } else {
-      self.visible = false;
-    }
-    self.position.set(
-        self.envelope.min.x + (self.width / 2),
-        self.envelope.min.y + (self.depth / 2),
-        self.envelope.min.z + (self.height / 2)
-    );
-    //console.dir(self);
-  };
-
-  return BoundingBox;
-
-}());
-
-;// default entity values
+// default entity values
 FOUR.DEFAULT = {
   CAMERA: {
     far: 1000,
@@ -342,208 +225,7 @@ FOUR.VIEW = {
 
     return Scene;
 
-}());;FOUR.SelectionSet = (function () {
-
-  /**
-   * Selection set. Emits 'update' event when the selection set changes.
-   * @param {Object} config Configuration
-   * @constructor
-   */
-  function SelectionSet (config) {
-    THREE.EventDispatcher.call(this);
-    config = config || {};
-    var self = this;
-    self.boundingBox = new FOUR.BoundingBox(); // TODO update the bounding box when the selection set changes
-    self.count = 0;
-    self.name = 'default-selection-set';
-    self.selectedColor = 0xff5a00;
-    self.selection = {};
-    Object.keys(config).forEach(function (key) {
-      self[key] = config[key];
-    });
-  }
-
-  SelectionSet.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-  SelectionSet.prototype.constructor = SelectionSet;
-
-  /**
-   * Add object to the selection set.
-   * @param {THREE.Object3D} obj Scene object
-   * @param {Function} filter Selection filter
-   * @param {Boolean} update Emit update event
-   */
-  SelectionSet.prototype.add = function (obj, filter, update) {
-    if (!obj) {
-      return;
-    }
-    var self = this;
-    filter = filter || self.defaultFilter;
-    if (filter(obj)) {
-      self.selection[obj.uuid] = obj;
-      self.select(obj);
-    }
-    self.count = Object.keys(self.selection).length;
-    if (update && update === true) {
-      self.dispatchEvent({type:'update'});
-    }
-  };
-
-  /**
-   * Add all objects to the selection set.
-   * @param {Array} objects List of intersecting scene objects
-   */
-  SelectionSet.prototype.addAll = function (objects) {
-    if (!objects || objects.length < 1) {
-      return;
-    }
-    var self = this;
-    objects.forEach(function (obj) {
-      self.add(obj, null, false);
-    });
-    self.dispatchEvent({type:'update'});
-  };
-
-  /**
-   * Default object filter.
-   * @returns {Boolean} True
-   */
-  SelectionSet.prototype.defaultFilter = function () {
-    return true;
-  };
-
-  /**
-   * Change the object's visual state to deselected.
-   * @param {Object3D} obj Scene object
-   * TODO remove this or provide a user definable function
-   */
-  SelectionSet.prototype.deselect = function (obj) {
-    if (obj.userData.hasOwnProperty('color')) {
-      obj.material.color.set(obj.userData.color);
-      obj.userData.color = null;
-    }
-  };
-
-  /**
-   * Get bounding box for all selected objects.
-   */
-  SelectionSet.prototype.getBoundingBox = function () {
-    var self = this;
-    var objs = self.getObjects();
-    var bbox = new FOUR.BoundingBox();
-    bbox.name = self.name + '-bounding-box';
-    bbox.update(objs);
-    return bbox;
-  };
-
-  /**
-   * Get the list of selected scene objects.
-   * @returns {Array} Objects
-   */
-  SelectionSet.prototype.getObjects = function () {
-    var objects = [], self = this;
-    Object.keys(self.selection).forEach(function (key) {
-      objects.push(self.selection[key]);
-    });
-    return objects;
-  };
-
-  /**
-   * Remove object from the selection set.
-   * @param {Object3D} obj Scene object
-   * @param {Boolean} update Emit update event
-   */
-  SelectionSet.prototype.remove = function (obj, update) {
-    var self = this;
-    self.deselect(obj);
-    delete self.selection[obj.uuid];
-    self.count = Object.keys(self.selection).length;
-    if (update && update === true) {
-      self.dispatchEvent({type:'update'});
-    }
-  };
-
-  /**
-   * Remove all objects from the selection set. If a list of objects is not
-   * provided then remove all objects from the selection set.
-   * @param {Array} objects List of scene objects
-   */
-  SelectionSet.prototype.removeAll = function (objects) {
-    var self = this;
-    if (!objects) {
-      // remove everything
-      Object.keys(self.selection).forEach(function (uuid) {
-        self.remove(self.selection[uuid], false);
-      });
-    } else if (objects.length > 0) {
-      // remove the specified objects
-      objects.forEach(function (obj) {
-        self.remove(obj, false);
-      });
-    } else {
-      // do nothing
-      return;
-    }
-    self.dispatchEvent({type:'update'});
-  };
-
-  /**
-   * Change the object's visual state to selected.
-   * @param {Object3D} obj Scene object
-   * TODO remove this or provide a user definable function
-   */
-  SelectionSet.prototype.select = function (obj) {
-    var self = this;
-    // TODO it should never be the case that we select non-geometric objects, but ...
-    if (obj.material && obj.material.color) {
-      obj.userData.color = new THREE.Color(obj.material.color.r, obj.material.color.g, obj.material.color.b);
-      obj.material.color.set(self.selectedColor);
-    }
-  };
-
-  /**
-   * Toggle entity selection state.
-   * @param {Array} objects List of intersecting scene objects
-   */
-  SelectionSet.prototype.toggle = function (objects) {
-    if (!objects || !Array.isArray(objects)){
-      return;
-    }
-    var self = this;
-    var selected = objects.reduce(function (map, obj) {
-      map[obj.uuid] = obj;
-      return map;
-    }, {});
-    if (Object.keys(selected).length > 0) {
-      // remove all objects that are not in the selection list
-      Object.keys(self.selection).forEach(function (uuid) {
-        if (!selected[uuid]) {
-          self.remove(self.selection[uuid], false);
-        }
-      });
-      // toggle the selection state for all remaining objects
-      Object.keys(selected).forEach(function (uuid) {
-        if (self.selection[uuid]) {
-          self.remove(self.selection[uuid], false);
-        } else {
-          self.add(selected[uuid], null, false);
-        }
-      });
-    } else {
-      // if no objects were intersected, then remove all selections
-      var objs = Object.keys(self.selection).reduce(function (list, uuid) {
-        list.push(self.selection[uuid]);
-        return list;
-      }, []);
-      self.removeAll(objs);
-    }
-    self.dispatchEvent({type:'update'});
-  };
-
-  return SelectionSet;
-
-}());
-;FOUR.TargetCamera = (function () {
+}());;FOUR.TargetCamera = (function () {
 
     /**
      * The camera has a default position of 0,-1,0, a default target of 0,0,0 and
@@ -555,8 +237,6 @@ FOUR.VIEW = {
         THREE.PerspectiveCamera.call(this);
         var self = this;
 
-        self.MAXIMUM_DISTANCE = 10000;
-        self.MINIMUM_DISTANCE = 1;
         self.VIEWS = {
             TOP: 0,
             LEFT: 1,
@@ -929,7 +609,7 @@ FOUR.VIEW = {
         var distance = this.getDistance() / this.ZOOM_FACTOR, offset, position, self = this;
         animate = animate || false;
         // ensure that the distance is never less than the minimum
-        distance = distance <= this.MINIMUM_DISTANCE ? this.MINIMUM_DISTANCE : distance;
+        distance = distance <= this.near ? this.near : distance;
         if (animate) {
             offset = this.getOffset();
             offset.setLength(distance);
@@ -948,8 +628,8 @@ FOUR.VIEW = {
      */
     TargetCamera.prototype.zoomOut = function (animate) {
         var distance = this.getDistance() * this.ZOOM_FACTOR, offset, position, self = this;
-        // ensure that the distance is never greater than the maximum
-        distance = distance >= this.MAXIMUM_DISTANCE ? this.MAXIMUM_DISTANCE : distance;
+        // ensure that the distance is never greater than the far clipping plane
+        distance = distance >= this.far ? this.far: distance;
         animate = animate || false;
         if (animate) {
             offset = this.getOffset();
@@ -986,6 +666,183 @@ FOUR.VIEW = {
     };
 
     return TargetCamera;
+
+}());
+;/**
+ * Renders the view from a scene camera to a canvas element in the DOM. Emits
+ * the following change events:
+ *
+ *  backgroundChange:
+ *  cameraChange:
+ *  controllerChange: active controller changed
+ */
+FOUR.Viewport3D = (function () {
+
+  /**
+   * Viewport3D constructor.
+   * @param {Object} config Configuration
+   * @constructor
+   */
+  function Viewport3D(config) {
+    THREE.EventDispatcher.call(this);
+    config = config || {};
+    var self = this;
+    self.EVENT = {
+      BACKGROUND_CHANGE: {type:'background-change'},
+      CAMERA_CHANGE: {type:'camera-change'},
+      CONTROLLER_CHANGE: {type:'controller-change'}
+    };
+    self.backgroundColor = config.backgroundColor || new THREE.Color(0x000, 1.0);
+    self.camera = config.camera;
+    self.clock = new THREE.Clock();
+    self.continuousUpdate = false;
+    self.controller = null; // the active controller
+    self.controllers = {};
+    self.delta = 0;
+    self.domElement = config.domElement;
+    self.listeners = {};
+    self.renderer = new THREE.WebGLRenderer({antialias: true});
+    self.renderer.setClearColor(self.backgroundColor);
+    self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
+    self.renderer.shadowMap.enabled = true;
+    self.scene = config.scene;
+    // add the viewport to the DOM
+    self.domElement.appendChild(self.renderer.domElement);
+    // listen for events
+    self.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self));
+    self.scene.addEventListener('update', self.render.bind(self), false);
+    window.addEventListener('resize', self.onWindowResize.bind(self), false);
+    Object.keys(config).forEach(function (key) {
+      self[key] = config[key];
+    });
+  }
+
+  Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  Viewport3D.prototype.constructor = Viewport3D;
+
+  /**
+   * Add controller to viewport.
+   * @param {FOUR.Controller} controller Controller
+   * @param {String} name Name
+   */
+  Viewport3D.prototype.addController = function (controller, name) {
+    this.controllers[name] = controller;
+  };
+
+  /**
+   * Get the viewport camera.
+   * @returns {THREE.Camera}
+   */
+  Viewport3D.prototype.getCamera = function () {
+    return this.camera;
+  };
+
+  /**
+   * Get the viewport scene.
+   * @returns {THREE.Scene}
+   */
+  Viewport3D.prototype.getScene = function () {
+    return this.scene;
+  };
+
+  /**
+   * Handle context menu event.
+   * @param {Object} event Mouse event
+   */
+  Viewport3D.prototype.onContextMenu = function (event) {
+    event.preventDefault();
+  };
+
+  /**
+   * Handle window resize event.
+   */
+  Viewport3D.prototype.onWindowResize = function () {
+    var ctrl, self = this;
+    var height = self.domElement.clientHeight;
+    var width = self.domElement.clientWidth;
+    self.camera.aspect = width / height;
+    self.camera.updateProjectionMatrix();
+    Object.keys(self.controllers).forEach(function (key) {
+      ctrl = self.controllers[key];
+      if (typeof ctrl.handleResize === 'function') {
+        ctrl.handleResize();
+      }
+    });
+    self.renderer.setSize(width, height);
+    self.render();
+  };
+
+  /**
+   * Render the viewport once.
+   */
+  Viewport3D.prototype.render = function () {
+    console.info('render');
+    this.renderer.render(this.scene, this.camera);
+  };
+
+  /**
+   * Set the active viewport controller.
+   * @param {String} name Controller name
+   */
+  Viewport3D.prototype.setActiveController = function (name) {
+    var self = this;
+    if (self.controller) {
+      self.controller.disable();
+      self.controller.removeEventListener(self.render);
+    }
+    console.info('Set active viewport controller to', name);
+    self.controller = self.controllers[name];
+    self.controller.addEventListener('update', self.render.bind(self), false);
+    self.controller.enable();
+    self.dispatchEvent(self.EVENT.CONTROLLER_CHANGE);
+  };
+
+  /**
+   * Set viewport background color.
+   * @param {THREE.Color} color Color
+   */
+  Viewport3D.prototype.setBackgroundColor = function (color) {
+    var self = this;
+    self.background = color;
+    self.renderer.setClearColor(self.backgroundColor);
+    self.dispatchEvent(self.EVENT.BACKGROUND_CHANGE);
+    self.render();
+  };
+
+  /**
+   * Set the viewport camera.
+   * @param {THREE.Camera} camera Camera
+   */
+  Viewport3D.prototype.setCamera = function (camera) {
+    var self = this;
+    self.camera = camera;
+    self.camera.aspect = self.domElement.clientWidth / self.domElement.clientHeight;
+    self.camera.updateProjectionMatrix();
+    self.dispatchEvent(self.EVENT.CAMERA_CHANGE);
+    self.render();
+  };
+
+  /**
+   * Update the controller and global tween state.
+   * @param {Boolean} force Force update
+   */
+  Viewport3D.prototype.update = function (force) {
+    var self = this;
+    if (self.continuousUpdate || (force && force === true)) {
+      // enqueue next update
+      requestAnimationFrame(self.update.bind(self));
+      // update tween state
+      TWEEN.update();
+      // update controller state
+      if (self.controller) {
+        self.delta = self.clock.getDelta();
+        self.controller.update(self.delta);
+      }
+    }
+  };
+
+  return Viewport3D;
 
 }());
 ;FOUR.ViewAxis = (function () {
@@ -1991,183 +1848,6 @@ FOUR.VIEW = {
     };
 
     return Viewcube;
-
-}());
-;/**
- * Renders the view from a scene camera to a canvas element in the DOM. Emits
- * the following change events:
- *
- *  backgroundChange:
- *  cameraChange:
- *  controllerChange: active controller changed
- */
-FOUR.Viewport3D = (function () {
-
-  /**
-   * Viewport3D constructor.
-   * @param {Object} config Configuration
-   * @constructor
-   */
-  function Viewport3D(config) {
-    THREE.EventDispatcher.call(this);
-    config = config || {};
-    var self = this;
-    self.EVENT = {
-      BACKGROUND_CHANGE: {type:'background-change'},
-      CAMERA_CHANGE: {type:'camera-change'},
-      CONTROLLER_CHANGE: {type:'controller-change'}
-    };
-    self.backgroundColor = config.backgroundColor || new THREE.Color(0x000, 1.0);
-    self.camera = config.camera;
-    self.clock = new THREE.Clock();
-    self.continuousUpdate = false;
-    self.controller = null; // the active controller
-    self.controllers = {};
-    self.delta = 0;
-    self.domElement = config.domElement;
-    self.listeners = {};
-    self.renderer = new THREE.WebGLRenderer({antialias: true});
-    self.renderer.setClearColor(self.backgroundColor);
-    self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
-    self.renderer.shadowMap.enabled = true;
-    self.scene = config.scene;
-    // add the viewport to the DOM
-    self.domElement.appendChild(self.renderer.domElement);
-    // listen for events
-    self.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self));
-    self.scene.addEventListener('update', self.render.bind(self), false);
-    window.addEventListener('resize', self.onWindowResize.bind(self), false);
-    Object.keys(config).forEach(function (key) {
-      self[key] = config[key];
-    });
-  }
-
-  Viewport3D.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-  Viewport3D.prototype.constructor = Viewport3D;
-
-  /**
-   * Add controller to viewport.
-   * @param {FOUR.Controller} controller Controller
-   * @param {String} name Name
-   */
-  Viewport3D.prototype.addController = function (controller, name) {
-    this.controllers[name] = controller;
-  };
-
-  /**
-   * Get the viewport camera.
-   * @returns {THREE.Camera}
-   */
-  Viewport3D.prototype.getCamera = function () {
-    return this.camera;
-  };
-
-  /**
-   * Get the viewport scene.
-   * @returns {THREE.Scene}
-   */
-  Viewport3D.prototype.getScene = function () {
-    return this.scene;
-  };
-
-  /**
-   * Handle context menu event.
-   * @param {Object} event Mouse event
-   */
-  Viewport3D.prototype.onContextMenu = function (event) {
-    event.preventDefault();
-  };
-
-  /**
-   * Handle window resize event.
-   */
-  Viewport3D.prototype.onWindowResize = function () {
-    var ctrl, self = this;
-    var height = self.domElement.clientHeight;
-    var width = self.domElement.clientWidth;
-    self.camera.aspect = width / height;
-    self.camera.updateProjectionMatrix();
-    Object.keys(self.controllers).forEach(function (key) {
-      ctrl = self.controllers[key];
-      if (typeof ctrl.handleResize === 'function') {
-        ctrl.handleResize();
-      }
-    });
-    self.renderer.setSize(width, height);
-    self.render();
-  };
-
-  /**
-   * Render the viewport once.
-   */
-  Viewport3D.prototype.render = function () {
-    console.info('render');
-    this.renderer.render(this.scene, this.camera);
-  };
-
-  /**
-   * Set the active viewport controller.
-   * @param {String} name Controller name
-   */
-  Viewport3D.prototype.setActiveController = function (name) {
-    var self = this;
-    if (self.controller) {
-      self.controller.disable();
-      self.controller.removeEventListener(self.render);
-    }
-    console.info('Set active viewport controller to', name);
-    self.controller = self.controllers[name];
-    self.controller.addEventListener('update', self.render.bind(self), false);
-    self.controller.enable();
-    self.dispatchEvent(self.EVENT.CONTROLLER_CHANGE);
-  };
-
-  /**
-   * Set viewport background color.
-   * @param {THREE.Color} color Color
-   */
-  Viewport3D.prototype.setBackgroundColor = function (color) {
-    var self = this;
-    self.background = color;
-    self.renderer.setClearColor(self.backgroundColor);
-    self.dispatchEvent(self.EVENT.BACKGROUND_CHANGE);
-    self.render();
-  };
-
-  /**
-   * Set the viewport camera.
-   * @param {THREE.Camera} camera Camera
-   */
-  Viewport3D.prototype.setCamera = function (camera) {
-    var self = this;
-    self.camera = camera;
-    self.camera.aspect = self.domElement.clientWidth / self.domElement.clientHeight;
-    self.camera.updateProjectionMatrix();
-    self.dispatchEvent(self.EVENT.CAMERA_CHANGE);
-    self.render();
-  };
-
-  /**
-   * Update the controller and global tween state.
-   * @param {Boolean} force Force update
-   */
-  Viewport3D.prototype.update = function (force) {
-    var self = this;
-    if (self.continuousUpdate || (force && force === true)) {
-      // enqueue next update
-      requestAnimationFrame(self.update.bind(self));
-      // update tween state
-      TWEEN.update();
-      // update controller state
-      if (self.controller) {
-        self.delta = self.clock.getDelta();
-        self.controller.update(self.delta);
-      }
-    }
-  };
-
-  return Viewport3D;
 
 }());
 ;/**
@@ -3464,197 +3144,6 @@ FOUR.RotateController = (function () {
     });
 
     return RotateController;
-
-}());
-;FOUR.SelectionController = (function () {
-
-  /**
-   * Mouse based selection controller. The controller emits the following
-   * selection events:
-   *
-   * add    - add one or more objects to the selection set
-   * hover  - mouse over one or more objects
-   * remove - remove one or more objects from the selection set
-   * toggle - toggle the selection state for one or more objects
-   *
-   * The controller emits the following camera realted events:
-   *
-   * lookat    - look at the specified point
-   * settarget - move the camera target to the specified point
-   *
-   * @param {Object} config Configuration
-   * @constructor
-   */
-  function SelectionController (config) {
-    THREE.EventDispatcher.call(this);
-    config = config || {};
-    var self = this;
-
-    self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
-    self.MOUSE_STATE = {DOWN: 0, UP: 1};
-    self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
-
-    self.domElement = config.viewport.domElement;
-    self.enabled = false;
-    self.filter = function () { return true; };
-    self.filters = {};
-    self.intersects = [];
-    self.listeners = {};
-    self.modifiers = {};
-    self.mouse = {
-      end: new THREE.Vector2(),
-      start: new THREE.Vector2(),
-      state: self.MOUSE_STATE.UP
-    };
-    self.raycaster = new THREE.Raycaster();
-    self.timeout = null;
-    self.viewport = config.viewport;
-
-    Object.keys(self.KEY).forEach(function (key) {
-      self.modifiers[self.KEY[key]] = false;
-    });
-  }
-
-  SelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-  SelectionController.prototype.contextMenu = function (event) {
-    event.preventDefault();
-  };
-
-  SelectionController.prototype.disable = function () {
-    var self = this;
-    self.enabled = false;
-    Object.keys(self.listeners).forEach(function (key) {
-      var listener = self.listeners[key];
-      listener.element.removeEventListener(listener.event, listener.fn);
-    });
-  };
-
-  SelectionController.prototype.enable = function () {
-    var self = this;
-    function addListener(element, event, fn) {
-      self.listeners[event] = {
-        element: element,
-        event: event,
-        fn: fn.bind(self)
-      };
-      element.addEventListener(event, self.listeners[event].fn, false);
-    }
-    addListener(self.viewport.domElement, 'contextmenu', self.onContextMenu);
-    addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
-    addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
-    addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
-    addListener(window, 'keydown', self.onKeyDown);
-    addListener(window, 'keyup', self.onKeyUp);
-    self.enabled = true;
-  };
-
-  SelectionController.prototype.getSelected = function () {
-    // update the picking ray with the camera and mouse position
-    this.raycaster.setFromCamera(this.mouse.end, this.viewport.camera);
-    // calculate objects intersecting the picking ray
-    this.intersects = this.raycaster.intersectObjects(this.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
-    // update the selection set using only the nearest selected object
-    return this.intersects && this.intersects.length > 0 ? this.intersects[0] : null;
-  };
-
-  SelectionController.prototype.onContextMenu = function () {};
-
-  SelectionController.prototype.onDoubleClick = function () {
-    var selected = this.getSelected();
-    if (selected) {
-      // CTRL double click rotates the camera toward the selected point
-      if (this.modifiers[this.KEY.CTRL]) {
-        this.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
-      }
-      // double click navigates the camera to the selected point
-      else {
-        this.dispatchEvent({type:'settarget', position:selected.point, object:selected.object});
-      }
-    }
-  };
-
-  SelectionController.prototype.onKeyDown = function (event) {
-    if (!this.enabled) {
-      return;
-    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
-      this.modifiers[event.keyCode] = true;
-    }
-  };
-
-  SelectionController.prototype.onKeyUp = function (event) {
-    if (!this.enabled) {
-      return;
-    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
-      this.modifiers[event.keyCode] = false;
-    }
-  };
-
-  SelectionController.prototype.onMouseDown = function (event) {
-    event.preventDefault();
-    if (this.enabled && event.button === THREE.MOUSE.LEFT) {
-      this.mouse.state = this.MOUSE_STATE.DOWN;
-      // calculate mouse position in normalized device coordinates (-1 to +1)
-      this.mouse.start.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
-      this.mouse.start.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
-      this.mouse.end.copy(this.mouse.start);
-    }
-  };
-
-  SelectionController.prototype.onMouseMove = function (event) {
-    if (this.enabled && this.mouse.state === this.MOUSE_STATE.DOWN) {
-      // calculate mouse position in normalized device coordinates (-1 to +1)
-      this.mouse.end.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
-      this.mouse.end.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
-      // on mouse over object
-      // this.dispatchEvent({type:'hover',items:objs});
-    }
-  };
-
-  SelectionController.prototype.onMouseUp = function (event) {
-    var self = this;
-    event.preventDefault();
-    if (self.enabled) {
-      self.mouse.state = self.MOUSE_STATE.UP;
-      if (self.timeout !== null) {
-        // handle double click event
-        clearTimeout(self.timeout);
-        self.timeout = null;
-        self.onDoubleClick();
-      } else {
-        // handle single click event
-        self.timeout = setTimeout(function () {
-          clearTimeout(self.timeout);
-          self.timeout = null;
-          self.onSingleClick();
-        }, self.SINGLE_CLICK_TIMEOUT);
-      }
-    }
-  };
-
-  SelectionController.prototype.onSingleClick = function () {
-    var selected = this.getSelected();
-    if (selected) {
-      // add objects
-      if (this.modifiers[this.KEY.SHIFT] === true) {
-        this.dispatchEvent({type:'add', object: selected.object});
-      }
-      // remove objects
-      else if (this.modifiers[this.KEY.ALT] === true) {
-        this.dispatchEvent({type:'remove', object: selected.object});
-      }
-      // toggle selection state
-      else {
-        this.dispatchEvent({type:'toggle', object: selected.object});
-      }
-    }
-  };
-
-  SelectionController.prototype.setFilter = function () {};
-
-  SelectionController.prototype.update = function () {}; // do nothing
-
-  return SelectionController;
 
 }());
 ;FOUR.TourController = (function () {
@@ -6637,5 +6126,864 @@ var TravellingSalesman = (function () {
     };
 
     return TravellingSalesman;
+
+}());
+;FOUR.BoundingBox = (function () {
+
+  /**
+   * Bounding box object.
+   * @param {String} name Bounding box name
+   * @constructor
+   */
+  function BoundingBox (name) {
+    THREE.Object3D.call(this);
+    this.depth = 0;
+    this.envelope = null;
+    this.height = 0;
+    this.name = name;
+    this.width = 0;
+    this.visible = false;
+    this.reset();
+  }
+
+  BoundingBox.prototype = Object.create(THREE.Object3D.prototype);
+
+  BoundingBox.prototype.constructor = BoundingBox;
+
+  BoundingBox.prototype.getCenter = function () {
+    return this.position;
+  };
+
+  /**
+   * Get the bounding box envelope.
+   * @returns {THREE.Box3}
+   */
+  BoundingBox.prototype.getEnvelope = function () {
+    return this.envelope;
+  };
+
+  /**
+   * Get the bounding sphere radius.
+   * @returns {Number} Radius
+   */
+  BoundingBox.prototype.getRadius = function () {
+    return this.helper.geometry.boundingSphere.radius;
+  };
+
+  BoundingBox.prototype.getXDimension = function () {
+    return this.width;
+  };
+
+  BoundingBox.prototype.getYDimension = function () {
+    return this.depth;
+  };
+
+  BoundingBox.prototype.getZDimension = function () {
+    return this.height;
+  };
+
+  BoundingBox.prototype.reset = function () {
+    var self = this;
+    self.position.set(0,0,0);
+    self.envelope = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0));
+    self.children.forEach(function (obj) {
+      self.remove(obj);
+    });
+    var geom = new THREE.BoxGeometry(1, 1, 1);
+    var mesh = new THREE.Mesh(geom);
+    self.helper = new THREE.BoxHelper(mesh);
+  };
+
+  /**
+   * Toggle visibility.
+   */
+  BoundingBox.prototype.toggleVisibility = function () {
+    var self = this;
+    self.visible = !self.visible;
+  };
+
+  /**
+   * Update the bounding box geometry and position.
+   * @param {Array} objects List of scene objects
+   */
+  BoundingBox.prototype.update = function (objects) {
+    //console.log('bounding box update');
+    var self = this;
+    // reset values to base case
+    self.reset();
+    // update the bounding box geometry
+    if (objects && objects.length > 0) {
+      // set the starting envelope to be the first object
+      self.envelope.setFromObject(objects[0]);
+      // expand the envelope to accommodate the remaining objects
+      objects.forEach(function (obj) {
+        var objEnv = new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0));
+        objEnv.setFromObject(obj);
+        self.envelope.union(objEnv);
+      });
+      // bounding box dimensions
+      self.width = self.envelope.max.x - self.envelope.min.x;
+      self.depth = self.envelope.max.y - self.envelope.min.y;
+      self.height = self.envelope.max.z - self.envelope.min.z;
+      // create a mesh to represent the bounding box volume
+      var geom = new THREE.BoxGeometry(self.width, self.depth, self.height);
+      var mesh = new THREE.Mesh(geom);
+      self.helper = new THREE.BoxHelper(mesh);
+      self.add(self.helper);
+    } else {
+      self.visible = false;
+    }
+    self.position.set(
+        self.envelope.min.x + (self.width / 2),
+        self.envelope.min.y + (self.depth / 2),
+        self.envelope.min.z + (self.height / 2)
+    );
+    //console.dir(self);
+  };
+
+  return BoundingBox;
+
+}());
+
+;FOUR.MarqueeSelectionController = (function () {
+
+  /**
+   * Marquees selection controller. A wholesale copy of Josh Staples' cached
+   * marquee selection implementation.
+   * @see http://blog.tempt3d.com/2013/12/cached-marquee-selection-with-threejs.html
+   * @see http://tempt3d.com/webgl-code-samples/canvas-interaction/marquee-select-with-cache.html
+   * @param {Object} config Configuration
+   * @constructor
+   */
+  function MarqueeSelectionController (config) {
+    THREE.EventDispatcher.call(this);
+    config = config || {};
+    var self = this;
+
+    self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+    self.MOUSE_STATE = {DOWN: 0, UP: 1};
+
+    self.cache = new FOUR.SelectionCache(); // FIXME wants 'context' object
+    self.domElement = config.viewport.domElement;
+    self.enabled = false;
+    self.filter = function () { return true; };
+    self.filters = {};
+    self.intersects = [];
+    self.listeners = {};
+    self.marquee = document.getElementById('marquee');
+    self.modifiers = {};
+    self.mouse = {
+      end: new THREE.Vector2(),
+      start: new THREE.Vector2(),
+      state: self.MOUSE_STATE.UP
+    };
+    self.offset = {};
+    self.raycaster = new THREE.Raycaster();
+    self.timeout = null;
+    self.viewport = config.viewport;
+
+    Object.keys(self.KEY).forEach(function (key) {
+      self.modifiers[self.KEY[key]] = false;
+    });
+  }
+
+  MarqueeSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  MarqueeSelectionController.prototype.contextMenu = function (event) {
+    event.preventDefault();
+  };
+
+  MarqueeSelectionController.prototype.disable = function () {
+    var self = this;
+    self.enabled = false;
+    Object.keys(self.listeners).forEach(function (key) {
+      var listener = self.listeners[key];
+      listener.element.removeEventListener(listener.event, listener.fn);
+    });
+  };
+
+  MarqueeSelectionController.prototype.enable = function () {
+    var self = this;
+    self.offset.x = self.domElement.clientLeft;
+    self.offset.y = self.domElement.clientTop;
+    function addListener(element, event, fn) {
+      self.listeners[event] = {
+        element: element,
+        event: event,
+        fn: fn.bind(self)
+      };
+      element.addEventListener(event, self.listeners[event].fn, false);
+    }
+    addListener(self.viewport.domElement, 'contextmenu', self.onContextMenu);
+    addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
+    addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
+    addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
+    addListener(window, 'keydown', self.onKeyDown);
+    addListener(window, 'keyup', self.onKeyUp);
+    self.enabled = true;
+  };
+
+  MarqueeSelectionController.prototype.findBounds = function (pos1, pos2) {
+    // calculating the origin and vector.
+    var origin = {}, delta = {};
+
+    if (pos1.y < pos2.y) {
+      origin.y = pos1.y;
+      delta.y = pos2.y - pos1.y;
+    } else {
+      origin.y = pos2.y;
+      delta.y = pos1.y - pos2.y;
+    }
+
+    if (pos1.x < pos2.x) {
+      origin.x = pos1.x;
+      delta.x = pos2.x - pos1.x;
+    } else {
+      origin.x = pos2.x;
+      delta.x = pos1.x - pos2.x;
+    }
+    return ({origin: origin, delta: delta});
+  };
+
+  MarqueeSelectionController.prototype.findCubesByVertices = function (location) {
+    var currentMouse = {},
+      mouseInitialDown = {},
+      units,
+      bounds,
+      inside = false,
+      selectedUnits = [],
+      dupeCheck = {};
+
+    currentMouse.x = location.x;
+    currentMouse.y = location.y;
+
+    mouseInitialDown.x = (this.mouseDownCoords.x - this.offset.x);
+    mouseInitialDown.y = (this.mouseDownCoords.y - this.offset.y);
+
+    units = this.context.cache.getUnitVertCoordinates();
+    bounds = this.findBounds(currentMouse, this.mouseDownCoords);
+
+    for (var i = 0; i < units.length; i++) {
+      inside = this.withinBounds(units[i].pos, bounds);
+      if(inside && (dupeCheck[units[i].id] === undefined)) {
+        selectedUnits.push(units[i]);
+        dupeCheck[units[i].name] = true;
+      }
+    }
+    return selectedUnits;
+  };
+
+  MarqueeSelectionController.prototype.onContextMenu = function () {};
+
+  MarqueeSelectionController.prototype.onKeyDown = function (event) {
+    // TODO add, remove elements from selection set depending on pressed keys
+  };
+
+  MarqueeSelectionController.prototype.onKeyUp = function (event) {};
+
+  MarqueeSelectionController.prototype.onMouseDown = function (event) {
+    event.preventDefault();
+    var pos = {};
+    this.mouseDown = true;
+    this.mouseDownCoords = { x: event.clientX, y: event.clientY };
+    // adjust the mouse select
+    pos.x = ((event.clientX - this.offset.x) / this.domElement.clientWidth) * 2 -1;
+    pos.y = -((event.clientY - this.offset.y) / this.domElement.clientHeight) * 2 + 1;
+    var vector = new THREE.Vector3(pos.x, pos.y, 1);
+    this.context.projector.unprojectVector(vector, this.context.cameras.liveCam);
+  };
+
+  MarqueeSelectionController.prototype.onMouseMove = function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    // make sure we are in a select mode.
+    if(this.mouseDown){
+      this.marquee.fadeIn();
+      var pos = {};
+      pos.x = event.clientX - this.mouseDownCoords.x;
+      pos.y = event.clientY - this.mouseDownCoords.y;
+      // square variations
+      // (0,0) origin is the TOP LEFT pixel of the canvas.
+      //
+      //  1 | 2
+      // ---.---
+      //  4 | 3
+      // there are 4 ways a square can be gestured onto the screen.  the following detects these four variations
+      // and creates/updates the CSS to draw the square on the screen
+      if (pos.x < 0 && pos.y < 0) {
+        this.marquee.css({left: event.clientX + 'px', width: -pos.x + 'px', top: event.clientY + 'px', height: -pos.y + 'px'});
+      } else if ( pos.x >= 0 && pos.y <= 0) {
+        this.marquee.css({left: this.mouseDownCoords.x + 'px',width: pos.x + 'px', top: event.clientY, height: -pos.y + 'px'});
+      } else if (pos.x >= 0 && pos.y >= 0) {
+        this.marquee.css({left: this.mouseDownCoords.x + 'px', width: pos.x + 'px', height: pos.y + 'px', top: this.mouseDownCoords.y + 'px'});
+      } else if (pos.x < 0 && pos.y >= 0) {
+        this.marquee.css({left: event.clientX + 'px', width: -pos.x + 'px', height: pos.y + 'px', top: this.mouseDownCoords.y + 'px'});
+      }
+      var selectedCubes = this.findCubesByVertices({x: event.clientX, y: event.clientY});
+      this.highlight(selectedCubes);
+    }
+  };
+
+  MarqueeSelectionController.prototype.onMouseUp = function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.resetMarquee();
+  };
+
+  MarqueeSelectionController.prototype.resetMarquee = function () {
+    this.mouseUp = true;
+    this.mouseDown = false;
+    this.marquee.fadeOut();
+    this.marquee.css({width: 0, height: 0});
+    this.mouseDownCoords = {};
+  };
+
+  MarqueeSelectionController.prototype.setFilter = function () {};
+
+  MarqueeSelectionController.prototype.update = function () {}; // do nothing
+
+  /**
+   * Checks to see if the unprojected vertex position is within the bounds of
+   * the marquee selection.
+   */
+  MarqueeSelectionController.prototype.withinBounds = function (pos, bounds) {
+    var ox = bounds.origin.x,
+      dx = bounds.origin.x + bounds.delta.x,
+      oy = bounds.origin.y,
+      dy = bounds.origin.y + bounds.delta.y;
+    if((pos.x >= ox) && (pos.x <= dx)) {
+      if((pos.y >= oy) && (pos.y <= dy)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  /**
+   *   Change a group of meshes to random colors.
+   */
+  MarqueeSelectionController.prototype.highlight = function (meshes) {
+    for (var i = 0; i < meshes.length; i++) {
+      meshes[i].mesh.material.color = this.randomColor();
+    }
+  };
+
+  /**
+   *  Create a random color
+   */
+  MarqueeSelectionController.prototype.randomColor = function () {
+    //cleverness via Paul Irish et al.  Thx Internets!
+    return new THREE.Color().setHex('0x' + ('000000' + Math.floor(Math.random()*16777215).toString(16)).slice(-6));
+  };
+
+  return MarqueeSelectionController;
+
+}());
+;FOUR.SelectionCache = (function () {
+
+  function SelectionCache (context) {
+    this._cachedVertices = [];
+    this._cachedCentroidPoints = [];
+    // dirty flag for when the camera or scene changes.
+    this._cameraProjectionDirty = true;
+    this._dirtyVerts = true;
+    // perhaps you'd like to use the centroids instead?!
+    this._dirtyCentroids = true;
+
+    // this is here so the user can turn the cache on/off via the browser
+    this.active = false;
+    this.context = context;
+    this.projScreenMatrix = new THREE.Matrix4();
+  }
+
+  SelectionCache.prototype.getCentroids = function () {
+    if (this._dirtyCentroids || this._cachedCentroidPoints.length === 0) {
+      this._cachedCentroidPoints = [];
+      this.setCentroidPoints();
+      this._dirtyCentroids = false;
+    }
+    return this._cachedCentroidPoints;
+  };
+
+  SelectionCache.prototype.getUnitVertCoordinates = function () {
+    if (this._dirtyVerts || this._cachedVertices.length === 0 || !this.active) {
+      this._cachedVertices = [];
+      this.setVerticeCache();
+      this._dirtyVerts = false;
+    }
+    return this._cachedVertices;
+  };
+
+  SelectionCache.prototype.setCentroidPoints = function () {
+    var units = [], verts = [], child, prevChild, unit, vector, pos, temp, i;
+    for (i = 0; i < this.context.collisions.length; i++) {
+      // child = this._threeJsContext._scene.children[i];
+      child.updateMatrixWorld();
+      unit = {};
+      vector = child.position.clone();
+
+      pos = this.toScreenXY(vector);
+      unit.pos = pos;
+
+      this._cachedCentroidPoints.push(unit);
+      prevChild = child.name;
+    }
+  };
+
+  SelectionCache.prototype.setDirty = function () {
+    this._dirtyVerts = true;
+    this._dirtyCentroids = true;
+    this._cameraProjectionDirty = true;
+
+    this._cachedVertices = [];
+    this._cachedCentroidPoints = [];
+  };
+
+  SelectionCache.prototype.setVerticeCache = function () {
+    var verts = [], child, unit, vector, pos, i, q;
+    for (i = 0; i < this.context.collisions.length; i++) {
+      child = this.context.collisions[i];
+      child.updateMatrixWorld();
+
+      // this is a silly way to list the potential vertices
+      // but this makes it easy to deselect some verts.
+      // this setup is only for cubes of course.  you could just reference the vertices in the geometry.
+      verts = [
+        child.geometry.vertices[0],
+        child.geometry.vertices[1],
+        child.geometry.vertices[2],
+        child.geometry.vertices[3],
+        child.geometry.vertices[4],
+        child.geometry.vertices[5],
+        child.geometry.vertices[6],
+        child.geometry.vertices[7]
+      ];
+
+      for (q = 0; q < verts.length; q++) {
+        unit = {};
+        vector = verts[q].clone();
+        vector.applyMatrix4(child.matrixWorld);
+
+        pos = this.toScreenXY(vector);
+
+        unit.id = child.id;
+        unit.pos = pos;
+        unit.mesh = child;
+
+        this._cachedVertices.push(unit);
+      }
+    }
+  };
+
+  /**
+   * Unprojects a position.
+   * @param pos
+   * @returns {{x: *, y: *}}
+   */
+  SelectionCache.prototype.toScreenXY = function (pos) {
+    if (this._cameraProjectionDirty || !this.active) {
+      this.projScreenMatrix.multiplyMatrices(this.context.cameras.liveCam.projectionMatrix, this.context.cameras.liveCam.matrixWorldInverse);
+      this._cameraProjectionDirty = false;
+    }
+    pos.applyProjection(this.projScreenMatrix);
+    return {
+      x: ( pos.x + 1 ) * this.context.jqContainer.width() / 2 + this.context.jqContainer.offset().left,
+      y: ( -pos.y + 1) * this.context.jqContainer.height() / 2 + this.context.jqContainer.offset().top
+    };
+  };
+
+  return SelectionCache;
+
+}());
+;FOUR.SelectionController = (function () {
+
+  /**
+   * Mouse based selection controller. The controller emits the following
+   * selection events:
+   *
+   * add    - add one or more objects to the selection set
+   * hover  - mouse over one or more objects
+   * remove - remove one or more objects from the selection set
+   * toggle - toggle the selection state for one or more objects
+   *
+   * The controller emits the following camera realted events:
+   *
+   * lookat    - look at the specified point
+   * settarget - move the camera target to the specified point
+   *
+   * @param {Object} config Configuration
+   * @constructor
+   */
+  function SelectionController (config) {
+    THREE.EventDispatcher.call(this);
+    config = config || {};
+    var self = this;
+
+    self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+    self.MOUSE_STATE = {DOWN: 0, UP: 1};
+    self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
+
+    self.domElement = config.viewport.domElement;
+    self.enabled = false;
+    self.filter = function () { return true; };
+    self.filters = {};
+    self.intersects = [];
+    self.listeners = {};
+    self.modifiers = {};
+    self.mouse = {
+      end: new THREE.Vector2(),
+      start: new THREE.Vector2(),
+      state: self.MOUSE_STATE.UP
+    };
+    self.raycaster = new THREE.Raycaster();
+    self.timeout = null;
+    self.viewport = config.viewport;
+
+    Object.keys(self.KEY).forEach(function (key) {
+      self.modifiers[self.KEY[key]] = false;
+    });
+  }
+
+  SelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  SelectionController.prototype.contextMenu = function (event) {
+    event.preventDefault();
+  };
+
+  SelectionController.prototype.disable = function () {
+    var self = this;
+    self.enabled = false;
+    Object.keys(self.listeners).forEach(function (key) {
+      var listener = self.listeners[key];
+      listener.element.removeEventListener(listener.event, listener.fn);
+    });
+  };
+
+  SelectionController.prototype.enable = function () {
+    var self = this;
+    function addListener(element, event, fn) {
+      self.listeners[event] = {
+        element: element,
+        event: event,
+        fn: fn.bind(self)
+      };
+      element.addEventListener(event, self.listeners[event].fn, false);
+    }
+    addListener(self.viewport.domElement, 'contextmenu', self.onContextMenu);
+    addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
+    addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
+    addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
+    addListener(window, 'keydown', self.onKeyDown);
+    addListener(window, 'keyup', self.onKeyUp);
+    self.enabled = true;
+  };
+
+  SelectionController.prototype.getSelected = function () {
+    // update the picking ray with the camera and mouse position
+    this.raycaster.setFromCamera(this.mouse.end, this.viewport.camera);
+    // calculate objects intersecting the picking ray
+    this.intersects = this.raycaster.intersectObjects(this.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
+    // update the selection set using only the nearest selected object
+    return this.intersects && this.intersects.length > 0 ? this.intersects[0] : null;
+  };
+
+  SelectionController.prototype.onContextMenu = function () {};
+
+  SelectionController.prototype.onDoubleClick = function () {
+    var selected = this.getSelected();
+    if (selected) {
+      // CTRL double click rotates the camera toward the selected point
+      if (this.modifiers[this.KEY.CTRL]) {
+        this.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
+      }
+      // double click navigates the camera to the selected point
+      else {
+        this.dispatchEvent({type:'settarget', position:selected.point, object:selected.object});
+      }
+    }
+  };
+
+  SelectionController.prototype.onKeyDown = function (event) {
+    if (!this.enabled) {
+      return;
+    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = true;
+    }
+  };
+
+  SelectionController.prototype.onKeyUp = function (event) {
+    if (!this.enabled) {
+      return;
+    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
+      this.modifiers[event.keyCode] = false;
+    }
+  };
+
+  SelectionController.prototype.onMouseDown = function (event) {
+    event.preventDefault();
+    if (this.enabled && event.button === THREE.MOUSE.LEFT) {
+      this.mouse.state = this.MOUSE_STATE.DOWN;
+      // calculate mouse position in normalized device coordinates (-1 to +1)
+      this.mouse.start.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
+      this.mouse.start.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
+      this.mouse.end.copy(this.mouse.start);
+    }
+  };
+
+  SelectionController.prototype.onMouseMove = function (event) {
+    if (this.enabled && this.mouse.state === this.MOUSE_STATE.DOWN) {
+      // calculate mouse position in normalized device coordinates (-1 to +1)
+      this.mouse.end.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
+      this.mouse.end.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
+      // on mouse over object
+      // this.dispatchEvent({type:'hover',items:objs});
+    }
+  };
+
+  SelectionController.prototype.onMouseUp = function (event) {
+    var self = this;
+    event.preventDefault();
+    if (self.enabled) {
+      self.mouse.state = self.MOUSE_STATE.UP;
+      if (self.timeout !== null) {
+        // handle double click event
+        clearTimeout(self.timeout);
+        self.timeout = null;
+        self.onDoubleClick();
+      } else {
+        // handle single click event
+        self.timeout = setTimeout(function () {
+          clearTimeout(self.timeout);
+          self.timeout = null;
+          self.onSingleClick();
+        }, self.SINGLE_CLICK_TIMEOUT);
+      }
+    }
+  };
+
+  SelectionController.prototype.onSingleClick = function () {
+    var selected = this.getSelected();
+    if (selected) {
+      // add objects
+      if (this.modifiers[this.KEY.SHIFT] === true) {
+        this.dispatchEvent({type:'add', object: selected.object});
+      }
+      // remove objects
+      else if (this.modifiers[this.KEY.ALT] === true) {
+        this.dispatchEvent({type:'remove', object: selected.object});
+      }
+      // toggle selection state
+      else {
+        this.dispatchEvent({type:'toggle', object: selected.object});
+      }
+    }
+  };
+
+  SelectionController.prototype.setFilter = function () {};
+
+  SelectionController.prototype.update = function () {}; // do nothing
+
+  return SelectionController;
+
+}());
+;FOUR.SelectionSet = (function () {
+
+  /**
+   * Selection set. Emits 'update' event when the selection set changes.
+   * @param {Object} config Configuration
+   * @constructor
+   */
+  function SelectionSet (config) {
+    THREE.EventDispatcher.call(this);
+    config = config || {};
+    var self = this;
+    self.boundingBox = new FOUR.BoundingBox(); // TODO update the bounding box when the selection set changes
+    self.count = 0;
+    self.name = 'default-selection-set';
+    self.selectedColor = 0xff5a00;
+    self.selection = {};
+    Object.keys(config).forEach(function (key) {
+      self[key] = config[key];
+    });
+  }
+
+  SelectionSet.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  SelectionSet.prototype.constructor = SelectionSet;
+
+  /**
+   * Add object to the selection set.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Function} filter Selection filter
+   * @param {Boolean} update Emit update event
+   */
+  SelectionSet.prototype.add = function (obj, filter, update) {
+    if (!obj) {
+      return;
+    }
+    var self = this;
+    filter = filter || self.defaultFilter;
+    if (filter(obj)) {
+      self.selection[obj.uuid] = obj;
+      self.select(obj);
+    }
+    self.count = Object.keys(self.selection).length;
+    if (update && update === true) {
+      self.dispatchEvent({type:'update'});
+    }
+  };
+
+  /**
+   * Add all objects to the selection set.
+   * @param {Array} objects List of intersecting scene objects
+   */
+  SelectionSet.prototype.addAll = function (objects) {
+    if (!objects || objects.length < 1) {
+      return;
+    }
+    var self = this;
+    objects.forEach(function (obj) {
+      self.add(obj, null, false);
+    });
+    self.dispatchEvent({type:'update'});
+  };
+
+  /**
+   * Default object filter.
+   * @returns {Boolean} True
+   */
+  SelectionSet.prototype.defaultFilter = function () {
+    return true;
+  };
+
+  /**
+   * Change the object's visual state to deselected.
+   * @param {Object3D} obj Scene object
+   * TODO remove this or provide a user definable function
+   */
+  SelectionSet.prototype.deselect = function (obj) {
+    if (obj.userData.hasOwnProperty('color')) {
+      obj.material.color.set(obj.userData.color);
+      obj.userData.color = null;
+    }
+  };
+
+  /**
+   * Get bounding box for all selected objects.
+   */
+  SelectionSet.prototype.getBoundingBox = function () {
+    var self = this;
+    var objs = self.getObjects();
+    var bbox = new FOUR.BoundingBox();
+    bbox.name = self.name + '-bounding-box';
+    bbox.update(objs);
+    return bbox;
+  };
+
+  /**
+   * Get the list of selected scene objects.
+   * @returns {Array} Objects
+   */
+  SelectionSet.prototype.getObjects = function () {
+    var objects = [], self = this;
+    Object.keys(self.selection).forEach(function (key) {
+      objects.push(self.selection[key]);
+    });
+    return objects;
+  };
+
+  /**
+   * Remove object from the selection set.
+   * @param {Object3D} obj Scene object
+   * @param {Boolean} update Emit update event
+   */
+  SelectionSet.prototype.remove = function (obj, update) {
+    var self = this;
+    self.deselect(obj);
+    delete self.selection[obj.uuid];
+    self.count = Object.keys(self.selection).length;
+    if (update && update === true) {
+      self.dispatchEvent({type:'update'});
+    }
+  };
+
+  /**
+   * Remove all objects from the selection set. If a list of objects is not
+   * provided then remove all objects from the selection set.
+   * @param {Array} objects List of scene objects
+   */
+  SelectionSet.prototype.removeAll = function (objects) {
+    var self = this;
+    if (!objects) {
+      // remove everything
+      Object.keys(self.selection).forEach(function (uuid) {
+        self.remove(self.selection[uuid], false);
+      });
+    } else if (objects.length > 0) {
+      // remove the specified objects
+      objects.forEach(function (obj) {
+        self.remove(obj, false);
+      });
+    } else {
+      // do nothing
+      return;
+    }
+    self.dispatchEvent({type:'update'});
+  };
+
+  /**
+   * Change the object's visual state to selected.
+   * @param {Object3D} obj Scene object
+   * TODO remove this or provide a user definable function
+   */
+  SelectionSet.prototype.select = function (obj) {
+    var self = this;
+    // TODO it should never be the case that we select non-geometric objects, but ...
+    if (obj.material && obj.material.color) {
+      obj.userData.color = new THREE.Color(obj.material.color.r, obj.material.color.g, obj.material.color.b);
+      obj.material.color.set(self.selectedColor);
+    }
+  };
+
+  /**
+   * Toggle entity selection state.
+   * @param {Array} objects List of intersecting scene objects
+   */
+  SelectionSet.prototype.toggle = function (objects) {
+    if (!objects || !Array.isArray(objects)){
+      return;
+    }
+    var self = this;
+    var selected = objects.reduce(function (map, obj) {
+      map[obj.uuid] = obj;
+      return map;
+    }, {});
+    if (Object.keys(selected).length > 0) {
+      // remove all objects that are not in the selection list
+      Object.keys(self.selection).forEach(function (uuid) {
+        if (!selected[uuid]) {
+          self.remove(self.selection[uuid], false);
+        }
+      });
+      // toggle the selection state for all remaining objects
+      Object.keys(selected).forEach(function (uuid) {
+        if (self.selection[uuid]) {
+          self.remove(self.selection[uuid], false);
+        } else {
+          self.add(selected[uuid], null, false);
+        }
+      });
+    } else {
+      // if no objects were intersected, then remove all selections
+      var objs = Object.keys(self.selection).reduce(function (list, uuid) {
+        list.push(self.selection[uuid]);
+        return list;
+      }, []);
+      self.removeAll(objs);
+    }
+    self.dispatchEvent({type:'update'});
+  };
+
+  return SelectionSet;
 
 }());

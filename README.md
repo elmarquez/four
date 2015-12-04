@@ -44,6 +44,9 @@ Start a web server and serve the demo application from the localhost:
 
     grunt serve
 
+Your default browser will open at the top level folder of the project. Select
+the 'demo' folder in the file listing.
+
 
 License
 -------
