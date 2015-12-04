@@ -237,6 +237,8 @@ FOUR.VIEW = {
         THREE.PerspectiveCamera.call(this);
         var self = this;
 
+        self.MAXIMUM_DISTANCE = far < 10000 ? far : 10000;
+        self.MINIMUM_DISTANCE = 1;
         self.VIEWS = {
             TOP: 0,
             LEFT: 1,
@@ -609,7 +611,7 @@ FOUR.VIEW = {
         var distance = this.getDistance() / this.ZOOM_FACTOR, offset, position, self = this;
         animate = animate || false;
         // ensure that the distance is never less than the minimum
-        distance = distance <= this.near ? this.near : distance;
+        distance = distance <= this.MINIMUM_DISTANCE ? this.MINIMUM_DISTANCE : distance;
         if (animate) {
             offset = this.getOffset();
             offset.setLength(distance);
@@ -629,7 +631,7 @@ FOUR.VIEW = {
     TargetCamera.prototype.zoomOut = function (animate) {
         var distance = this.getDistance() * this.ZOOM_FACTOR, offset, position, self = this;
         // ensure that the distance is never greater than the far clipping plane
-        distance = distance >= this.far ? this.far: distance;
+        distance = distance >= this.MAXIMUM_DISTANCE ? this.MAXIMUM_DISTANCE: distance;
         animate = animate || false;
         if (animate) {
             offset = this.getOffset();
@@ -2139,6 +2141,7 @@ FOUR.OrbitController = (function () {
 
 		//---------------------------------------------------------------------
 		// API
+
 		this.dollyIn = function (dollyScale) {
 			if (scope.camera instanceof THREE.PerspectiveCamera) {
 				scale /= dollyScale;
@@ -2676,6 +2679,12 @@ FOUR.PanController = (function () {
         self.KEY = {
             CTRL: 17
         };
+        self.MODES = {
+            NONE: 0,
+            PAN: 1,
+            ROTATE: 2,
+            ZOOM: 3
+        };
 
         self.active = false;
         self.camera = config.camera || config.viewport.camera;
@@ -2686,6 +2695,7 @@ FOUR.PanController = (function () {
         self.listeners = {};
         self.maxDistance = Infinity;
         self.minDistance = 1;
+        self.mode = self.MODES.NONE;
         self.offset = new THREE.Vector3();
         self.pan = {
             cameraUp: new THREE.Vector3(),
@@ -2695,7 +2705,7 @@ FOUR.PanController = (function () {
             start: new THREE.Vector3(),
             vector: new THREE.Vector2()
         };
-        self.panSpeed = 1;
+        self.panSpeed = 0.8;
         self.viewport = config.viewport;
 
         Object.keys(config).forEach(function (key) {
@@ -2727,8 +2737,6 @@ FOUR.PanController = (function () {
         addListener(self.domElement, 'mousedown', self.onMouseDown);
         addListener(self.domElement, 'mousemove', self.onMouseMove);
         addListener(self.domElement, 'mouseup', self.onMouseUp);
-        addListener(window, 'keydown', self.onKeyDown);
-        addListener(window, 'keyup', self.onKeyUp);
         self.enabled = true;
     };
 
@@ -2745,21 +2753,12 @@ FOUR.PanController = (function () {
         return this.pan.vector;
     };
 
-    PanController.prototype.onKeyDown = function (event) {
-        this.keydown = (event.keyCode === this.KEY.CTRL);
-    };
-
-    PanController.prototype.onKeyUp = function (event) {
-        if (event.keyCode === this.KEY.CTRL) {
-            this.keydown = false;
-        }
-    };
-
     PanController.prototype.onMouseDown = function (event) {
         event.preventDefault();
-        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.RIGHT) {
+        if (event.button === THREE.MOUSE.RIGHT) {
             this.active = true;
             this.domElement.style.cursor = this.CURSOR.PAN;
+            this.mode = this.MODES.PAN;
             this.pan.start.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
             this.pan.end.copy(this.pan.start);
             this.dispatchEvent(this.EVENT.START);
@@ -2768,7 +2767,9 @@ FOUR.PanController = (function () {
 
     PanController.prototype.onMouseMove = function (event) {
         event.preventDefault();
-        if ((this.keydown && event.button === THREE.MOUSE.LEFT) || event.button === THREE.MOUSE.RIGHT) {
+        console.info('screen position', this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
+
+        if (event.button === THREE.MOUSE.RIGHT) {
             this.pan.end.copy(this.getMouseOnScreen(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop));
         }
     };
@@ -2778,6 +2779,7 @@ FOUR.PanController = (function () {
         if (this.active === true) {
             this.active = false;
             this.domElement.style.cursor = this.CURSOR.DEFAULT;
+            this.mode = this.MODES.NONE;
             this.pan.delta.set(0,0);
             this.dispatchEvent(this.EVENT.END);
         }
@@ -2787,23 +2789,23 @@ FOUR.PanController = (function () {
         var self = this;
         if (self.enabled === false) {
             return;
-        }
-        if (this.active === true) {
-            self.pan.lookAt.subVectors(self.camera.position, self.camera.target);
-            // TODO add a scaling factor on the mouse delta
+        } else if (this.active === true) {
+            self.pan.lookAt.copy(self.camera.getDirection());
+            //
             self.pan.delta.subVectors(self.pan.end, self.pan.start);
+
+            // TODO add a scaling factor on the mouse delta
             if (self.pan.delta.lengthSq() > self.EPS) {
                 // compute offset
-                self.pan.delta.multiplyScalar(self.pan.lookAt.length() * self.panSpeed);
+                self.pan.delta.multiplyScalar(self.pan.delta.length() * self.panSpeed);
                 self.offset.copy(self.pan.lookAt).cross(self.camera.up).setLength(self.pan.delta.x);
                 self.offset.add(self.pan.cameraUp.copy(self.camera.up).setLength(self.pan.delta.y));
 
                 // set the new camera position
-                self.camera.position.add(self.offset);
-                self.camera.target.add(self.offset);
+                self.camera.setPosition(self.offset);
 
                 // consume the change
-                this.pan.start.copy(this.pan.end);
+                //this.pan.start.copy(this.pan.end);
 
                 self.dispatchEvent(self.EVENT.UPDATE);
             }
