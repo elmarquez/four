@@ -6284,10 +6284,11 @@ FOUR.BoundingBox = (function () {
 FOUR.MarqueeSelectionController = (function () {
 
   /**
-   * Marquee selection controller. A reimplementation of Josh Staples' cached
-   * marquee selection control.
-   * @see http://blog.tempt3d.com/2013/12/cached-marquee-selection-with-threejs.html
-   * @see http://tempt3d.com/webgl-code-samples/canvas-interaction/marquee-select-with-cache.html
+   * Marquee selection controller. On camera update, the controller filters the
+   * scene to get the set of objects that are inside the camera frustum. It then
+   * adds the projected screen coordinates for each object to a quadtree. When
+   * a marquee selection event occurs, we then search for objects by their
+   * screen coordinates.
    * @param {Object} config Configuration
    * @constructor
    */
@@ -6297,26 +6298,24 @@ FOUR.MarqueeSelectionController = (function () {
     var self = this;
 
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+    self.MODES = {ADD:0, REMOVE:1, SELECT:2};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
-    self.cache = new FOUR.SelectionCache({scene:config.viewport.scene, viewport:config.viewport});
     self.domElement = config.viewport.domElement;
     self.enabled = false;
     self.filter = function () { return true; };
     self.filters = {};
     self.frustum = new THREE.Frustum();
-    self.intersects = [];
     self.listeners = {};
     self.marquee = document.getElementById('marquee');
+    self.mode = self.MODES.SELECT;
     self.modifiers = {};
     self.mouse = {
       end: new THREE.Vector2(),
       start: new THREE.Vector2(),
       state: self.MOUSE_STATE.UP
     };
-    self.offset = {};
     self.quadtree = new Quadtree({height: 1, width: 1});
-    self.raycaster = new THREE.Raycaster();
     self.timeout = null;
     self.viewport = config.viewport;
 
@@ -6333,23 +6332,23 @@ FOUR.MarqueeSelectionController = (function () {
    * @see https://github.com/mrdoob/three.js/issues/1209
    * @see http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current-camera
    */
-  MarqueeSelectionController.prototype.buildCache = function () {
+  MarqueeSelectionController.prototype.buildQuadtree = function () {
     var self = this;
     // TODO defer this operation for some time period, to ensure that the camera has stopped moving
     // clear the current index
-    self.quadtree = new Quadtree({height: 1, width: 1});
+    self.quadtree = new Quadtree({height: 1, width: 1}); // TODO this depends on current mode
 
     // build a frustum for the current camera view
     var camera = self.viewport.getCamera();
-    //var matrix = new THREE.Matrix4().multiply(camera.projectionMatrix, camera.matrixWorldInverse);
-    //self.frustum.setFromMatrix(matrix);
+    var matrix = new THREE.Matrix4().multiply(camera.projectionMatrix, camera.matrixWorldInverse);
+    self.frustum.setFromMatrix(matrix);
 
     // alternate frustum construction approach
-    var cameraViewProjectionMatrix = new THREE.Matrix4();
-    camera.updateMatrixWorld(); // make sure the camera matrix is updated
-    camera.matrixWorldInverse.getInverse(camera.matrixWorld);
-    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    self.frustum.setFromMatrix(cameraViewProjectionMatrix);
+    //var cameraViewProjectionMatrix = new THREE.Matrix4();
+    //camera.updateMatrixWorld(); // make sure the camera matrix is updated
+    //camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+    //cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    //self.frustum.setFromMatrix(cameraViewProjectionMatrix);
 
     // traverse the scene and add all entities within the frustum to the index
     var total = 0;
@@ -6378,8 +6377,6 @@ FOUR.MarqueeSelectionController = (function () {
 
   MarqueeSelectionController.prototype.enable = function () {
     var self = this;
-    self.offset.x = self.domElement.clientLeft;
-    self.offset.y = self.domElement.clientTop;
     function addListener(element, event, fn) {
       self.listeners[event] = {
         element: element,
@@ -6393,21 +6390,8 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
-    self.buildCache();
+    self.buildQuadtree();
     self.enabled = true;
-  };
-
-  /**
-   * Transform screen coordinates to normalized device coordinates (0,0 to 1,1).
-   * @param {Number} x Screen X coordinate
-   * @param {Number} y Screen Y coordinate
-   * @param {Element} element DOM element
-   * @returns {THREE.Vector2}
-   */
-  MarqueeSelectionController.prototype.getNormalizedDeviceCoordinates = function (x, y, element) {
-    var nx = (x - element.clientLeft) / element.clientWidth;
-    var ny = (y - element.clientTop) / element.clientHeight;
-    return new THREE.Vector2(nx, ny);
   };
 
   /**
@@ -6427,7 +6411,7 @@ FOUR.MarqueeSelectionController = (function () {
    * Invalidate the cache when the camera position changes.
    */
   MarqueeSelectionController.prototype.onCameraMove = function () {
-    this.buildCache();
+    this.buildQuadtree();
   };
 
   MarqueeSelectionController.prototype.onContextMenu = function () {};
@@ -6470,7 +6454,7 @@ FOUR.MarqueeSelectionController = (function () {
         this.setMarqueePosition(this.mouse.end.x, this.mouse.end.y, width, height);
       }
       // update the selection set
-      this.updateSelection();
+      this.updateSelection(event.offsetX, event.offsetY);
     }
   };
 
@@ -6489,156 +6473,14 @@ FOUR.MarqueeSelectionController = (function () {
 
   MarqueeSelectionController.prototype.update = function () {}; // noop
 
-  MarqueeSelectionController.prototype.updateSelection = function () {
-    var selected = this.findObjectsByVertex({x: event.clientX, y: event.clientY});
-  };
-
-  /**
-   * Checks to see if the unprojected vertex position is within the bounds of
-   * the marquee selection.
-   */
-  MarqueeSelectionController.prototype.withinBounds = function (pos, bounds) {
-    var ox = bounds.origin.x,
-      dx = bounds.origin.x + bounds.delta.x,
-      oy = bounds.origin.y,
-      dy = bounds.origin.y + bounds.delta.y;
-    if((pos.x >= ox) && (pos.x <= dx)) {
-      if((pos.y >= oy) && (pos.y <= dy)) {
-        return true;
-      }
-    }
-    return false;
+  MarqueeSelectionController.prototype.updateSelection = function (x, y) {
+    // TODO handle add, remove selection actions
+    var selected = this.quadtree.colliding({x:x,y:y});
+    console.info('selected', selected);
+    this.dispatchEvent({type:'select', selection:selected});
   };
 
   return MarqueeSelectionController;
-
-}());
-;
-
-FOUR.SelectionCache = (function () {
-
-  function SelectionCache (config) {
-    var self = this;
-    self.CACHE_STRATEGY = {
-      CENTROID: 0,
-      VERTEX: 1
-    };
-
-    self._cachedVertices = [];
-    self._cachedCentroidPoints = [];
-    // dirty flag for when the camera or scene changes.
-    self._cameraProjectionDirty = true;
-    self._dirtyVerts = true;
-    // perhaps you'd like to use the centroids instead?!
-    self._dirtyCentroids = true;
-
-    self.projScreenMatrix = new THREE.Matrix4();
-    self.scene = config.scene || config.viewport.scene;
-
-    self.viewport = config.viewport;
-
-    Object.keys(config).forEach(function (key) {
-      self[key] = config[key];
-    });
-  }
-
-  SelectionCache.prototype.getCentroids = function () {
-    if (this._dirtyCentroids || this._cachedCentroidPoints.length === 0) {
-      this._cachedCentroidPoints = [];
-      this.setCentroidPoints();
-      this._dirtyCentroids = false;
-    }
-    return this._cachedCentroidPoints;
-  };
-
-  SelectionCache.prototype.getUnitVertCoordinates = function () {
-    if (this._dirtyVerts || this._cachedVertices.length === 0) {
-      this._cachedVertices = [];
-      this.setVertexCache();
-      this._dirtyVerts = false;
-    }
-    return this._cachedVertices;
-  };
-
-  SelectionCache.prototype.setCentroidPoints = function () {
-    var child, prevChild, unit, vector, pos, i;
-    for (i = 0; i < this.scene.model.length; i++) {
-      // child = this._threeJsContext._scene.children[i];
-      child.updateMatrixWorld();
-      unit = {};
-      vector = child.position.clone();
-
-      pos = this.toScreenXY(vector);
-      unit.pos = pos;
-
-      this._cachedCentroidPoints.push(unit);
-      prevChild = child.name;
-    }
-  };
-
-  SelectionCache.prototype.setDirty = function () {
-    this._dirtyVerts = true;
-    this._dirtyCentroids = true;
-    this._cameraProjectionDirty = true;
-
-    this._cachedVertices = [];
-    this._cachedCentroidPoints = [];
-  };
-
-  SelectionCache.prototype.setVertexCache = function () {
-    var verts = [], child, unit, vector, pos, i, q;
-    for (i = 0; i < this.scene.model.length; i++) {
-      child = this.scene.model[i];
-      child.updateMatrixWorld();
-
-      // this is a silly way to list the potential vertices
-      // but this makes it easy to deselect some verts.
-      // this setup is only for cubes of course.  you could just reference the vertices in the geometry.
-      verts = [
-        child.geometry.vertices[0],
-        child.geometry.vertices[1],
-        child.geometry.vertices[2],
-        child.geometry.vertices[3],
-        child.geometry.vertices[4],
-        child.geometry.vertices[5],
-        child.geometry.vertices[6],
-        child.geometry.vertices[7]
-      ];
-
-      for (q = 0; q < verts.length; q++) {
-        unit = {};
-        vector = verts[q].clone();
-        vector.applyMatrix4(child.matrixWorld);
-
-        pos = this.toScreenXY(vector);
-
-        unit.id = child.id;
-        unit.pos = pos;
-        unit.mesh = child;
-
-        this._cachedVertices.push(unit);
-      }
-    }
-  };
-
-  /**
-   * Unprojects a position.
-   * @param pos
-   * @returns {{x: *, y: *}}
-   */
-  SelectionCache.prototype.toScreenXY = function (pos) {
-    if (this._cameraProjectionDirty) {
-      this.projScreenMatrix.multiplyMatrices(this.context.cameras.liveCam.projectionMatrix, this.context.cameras.liveCam.matrixWorldInverse);
-      this._cameraProjectionDirty = false;
-    }
-    pos.applyProjection(this.projScreenMatrix);
-    return {
-      x: ( pos.x + 1 ) * this.context.jqContainer.width() / 2 + this.context.jqContainer.offset().left,
-      y: ( -pos.y + 1) * this.context.jqContainer.height() / 2 + this.context.jqContainer.offset().top
-    };
-  };
-
-  return SelectionCache;
 
 }());
 ;
