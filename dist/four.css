@@ -1,0 +1,18 @@
+
+/**
+ * Based on marquee selection by Josh Staples.
+ * @see http://tempt3d.com/webgl-code-samples/canvas-interaction/marquee-select-with-cache.html
+ */
+#marquee {
+    background-color: rgba(208, 255, 242, 0.5);
+    border: dotted 1px #9a9a9a;
+    height: 1px;
+    left: -10px;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+    position: absolute;
+    top: -10px;
+    width: 1px;
+    z-index: 999;
+}

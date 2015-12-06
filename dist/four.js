@@ -46,7 +46,9 @@ FOUR.VIEW = {
   LEFT: 'left',
   BOTTOM: 'bottom'
 };
-;FOUR.KeyInputController = (function () {
+;
+
+FOUR.KeyInputController = (function () {
 
   /**
    * Key input controller. Maintains the state of some key combinations and
@@ -129,7 +131,9 @@ FOUR.VIEW = {
   return KeyInputController;
 
 }());
-;FOUR.Scene = (function () {
+;
+
+FOUR.Scene = (function () {
 
     /**
      * Scene with predefined layers.
@@ -225,7 +229,7 @@ FOUR.VIEW = {
         return this.getLayerObjects('lights');
     };
 
-    Scene.prototype.getModelObject = function (name) {
+        Scene.prototype.getModelLayerObject = function (name) {
         return this.getLayerObject('model', name);
     };
 
@@ -235,7 +239,9 @@ FOUR.VIEW = {
 
     return Scene;
 
-}());;FOUR.TargetCamera = (function () {
+}());;
+
+FOUR.TargetCamera = (function () {
 
     /**
      * The camera has a default position of 0,-1,0, a default target of 0,0,0 and
@@ -659,7 +665,9 @@ FOUR.VIEW = {
     return TargetCamera;
 
 }());
-;/**
+;
+
+/**
  * Renders the view from a scene camera to a canvas element in the DOM. Emits
  * the following change events:
  *
@@ -768,7 +776,6 @@ FOUR.Viewport3D = (function () {
    * Render the viewport once.
    */
   Viewport3D.prototype.render = function () {
-    //console.info('render');
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -816,27 +823,32 @@ FOUR.Viewport3D = (function () {
 
   /**
    * Update the controller and global tween state.
-   * @param {Boolean} force Force update
    */
-  Viewport3D.prototype.update = function (force) {
+  Viewport3D.prototype.update = function () {
     var self = this;
-    if (self.continuousUpdate || (force && force === true)) {
-      // enqueue next update
+    if (self.continuousUpdate) {
+      self.updateOnce();
       requestAnimationFrame(self.update.bind(self));
-      // update tween state
-      TWEEN.update();
-      // update controller state
-      if (self.controller) {
-        self.delta = self.clock.getDelta();
-        self.controller.update(self.delta);
-      }
+    }
+  };
+
+  Viewport3D.prototype.updateOnce = function () {
+    var self = this;
+    // update tween state
+    TWEEN.update();
+    // update controller state
+    if (self.controller) {
+      self.delta = self.clock.getDelta();
+      self.controller.update(self.delta);
     }
   };
 
   return Viewport3D;
 
 }());
-;FOUR.ViewAxis = (function () {
+;
+
+FOUR.ViewAxis = (function () {
 
     function ViewAxis (config) {
         THREE.EventDispatcher.call(this);
@@ -1120,7 +1132,9 @@ FOUR.Viewport3D = (function () {
     return ViewAxis;
 
 }());
-;FOUR.Viewcube = (function () {
+;
+
+FOUR.Viewcube = (function () {
 
     /**
      * View orientation controller.
@@ -1841,7 +1855,9 @@ FOUR.Viewport3D = (function () {
     return Viewcube;
 
 }());
-;/**
+;
+
+/**
  * The look controller rotates the view around the current camera position,
  * emulating a first person view.
  *
@@ -1992,7 +2008,9 @@ FOUR.LookController = (function () {
 	return LookController;
 
 }());
-;FOUR.MultiController = (function () {
+;
+
+FOUR.MultiController = (function () {
 
     /**
      * Multiple interaction controller.
@@ -2061,7 +2079,9 @@ FOUR.LookController = (function () {
     return MultiController;
 
 }());
-;/**
+;
+
+/**
  * A reimplementation of the THREE.OrbitController.
  * @see http://threejs.org/examples/js/controls/OrbitControls.js
  * @todo add key/RMB combo
@@ -2644,7 +2664,9 @@ FOUR.OrbitController = (function () {
 	return OrbitController;
 
 }());
-;/**
+;
+
+/**
  * Camera pan controller. Panning can be performed using the right mouse button
  * or the combination of a keypress, left mouse button down and mouse move.
  */
@@ -2805,7 +2827,9 @@ FOUR.PanController = (function () {
     return PanController;
 
 }());
-;/**
+;
+
+/**
  * Camera rotation controller. Rotation can be performed using the middle
  * mouse button or the combination of a keypress, left mouse button down and
  * mouse move. A reimplementation of the THREE.OrbitController.
@@ -3138,7 +3162,9 @@ FOUR.RotateController = (function () {
     return RotateController;
 
 }());
-;FOUR.TourController = (function () {
+;
+
+FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
@@ -3246,7 +3272,7 @@ FOUR.RotateController = (function () {
         var self = this;
         var feature = self.path[i];
         self.camera.setTarget(new THREE.Vector3(feature.x, feature.y, feature.z), true);
-        // TODO zoom to fit object 
+        // TODO zoom to fit object
     };
 
     /**
@@ -3363,7 +3389,9 @@ FOUR.RotateController = (function () {
     return TourController;
 
 }());
-;/**
+;
+
+/**
  * Trackball controller.
  * @todo listen for camera change on the viewport
  * @todo listen for domElement resize events
@@ -3945,7 +3973,9 @@ FOUR.TrackballController = (function () {
     return TrackballController;
 
 }());
-;/**
+;
+
+/**
  * @author arodic / https://github.com/arodic
  */
 /* jshint latedef:false, sub:true */
@@ -4951,7 +4981,9 @@ FOUR.TrackballController = (function () {
   THREE.TransformControls.prototype.constructor = THREE.TransformControls;
 
 }());
-;/**
+;
+
+/**
  * First person navigation controller. Uses keys to control movement in
  * cardinal directions. Assumes that +Z is up. Accepts a function that
  * maintains a minimum Z position.
@@ -5246,7 +5278,9 @@ FOUR.WalkController = (function () {
     return WalkController;
 
 }());
-;/**
+;
+
+/**
  * Camera zoom controller. Zooming can be performed using mouse wheel rotation
  * or the combination of a keypress, left mouse button down and mouse move.
  * Zooming is clamped to a maximum and minimum zoom distance when using a
@@ -5434,7 +5468,9 @@ FOUR.ZoomController = (function () {
     return ZoomController;
 
 }());
-;/**
+;
+
+/**
  * Camera path navigation utilities.
  * @constructor
  */
@@ -5509,7 +5545,9 @@ FOUR.PathPlanner = (function () {
     return PathPlanner;
 
 }());
-;/**
+;
+
+/**
  * Simulated annealing path planner.
  * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
  */
@@ -5756,7 +5794,9 @@ var SimulatedAnnealer = (function () {
     return SimulatedAnnealer;
 
 }());
-;/* jshint unused:false */
+;
+
+/* jshint unused:false */
 'use strict';
 
 /**
@@ -6120,7 +6160,9 @@ var TravellingSalesman = (function () {
     return TravellingSalesman;
 
 }());
-;FOUR.BoundingBox = (function () {
+;
+
+FOUR.BoundingBox = (function () {
 
   /**
    * Bounding box object.
@@ -6237,11 +6279,13 @@ var TravellingSalesman = (function () {
 
 }());
 
-;FOUR.MarqueeSelectionController = (function () {
+;
+
+FOUR.MarqueeSelectionController = (function () {
 
   /**
-   * Marquees selection controller. A wholesale copy of Josh Staples' cached
-   * marquee selection implementation.
+   * Marquee selection controller. A reimplementation of Josh Staples' cached
+   * marquee selection control.
    * @see http://blog.tempt3d.com/2013/12/cached-marquee-selection-with-threejs.html
    * @see http://tempt3d.com/webgl-code-samples/canvas-interaction/marquee-select-with-cache.html
    * @param {Object} config Configuration
@@ -6255,11 +6299,12 @@ var TravellingSalesman = (function () {
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
-    self.cache = new FOUR.SelectionCache(); // FIXME wants 'context' object
+    self.cache = new FOUR.SelectionCache({scene:config.viewport.scene, viewport:config.viewport});
     self.domElement = config.viewport.domElement;
     self.enabled = false;
     self.filter = function () { return true; };
     self.filters = {};
+    self.frustum = new THREE.Frustum();
     self.intersects = [];
     self.listeners = {};
     self.marquee = document.getElementById('marquee');
@@ -6270,6 +6315,7 @@ var TravellingSalesman = (function () {
       state: self.MOUSE_STATE.UP
     };
     self.offset = {};
+    self.quadtree = new Quadtree({height: 1, width: 1});
     self.raycaster = new THREE.Raycaster();
     self.timeout = null;
     self.viewport = config.viewport;
@@ -6280,6 +6326,42 @@ var TravellingSalesman = (function () {
   }
 
   MarqueeSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  /**
+   * Build a quadtree from the set of objects that are contained within the
+   * camera frustum. Index each object by its projected screen coordinates.
+   * @see https://github.com/mrdoob/three.js/issues/1209
+   * @see http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current-camera
+   */
+  MarqueeSelectionController.prototype.buildCache = function () {
+    var self = this;
+    // TODO defer this operation for some time period, to ensure that the camera has stopped moving
+    // clear the current index
+    self.quadtree = new Quadtree({height: 1, width: 1});
+
+    // build a frustum for the current camera view
+    var camera = self.viewport.getCamera();
+    //var matrix = new THREE.Matrix4().multiply(camera.projectionMatrix, camera.matrixWorldInverse);
+    //self.frustum.setFromMatrix(matrix);
+
+    // alternate frustum construction approach
+    var cameraViewProjectionMatrix = new THREE.Matrix4();
+    camera.updateMatrixWorld(); // make sure the camera matrix is updated
+    camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    self.frustum.setFromMatrix(cameraViewProjectionMatrix);
+
+    // traverse the scene and add all entities within the frustum to the index
+    var total = 0;
+    self.viewport.getScene().getModelObjects().forEach(function (child) {
+      if (self.frustum.intersectsObject(child)) {
+        total += 1;
+        var p = self.getObjectScreenCoordinates(child);
+        self.quadtree.push({x: p.x, y: p.y, id: child.id});
+      }
+    });
+    console.info('Found %s objects in the view', total);
+  };
 
   MarqueeSelectionController.prototype.contextMenu = function (event) {
     event.preventDefault();
@@ -6306,63 +6388,46 @@ var TravellingSalesman = (function () {
       };
       element.addEventListener(event, self.listeners[event].fn, false);
     }
-    addListener(self.viewport.domElement, 'contextmenu', self.onContextMenu);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
+    self.buildCache();
     self.enabled = true;
   };
 
-  MarqueeSelectionController.prototype.findBounds = function (pos1, pos2) {
-    // calculating the origin and vector.
-    var origin = {}, delta = {};
-
-    if (pos1.y < pos2.y) {
-      origin.y = pos1.y;
-      delta.y = pos2.y - pos1.y;
-    } else {
-      origin.y = pos2.y;
-      delta.y = pos1.y - pos2.y;
-    }
-
-    if (pos1.x < pos2.x) {
-      origin.x = pos1.x;
-      delta.x = pos2.x - pos1.x;
-    } else {
-      origin.x = pos2.x;
-      delta.x = pos1.x - pos2.x;
-    }
-    return ({origin: origin, delta: delta});
+  /**
+   * Transform screen coordinates to normalized device coordinates (0,0 to 1,1).
+   * @param {Number} x Screen X coordinate
+   * @param {Number} y Screen Y coordinate
+   * @param {Element} element DOM element
+   * @returns {THREE.Vector2}
+   */
+  MarqueeSelectionController.prototype.getNormalizedDeviceCoordinates = function (x, y, element) {
+    var nx = (x - element.clientLeft) / element.clientWidth;
+    var ny = (y - element.clientTop) / element.clientHeight;
+    return new THREE.Vector2(nx, ny);
   };
 
-  MarqueeSelectionController.prototype.findCubesByVertices = function (location) {
-    var currentMouse = {},
-      mouseInitialDown = {},
-      units,
-      bounds,
-      inside = false,
-      selectedUnits = [],
-      dupeCheck = {};
+  /**
+   * @see http://zachberry.com/blog/tracking-3d-objects-in-2d-with-three-js/
+   * @param {THREE.Object3D} obj Object
+   * @returns {THREE.Vector2} Screen coordinates
+   */
+  MarqueeSelectionController.prototype.getObjectScreenCoordinates = function (obj) {
+    return new THREE.Vector2();
+  };
 
-    currentMouse.x = location.x;
-    currentMouse.y = location.y;
+  MarqueeSelectionController.prototype.hideMarquee = function () {
+    this.marquee.setAttribute('style', 'display:none;height:0;width:0;');
+  };
 
-    mouseInitialDown.x = (this.mouseDownCoords.x - this.offset.x);
-    mouseInitialDown.y = (this.mouseDownCoords.y - this.offset.y);
-
-    units = this.context.cache.getUnitVertCoordinates();
-    bounds = this.findBounds(currentMouse, this.mouseDownCoords);
-
-    for (var i = 0; i < units.length; i++) {
-      inside = this.withinBounds(units[i].pos, bounds);
-      if(inside && (dupeCheck[units[i].id] === undefined)) {
-        selectedUnits.push(units[i]);
-        dupeCheck[units[i].name] = true;
-      }
-    }
-    return selectedUnits;
+  /**
+   * Invalidate the cache when the camera position changes.
+   */
+  MarqueeSelectionController.prototype.onCameraMove = function () {
+    this.buildCache();
   };
 
   MarqueeSelectionController.prototype.onContextMenu = function () {};
@@ -6375,64 +6440,58 @@ var TravellingSalesman = (function () {
 
   MarqueeSelectionController.prototype.onMouseDown = function (event) {
     event.preventDefault();
-    var pos = {};
-    this.mouseDown = true;
-    this.mouseDownCoords = { x: event.clientX, y: event.clientY };
-    // adjust the mouse select
-    pos.x = ((event.clientX - this.offset.x) / this.domElement.clientWidth) * 2 -1;
-    pos.y = -((event.clientY - this.offset.y) / this.domElement.clientHeight) * 2 + 1;
-    var vector = new THREE.Vector3(pos.x, pos.y, 1);
-    this.context.projector.unprojectVector(vector, this.context.cameras.liveCam);
+    this.mouse.state = this.MOUSE_STATE.DOWN;
+    this.mouse.start.set(event.pageX, event.pageY);
+    this.mouse.end.copy(event.pageX, event.pageY);
   };
 
   MarqueeSelectionController.prototype.onMouseMove = function (event) {
     event.preventDefault();
     event.stopPropagation();
-    // make sure we are in a select mode.
-    if(this.mouseDown){
-      this.marquee.fadeIn();
-      var pos = {};
-      pos.x = event.clientX - this.mouseDownCoords.x;
-      pos.y = event.clientY - this.mouseDownCoords.y;
-      // square variations
-      // (0,0) origin is the TOP LEFT pixel of the canvas.
-      //
-      //  1 | 2
-      // ---.---
-      //  4 | 3
-      // there are 4 ways a square can be gestured onto the screen.  the following detects these four variations
-      // and creates/updates the CSS to draw the square on the screen
-      if (pos.x < 0 && pos.y < 0) {
-        this.marquee.css({left: event.clientX + 'px', width: -pos.x + 'px', top: event.clientY + 'px', height: -pos.y + 'px'});
-      } else if ( pos.x >= 0 && pos.y <= 0) {
-        this.marquee.css({left: this.mouseDownCoords.x + 'px',width: pos.x + 'px', top: event.clientY, height: -pos.y + 'px'});
-      } else if (pos.x >= 0 && pos.y >= 0) {
-        this.marquee.css({left: this.mouseDownCoords.x + 'px', width: pos.x + 'px', height: pos.y + 'px', top: this.mouseDownCoords.y + 'px'});
-      } else if (pos.x < 0 && pos.y >= 0) {
-        this.marquee.css({left: event.clientX + 'px', width: -pos.x + 'px', height: pos.y + 'px', top: this.mouseDownCoords.y + 'px'});
+    if (this.mouse.state === this.MOUSE_STATE.DOWN) {
+      this.mouse.end.set(event.pageX, event.pageY);
+      // draw the selection marquee
+      // drawn from top level to bottom right
+      var width = Math.abs(this.mouse.end.x - this.mouse.start.x);
+      var height = Math.abs(this.mouse.end.y - this.mouse.start.y);
+      if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.start.x, this.mouse.start.y, width, height);
       }
-      var selectedCubes = this.findCubesByVertices({x: event.clientX, y: event.clientY});
-      this.highlight(selectedCubes);
+      // draw from the top right to the bottom left
+      else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.end.x, this.mouse.start.y, width, height);
+      }
+      // draw from the bottom left to the top right
+      else if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.start.x, this.mouse.end.y, width, height);
+      }
+      // draw from the bottom right to the top left
+      else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.end.x, this.mouse.end.y, width, height);
+      }
+      // update the selection set
+      this.updateSelection();
     }
   };
 
   MarqueeSelectionController.prototype.onMouseUp = function (event) {
     event.preventDefault();
     event.stopPropagation();
-    this.resetMarquee();
-  };
-
-  MarqueeSelectionController.prototype.resetMarquee = function () {
-    this.mouseUp = true;
-    this.mouseDown = false;
-    this.marquee.fadeOut();
-    this.marquee.css({width: 0, height: 0});
-    this.mouseDownCoords = {};
+    this.mouse.state = this.MOUSE_STATE.UP;
+    this.hideMarquee();
   };
 
   MarqueeSelectionController.prototype.setFilter = function () {};
 
-  MarqueeSelectionController.prototype.update = function () {}; // do nothing
+  MarqueeSelectionController.prototype.setMarqueePosition = function (x, y, w, h) {
+    this.marquee.setAttribute('style', 'display:block;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;');
+  };
+
+  MarqueeSelectionController.prototype.update = function () {}; // noop
+
+  MarqueeSelectionController.prototype.updateSelection = function () {
+    var selected = this.findObjectsByVertex({x: event.clientX, y: event.clientY});
+  };
 
   /**
    * Checks to see if the unprojected vertex position is within the bounds of
@@ -6451,41 +6510,36 @@ var TravellingSalesman = (function () {
     return false;
   };
 
-  /**
-   *   Change a group of meshes to random colors.
-   */
-  MarqueeSelectionController.prototype.highlight = function (meshes) {
-    for (var i = 0; i < meshes.length; i++) {
-      meshes[i].mesh.material.color = this.randomColor();
-    }
-  };
-
-  /**
-   *  Create a random color
-   */
-  MarqueeSelectionController.prototype.randomColor = function () {
-    //cleverness via Paul Irish et al.  Thx Internets!
-    return new THREE.Color().setHex('0x' + ('000000' + Math.floor(Math.random()*16777215).toString(16)).slice(-6));
-  };
-
   return MarqueeSelectionController;
 
 }());
-;FOUR.SelectionCache = (function () {
+;
 
-  function SelectionCache (context) {
-    this._cachedVertices = [];
-    this._cachedCentroidPoints = [];
+FOUR.SelectionCache = (function () {
+
+  function SelectionCache (config) {
+    var self = this;
+    self.CACHE_STRATEGY = {
+      CENTROID: 0,
+      VERTEX: 1
+    };
+
+    self._cachedVertices = [];
+    self._cachedCentroidPoints = [];
     // dirty flag for when the camera or scene changes.
-    this._cameraProjectionDirty = true;
-    this._dirtyVerts = true;
+    self._cameraProjectionDirty = true;
+    self._dirtyVerts = true;
     // perhaps you'd like to use the centroids instead?!
-    this._dirtyCentroids = true;
+    self._dirtyCentroids = true;
 
-    // this is here so the user can turn the cache on/off via the browser
-    this.active = false;
-    this.context = context;
-    this.projScreenMatrix = new THREE.Matrix4();
+    self.projScreenMatrix = new THREE.Matrix4();
+    self.scene = config.scene || config.viewport.scene;
+
+    self.viewport = config.viewport;
+
+    Object.keys(config).forEach(function (key) {
+      self[key] = config[key];
+    });
   }
 
   SelectionCache.prototype.getCentroids = function () {
@@ -6498,17 +6552,17 @@ var TravellingSalesman = (function () {
   };
 
   SelectionCache.prototype.getUnitVertCoordinates = function () {
-    if (this._dirtyVerts || this._cachedVertices.length === 0 || !this.active) {
+    if (this._dirtyVerts || this._cachedVertices.length === 0) {
       this._cachedVertices = [];
-      this.setVerticeCache();
+      this.setVertexCache();
       this._dirtyVerts = false;
     }
     return this._cachedVertices;
   };
 
   SelectionCache.prototype.setCentroidPoints = function () {
-    var units = [], verts = [], child, prevChild, unit, vector, pos, temp, i;
-    for (i = 0; i < this.context.collisions.length; i++) {
+    var child, prevChild, unit, vector, pos, i;
+    for (i = 0; i < this.scene.model.length; i++) {
       // child = this._threeJsContext._scene.children[i];
       child.updateMatrixWorld();
       unit = {};
@@ -6531,10 +6585,10 @@ var TravellingSalesman = (function () {
     this._cachedCentroidPoints = [];
   };
 
-  SelectionCache.prototype.setVerticeCache = function () {
+  SelectionCache.prototype.setVertexCache = function () {
     var verts = [], child, unit, vector, pos, i, q;
-    for (i = 0; i < this.context.collisions.length; i++) {
-      child = this.context.collisions[i];
+    for (i = 0; i < this.scene.model.length; i++) {
+      child = this.scene.model[i];
       child.updateMatrixWorld();
 
       // this is a silly way to list the potential vertices
@@ -6573,7 +6627,7 @@ var TravellingSalesman = (function () {
    * @returns {{x: *, y: *}}
    */
   SelectionCache.prototype.toScreenXY = function (pos) {
-    if (this._cameraProjectionDirty || !this.active) {
+    if (this._cameraProjectionDirty) {
       this.projScreenMatrix.multiplyMatrices(this.context.cameras.liveCam.projectionMatrix, this.context.cameras.liveCam.matrixWorldInverse);
       this._cameraProjectionDirty = false;
     }
@@ -6587,7 +6641,9 @@ var TravellingSalesman = (function () {
   return SelectionCache;
 
 }());
-;FOUR.SelectionController = (function () {
+;
+
+FOUR.SelectionController = (function () {
 
   /**
    * Mouse based selection controller. The controller emits the following
@@ -6778,7 +6834,9 @@ var TravellingSalesman = (function () {
   return SelectionController;
 
 }());
-;FOUR.SelectionSet = (function () {
+;
+
+FOUR.SelectionSet = (function () {
 
   /**
    * Selection set. Emits 'update' event when the selection set changes.

@@ -2,7 +2,7 @@
 
 module.exports = {
     lib: {
-        src: ['lib/**/*.js'],
+        src: ['dist/four.js'],
         options: {
             destination: 'docs'
         }

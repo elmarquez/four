@@ -4,7 +4,7 @@ module.exports = {
     options: {
     },
     test: {
-        files: ['conf/**/*.js','lib/**/*.js','test/**/*.js'],
+        files: ['conf/**/*.js','demo/**/*','lib/**/*.js','test/**/*.js'],
         tasks: ['compile','test'],
         options: {
             debounceDelay: 250,
