@@ -823,10 +823,11 @@ FOUR.Viewport3D = (function () {
 
   /**
    * Update the controller and global tween state.
+   * @param {Boolean} force Force update
    */
-  Viewport3D.prototype.update = function () {
+  Viewport3D.prototype.update = function (force) {
     var self = this;
-    if (self.continuousUpdate) {
+    if (self.continuousUpdate || (typeof force === 'boolean' && force)) {
       self.updateOnce();
       requestAnimationFrame(self.update.bind(self));
     }
