@@ -100,9 +100,6 @@
     viewport.setActiveController('multi');
 
     // event listeners
-    camera.addEventListener('update', function () {
-      marquee.onCameraMove();
-    });
     marquee.addEventListener('add', function (event) {
       console.info('add', event);
     });
@@ -111,7 +108,7 @@
     });
     Mousetrap.bind('u', function () {
       console.info('update selection cache');
-      marquee.onCameraMove();
+      marquee.onCameraUpdate();
     });
 
     // start rendering

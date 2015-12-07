@@ -6301,6 +6301,7 @@ FOUR.MarqueeSelectionController = (function () {
     self.MODES = {ADD:0, REMOVE:1, SELECT:2};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
+    self.camera = config.camera;
     self.domElement = config.viewport.domElement;
     self.enabled = false;
     self.filter = function () { return true; };
@@ -6339,24 +6340,21 @@ FOUR.MarqueeSelectionController = (function () {
     self.quadtree = new Quadtree({height: 1, width: 1}); // TODO this depends on current mode
 
     // build a frustum for the current camera view
-    var camera = self.viewport.getCamera();
-    var matrix = new THREE.Matrix4().multiply(camera.projectionMatrix, camera.matrixWorldInverse);
+    var matrix = new THREE.Matrix4().multiply(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
 
-    // alternate frustum construction approach
-    //var cameraViewProjectionMatrix = new THREE.Matrix4();
-    //camera.updateMatrixWorld(); // make sure the camera matrix is updated
-    //camera.matrixWorldInverse.getInverse(camera.matrixWorld);
-    //cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    //self.frustum.setFromMatrix(cameraViewProjectionMatrix);
-
     // traverse the scene and add all entities within the frustum to the index
+    console.info('canvas', this.viewport.domElement.clientWidth, this.viewport.domElement.clientHeight);
+
     var total = 0;
     self.viewport.getScene().getModelObjects().forEach(function (child) {
       if (self.frustum.intersectsObject(child)) {
         total += 1;
-        var p = self.getObjectScreenCoordinates(child);
-        self.quadtree.push({x: p.x, y: p.y, id: child.id});
+        var p = self.getObjectScreenCoordinates(child, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+        if (p.x >= 0 && p.y >= 0) {
+          console.info(child.uuid, p.x, p.y);
+          self.quadtree.push({x: p.x, y: p.y, uuid: child.uuid});
+        }
       }
     });
     console.info('Found %s objects in the view', total);
@@ -6377,6 +6375,7 @@ FOUR.MarqueeSelectionController = (function () {
 
   MarqueeSelectionController.prototype.enable = function () {
     var self = this;
+    self.camera = self.viewport.getCamera();
     function addListener(element, event, fn) {
       self.listeners[event] = {
         element: element,
@@ -6385,32 +6384,50 @@ FOUR.MarqueeSelectionController = (function () {
       };
       element.addEventListener(event, self.listeners[event].fn, false);
     }
+    addListener(self.camera, 'update', self.onCameraUpdate);
+    addListener(self.viewport, 'camera-change', self.onCameraChange);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
-    self.buildQuadtree();
     self.enabled = true;
+    //self.buildQuadtree();
   };
 
   /**
    * @see http://zachberry.com/blog/tracking-3d-objects-in-2d-with-three-js/
    * @param {THREE.Object3D} obj Object
-   * @returns {THREE.Vector2} Screen coordinates
+   * @param {THREE.Camera} camera Camera
+   * @param {Number} screenWidth Viewport width
+   * @param {Number} screenHeight Viewport height
+   * @returns {Object} Screen coordinates, object metadata
    */
-  MarqueeSelectionController.prototype.getObjectScreenCoordinates = function (obj) {
-    return new THREE.Vector2();
+  MarqueeSelectionController.prototype.getObjectScreenCoordinates = function (obj, camera, screenWidth, screenHeight) {
+    var pos = new THREE.Vector3();
+    obj.updateMatrixWorld();
+    pos.setFromMatrixPosition(obj.matrixWorld);
+    pos.project(camera);
+    // get screen coordinates
+    pos.x = Math.round((pos.x + 1) * screenWidth / 2);
+    pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
+    pos.z = 0;
+    return pos;
   };
 
   MarqueeSelectionController.prototype.hideMarquee = function () {
     this.marquee.setAttribute('style', 'display:none;height:0;width:0;');
   };
 
+  MarqueeSelectionController.prototype.onCameraChange = function () {
+    this.disable();
+    this.enable();
+  };
+
   /**
    * Invalidate the cache when the camera position changes.
    */
-  MarqueeSelectionController.prototype.onCameraMove = function () {
+  MarqueeSelectionController.prototype.onCameraUpdate = function () {
     this.buildQuadtree();
   };
 
@@ -6423,46 +6440,56 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.onKeyUp = function (event) {};
 
   MarqueeSelectionController.prototype.onMouseDown = function (event) {
-    event.preventDefault();
-    this.mouse.state = this.MOUSE_STATE.DOWN;
-    this.mouse.start.set(event.pageX, event.pageY);
-    this.mouse.end.copy(event.pageX, event.pageY);
+    if (event.button === THREE.MOUSE.LEFT) {
+      event.preventDefault();
+      this.mouse.state = this.MOUSE_STATE.DOWN;
+      this.mouse.start.set(event.pageX, event.pageY);
+      this.mouse.end.copy(event.pageX, event.pageY);
+    }
   };
 
   MarqueeSelectionController.prototype.onMouseMove = function (event) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (this.mouse.state === this.MOUSE_STATE.DOWN) {
-      this.mouse.end.set(event.pageX, event.pageY);
+    if (event.button === THREE.MOUSE.LEFT && this.mouse.state === this.MOUSE_STATE.DOWN) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.mouse.end.set(event.offsetX, event.offsetY);
       // draw the selection marquee
       // drawn from top level to bottom right
       var width = Math.abs(this.mouse.end.x - this.mouse.start.x);
       var height = Math.abs(this.mouse.end.y - this.mouse.start.y);
       if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
-        this.setMarqueePosition(this.mouse.start.x, this.mouse.start.y, width, height);
+        this.select(this.mouse.start.x, this.mouse.start.y, width, height);
       }
       // draw from the top right to the bottom left
       else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
-        this.setMarqueePosition(this.mouse.end.x, this.mouse.start.y, width, height);
+        this.select(this.mouse.end.x, this.mouse.start.y, width, height);
       }
       // draw from the bottom left to the top right
       else if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
-        this.setMarqueePosition(this.mouse.start.x, this.mouse.end.y, width, height);
+        this.select(this.mouse.start.x, this.mouse.end.y, width, height);
       }
       // draw from the bottom right to the top left
       else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
-        this.setMarqueePosition(this.mouse.end.x, this.mouse.end.y, width, height);
+        this.select(this.mouse.end.x, this.mouse.end.y, width, height);
       }
-      // update the selection set
-      this.updateSelection(event.offsetX, event.offsetY);
     }
   };
 
   MarqueeSelectionController.prototype.onMouseUp = function (event) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.mouse.state = this.MOUSE_STATE.UP;
-    this.hideMarquee();
+    if (event.button === THREE.MOUSE.LEFT) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.mouse.state = this.MOUSE_STATE.UP;
+      this.hideMarquee();
+    }
+  };
+
+  MarqueeSelectionController.prototype.select = function (x, y, width, height) {
+    // TODO handle add, remove selection actions
+    this.setMarqueePosition(x, y, width, height);
+    var selected = this.quadtree.colliding({x:x, y:y, width:width, height:height});
+    console.info('select', x, y, selected);
+    this.dispatchEvent({type:'select', selection:selected});
   };
 
   MarqueeSelectionController.prototype.setFilter = function () {};
@@ -6472,13 +6499,6 @@ FOUR.MarqueeSelectionController = (function () {
   };
 
   MarqueeSelectionController.prototype.update = function () {}; // noop
-
-  MarqueeSelectionController.prototype.updateSelection = function (x, y) {
-    // TODO handle add, remove selection actions
-    var selected = this.quadtree.colliding({x:x,y:y});
-    console.info('selected', selected);
-    this.dispatchEvent({type:'select', selection:selected});
-  };
 
   return MarqueeSelectionController;
 
@@ -6684,6 +6704,7 @@ FOUR.SelectionSet = (function () {
    * Selection set. Emits 'update' event when the selection set changes.
    * @param {Object} config Configuration
    * @constructor
+   * TODO selection set should retain the order in which elements were selected
    */
   function SelectionSet (config) {
     THREE.EventDispatcher.call(this);
