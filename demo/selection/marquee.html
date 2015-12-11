@@ -45,7 +45,7 @@
 <div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
 <script>
-  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, rotate, scene, viewport;
+  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, rotate, scene, selectionSet, viewport;
 
   $(document).ready(function () {
     // scene
@@ -99,12 +99,34 @@
     viewport.addController(multi, 'multi');
     viewport.setActiveController('multi');
 
+    selectionSet = new FOUR.SelectionSet();
+
     // event listeners
     marquee.addEventListener('add', function (event) {
-      console.info('add', event);
+      selectionSet.addAll(event.selection);
     });
     marquee.addEventListener('remove', function (event) {
-      console.info('remove', event);
+      selectionSet.removeAll(event.selection);
+    });
+    marquee.addEventListener('select', function (event) {
+      selectionSet.removeAll();
+      selectionSet.toggle(event.selection);
+    });
+
+    selectionSet.addEventListener('update', function (event) {
+      var obj;
+      event.removed.forEach(function (item) {
+        obj = scene.getObjectByProperty('uuid', item.uuid);
+        obj.material.color = '#FFFFFF';
+      });
+      event.added.forEach(function (item) {
+        obj = scene.getObjectByProperty('uuid', item.uuid);
+        obj.material.color = '#FF0000';
+      });
+    });
+
+    Mousetrap.bind('esc', function () {
+      selectionSet.removeAll();
     });
     Mousetrap.bind('u', function () {
       console.info('update selection cache');

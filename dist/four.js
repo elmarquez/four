@@ -6331,8 +6331,6 @@ FOUR.MarqueeSelectionController = (function () {
   /**
    * Build a quadtree from the set of objects that are contained within the
    * camera frustum. Index each object by its projected screen coordinates.
-   * @see https://github.com/mrdoob/three.js/issues/1209
-   * @see http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current-camera
    */
   MarqueeSelectionController.prototype.buildQuadtree = function () {
     var self = this;
@@ -6393,11 +6391,10 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
     self.enabled = true;
-    //self.buildQuadtree();
   };
 
   /**
-   * @see http://zachberry.com/blog/tracking-3d-objects-in-2d-with-three-js/
+   * Get screen coordinates for scene object.
    * @param {THREE.Object3D} obj Object
    * @param {THREE.Camera} camera Camera
    * @param {Number} screenWidth Viewport width
@@ -6405,6 +6402,7 @@ FOUR.MarqueeSelectionController = (function () {
    * @returns {Object} Screen coordinates, object metadata
    */
   MarqueeSelectionController.prototype.getObjectScreenCoordinates = function (obj, camera, screenWidth, screenHeight) {
+    // project coordinates into screen space
     var pos = new THREE.Vector3();
     obj.updateMatrixWorld();
     pos.setFromMatrixPosition(obj.matrixWorld);
@@ -6435,10 +6433,21 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.onContextMenu = function () {};
 
   MarqueeSelectionController.prototype.onKeyDown = function (event) {
-    // TODO add, remove elements from selection set depending on pressed keys
+    if (event.keyCode === this.KEY.SHIFT) {
+      this.mode = this.MODES.ADD;
+    } else if (event.keyCode === this.KEY.ALT) {
+      this.mode = this.MODES.REMOVE;
+    }
+    console.info('select mode', this.mode);
   };
 
-  MarqueeSelectionController.prototype.onKeyUp = function (event) {};
+  MarqueeSelectionController.prototype.onKeyUp = function (event) {
+    if (event.keyCode === this.KEY.SHIFT) {
+      this.mode = this.MODES.SELECT;
+    } else if (event.keyCode === this.KEY.ALT) {
+      this.mode = this.MODES.SELECT;
+    }
+  };
 
   MarqueeSelectionController.prototype.onMouseDown = function (event) {
     if (event.button === THREE.MOUSE.LEFT) {
@@ -6486,11 +6495,15 @@ FOUR.MarqueeSelectionController = (function () {
   };
 
   MarqueeSelectionController.prototype.select = function (x, y, width, height) {
-    // TODO handle add, remove selection actions
     this.setMarqueePosition(x, y, width, height);
     var selected = this.quadtree.colliding({x:x, y:y, width:width, height:height});
-    console.info('select', x, y, selected);
-    this.dispatchEvent({type:'select', selection:selected});
+    if (this.mode === this.MODES.ADD) {
+      this.dispatchEvent({type:'add', selection:selected});
+    } else if (this.mode === this.MODES.REMOVE) {
+      this.dispatchEvent({type:'remove', selection:selected});
+    } else if (this.mode === this.MODES.SELECT) {
+      this.dispatchEvent({type:'select', selection:selected});
+    }
   };
 
   MarqueeSelectionController.prototype.setFilter = function () {};
@@ -6739,27 +6752,28 @@ FOUR.SelectionSet = (function () {
     filter = filter || self.defaultFilter;
     if (filter(obj)) {
       self.selection[obj.uuid] = obj;
-      self.select(obj);
-    }
-    self.count = Object.keys(self.selection).length;
-    if (update && update === true) {
-      self.dispatchEvent({type:'update'});
+      self.count = Object.keys(self.selection).length;
+      if (update && update === true) {
+        self.dispatchEvent({type:'update', added:[obj], removed:[], selected:self.getSelected()});
+      }
+      return obj;
     }
   };
 
   /**
    * Add all objects to the selection set.
    * @param {Array} objects List of intersecting scene objects
+   * @param {Function} filter Selection filter
    */
-  SelectionSet.prototype.addAll = function (objects) {
-    if (!objects || objects.length < 1) {
+  SelectionSet.prototype.addAll = function (objects, filter) {
+    if (!objects) {
       return;
     }
     var self = this;
     objects.forEach(function (obj) {
-      self.add(obj, null, false);
+      self.add(obj, filter, false);
     });
-    self.dispatchEvent({type:'update'});
+    self.dispatchEvent({type:'update', added:objects, removed:[], selected:self.getSelected()});
   };
 
   /**
@@ -6771,23 +6785,11 @@ FOUR.SelectionSet = (function () {
   };
 
   /**
-   * Change the object's visual state to deselected.
-   * @param {Object3D} obj Scene object
-   * TODO remove this or provide a user definable function
-   */
-  SelectionSet.prototype.deselect = function (obj) {
-    if (obj.userData.hasOwnProperty('color')) {
-      obj.material.color.set(obj.userData.color);
-      obj.userData.color = null;
-    }
-  };
-
-  /**
    * Get bounding box for all selected objects.
    */
   SelectionSet.prototype.getBoundingBox = function () {
     var self = this;
-    var objs = self.getObjects();
+    var objs = self.getSelected();
     var bbox = new FOUR.BoundingBox();
     bbox.name = self.name + '-bounding-box';
     bbox.update(objs);
@@ -6798,7 +6800,7 @@ FOUR.SelectionSet = (function () {
    * Get the list of selected scene objects.
    * @returns {Array} Objects
    */
-  SelectionSet.prototype.getObjects = function () {
+  SelectionSet.prototype.getSelected = function () {
     var objects = [], self = this;
     Object.keys(self.selection).forEach(function (key) {
       objects.push(self.selection[key]);
@@ -6811,13 +6813,15 @@ FOUR.SelectionSet = (function () {
    * @param {Object3D} obj Scene object
    * @param {Boolean} update Emit update event
    */
-  SelectionSet.prototype.remove = function (obj, update) {
+  SelectionSet.prototype.remove = function (obj, filter, update) {
     var self = this;
-    self.deselect(obj);
-    delete self.selection[obj.uuid];
-    self.count = Object.keys(self.selection).length;
-    if (update && update === true) {
-      self.dispatchEvent({type:'update'});
+    filter = filter || self.defaultFilter;
+    if (filter(obj)) {
+      delete self.selection[obj.uuid];
+      self.count = Object.keys(self.selection).length;
+      if (update && update === true) {
+        self.dispatchEvent({type:'update', added:[], removed:[obj], selected:[]});
+      }
     }
   };
 
@@ -6827,36 +6831,24 @@ FOUR.SelectionSet = (function () {
    * @param {Array} objects List of scene objects
    */
   SelectionSet.prototype.removeAll = function (objects) {
-    var self = this;
+    var removed = [], self = this;
     if (!objects) {
       // remove everything
       Object.keys(self.selection).forEach(function (uuid) {
-        self.remove(self.selection[uuid], false);
+        removed.push(self.selection[uuid]);
+        self.remove(self.selection[uuid], null, false);
       });
     } else if (objects.length > 0) {
       // remove the specified objects
       objects.forEach(function (obj) {
-        self.remove(obj, false);
+        removed.push(obj);
+        self.remove(obj, null, false);
       });
     } else {
       // do nothing
       return;
     }
-    self.dispatchEvent({type:'update'});
-  };
-
-  /**
-   * Change the object's visual state to selected.
-   * @param {Object3D} obj Scene object
-   * TODO remove this or provide a user definable function
-   */
-  SelectionSet.prototype.select = function (obj) {
-    var self = this;
-    // TODO it should never be the case that we select non-geometric objects, but ...
-    if (obj.material && obj.material.color) {
-      obj.userData.color = new THREE.Color(obj.material.color.r, obj.material.color.g, obj.material.color.b);
-      obj.material.color.set(self.selectedColor);
-    }
+    self.dispatchEvent({type:'update', added:[], removed: objects || [], selected: self.getSelected()});
   };
 
   /**
@@ -6867,7 +6859,7 @@ FOUR.SelectionSet = (function () {
     if (!objects || !Array.isArray(objects)){
       return;
     }
-    var self = this;
+    var added = [], removed = [], self = this;
     var selected = objects.reduce(function (map, obj) {
       map[obj.uuid] = obj;
       return map;
@@ -6876,14 +6868,17 @@ FOUR.SelectionSet = (function () {
       // remove all objects that are not in the selection list
       Object.keys(self.selection).forEach(function (uuid) {
         if (!selected[uuid]) {
-          self.remove(self.selection[uuid], false);
+          removed.push(self.selection[uuid]);
+          self.remove(self.selection[uuid], null, false);
         }
       });
       // toggle the selection state for all remaining objects
       Object.keys(selected).forEach(function (uuid) {
         if (self.selection[uuid]) {
-          self.remove(self.selection[uuid], false);
+          removed.push(self.selection[uuid]);
+          self.remove(self.selection[uuid], null, false);
         } else {
+          added.push(selected[uuid]);
           self.add(selected[uuid], null, false);
         }
       });
@@ -6893,9 +6888,10 @@ FOUR.SelectionSet = (function () {
         list.push(self.selection[uuid]);
         return list;
       }, []);
+      removed = objs;
       self.removeAll(objs);
     }
-    self.dispatchEvent({type:'update'});
+    self.dispatchEvent({type:'update', added:added, removed:removed, selected:self.getSelected()});
   };
 
   return SelectionSet;
