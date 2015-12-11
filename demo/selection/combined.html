@@ -2,7 +2,7 @@
 <html>
 <head lang="en">
   <meta charset="UTF-8">
-  <title>FOUR - Marquee Selection Controller</title>
+  <title>FOUR - Combined Selection</title>
   <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
@@ -40,7 +40,7 @@
 <div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
 <script>
-  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, rotate, scene, selectionSet, viewport;
+  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, rotate, scene, select, selectionSet, viewport;
 
   $(document).ready(function () {
     // scene
@@ -86,9 +86,11 @@
     // viewport controllers
     multi = new FOUR.MultiController({viewport: viewport});
     rotate = new FOUR.RotateController({viewport: viewport});
+    select = new FOUR.SelectionController({viewport: viewport});
     marquee = new FOUR.MarqueeSelectionController({viewport: viewport});
     multi.addController(rotate, 'rotate');
     multi.addController(marquee, 'marquee');
+    multi.addController(select, 'select');
     multi.enable();
 
     viewport.addController(multi, 'multi');
@@ -109,6 +111,7 @@
     });
 
     selectionSet.addEventListener('update', function (event) {
+      console.info('selection set update', event);
       var obj;
       event.removed.forEach(function (item) {
         obj = scene.getObjectByProperty('uuid', item.uuid);
