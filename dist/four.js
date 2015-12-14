@@ -6307,18 +6307,23 @@ FOUR.MarqueeSelectionController = (function () {
     self.INDEX_TIMEOUT = 500;
 
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
-    self.MODES = {ADD:0, REMOVE:1, SELECT:2};
+    self.SELECT_ACTIONS = {ADD:0, REMOVE:1, SELECT:2};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
     self.camera = config.camera;
     self.domElement = config.viewport.domElement;
     self.enabled = false;
-    self.filter = function () { return true; };
-    self.filters = {};
+    self.filter = null;
+    self.filters = {
+      all: self.selectAll,
+      nearest: self.selectNearest,
+      objects: self.selectObjects,
+      points: self.selectPoints
+    };
     self.frustum = new THREE.Frustum();
+    self.indexingTimeout = null;
     self.listeners = {};
     self.marquee = document.getElementById('marquee');
-    self.mode = self.MODES.SELECT;
     self.modifiers = {};
     self.mouse = {
       end: new THREE.Vector2(),
@@ -6326,8 +6331,8 @@ FOUR.MarqueeSelectionController = (function () {
       state: self.MOUSE_STATE.UP
     };
     self.quadtree = new Quadtree({height: 1, width: 1});
+    self.selectAction = self.SELECT_ACTIONS.SELECT;
     self.selection = [];
-    self.timeout = null;
     self.viewport = config.viewport;
 
     Object.keys(self.KEY).forEach(function (key) {
@@ -6338,28 +6343,34 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
   /**
-   * Build a quadtree from the set of objects that are contained within the
-   * camera frustum. Index each object by its projected screen coordinates.
+   * Build a quadtree index from the set of objects that are contained within
+   * the camera frustum. Index each object by its projected screen coordinates.
    */
   MarqueeSelectionController.prototype.buildQuadtree = function () {
+    // TODO perform indexing in a worker if possible
     var self = this;
-    // clear the current index
-    self.quadtree = new Quadtree({height: 1, width: 1});
-    // build a frustum for the current camera view
-    var matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
-    self.frustum.setFromMatrix(matrix);
-    // traverse the scene and add all entities within the frustum to the index
-    var total = 0;
-    self.viewport.getScene().getModelObjects().forEach(function (child) {
-      if (self.frustum.intersectsObject(child)) {
-        total += 1;
-        var p = self.getObjectScreenCoordinates(child, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-        if (p.x >= 0 && p.y >= 0) {
-          self.quadtree.push({x: p.x, y: p.y, uuid: child.uuid, obj:child});
+    try {
+      // clear the current index
+      self.quadtree = new Quadtree({height: 1, width: 1});
+      // build a frustum for the current camera view
+      var matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
+      self.frustum.setFromMatrix(matrix);
+      // traverse the scene and add all entities within the frustum to the index
+      var total = 0;
+      self.viewport.getScene().getModelObjects().forEach(function (child) {
+        if (self.frustum.intersectsObject(child)) {
+          total += 1;
+          // TODO switch strategy based on type of object
+          var p = self.getObjectScreenCoordinates(child, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+          if (p.x >= 0 && p.y >= 0) {
+            self.quadtree.push({x: p.x, y: p.y, uuid: child.uuid, obj:child});
+          }
         }
-      }
-    });
-    console.info('Found %s objects in the view', total);
+      });
+      console.info('Found %s objects in the view', total);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   MarqueeSelectionController.prototype.contextMenu = function (event) {
@@ -6394,6 +6405,8 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
     self.enabled = true;
+    // FIXME the first time the index runs it appears to get every scene object
+    self.buildQuadtree();
   };
 
   /**
@@ -6432,32 +6445,28 @@ FOUR.MarqueeSelectionController = (function () {
    * index only after the camera has stopped moving.
    */
   MarqueeSelectionController.prototype.onCameraUpdate = function () {
-    if (this.timeout) {
-      clearTimeout(this.timeout);
-      this.timeout = null;
+    if (this.indexingTimeout) {
+      clearTimeout(this.indexingTimeout);
+      this.indexingTimeout = null;
     }
-    this.timeout = setTimeout(this.buildQuadtree.bind(this), this.INDEX_TIMEOUT);
+    this.indexingTimeout = setTimeout(this.buildQuadtree.bind(this), this.INDEX_TIMEOUT);
   };
 
   MarqueeSelectionController.prototype.onContextMenu = function () {};
 
   MarqueeSelectionController.prototype.onKeyDown = function (event) {
-    if (!this.enabled) {
-      return;
-    } else if (event.keyCode === this.KEY.ALT) {
-      this.mode = this.MODES.REMOVE;
+    if (event.keyCode === this.KEY.ALT) {
+      this.selectAction = this.SELECT_ACTIONS.REMOVE;
     } else if (event.keyCode === this.KEY.SHIFT) {
-      this.mode = this.MODES.ADD;
+      this.selectAction = this.SELECT_ACTIONS.ADD;
     }
   };
 
   MarqueeSelectionController.prototype.onKeyUp = function (event) {
-    if (!this.enabled) {
-      return;
-    } else if (event.keyCode === this.KEY.ALT) {
-      this.mode = this.MODES.SELECT;
+    if (event.keyCode === this.KEY.ALT) {
+      this.selectAction = this.SELECT_ACTIONS.SELECT;
     } else if (event.keyCode === this.KEY.SHIFT) {
-      this.mode = this.MODES.SELECT;
+      this.selectAction = this.SELECT_ACTIONS.SELECT;
     }
   };
 
@@ -6510,11 +6519,11 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.select = function (x, y, width, height) {
     this.setMarqueePosition(x, y, width, height);
     this.selection = this.quadtree.colliding({x:x, y:y, width:width, height:height});
-    if (this.mode === this.MODES.ADD) {
+    if (this.selectAction === this.SELECT_ACTIONS.ADD) {
       this.dispatchEvent({type:'add', selection:this.selection});
-    } else if (this.mode === this.MODES.REMOVE) {
+    } else if (this.selectAction === this.SELECT_ACTIONS.REMOVE) {
       this.dispatchEvent({type:'remove', selection:this.selection});
-    } else if (this.mode === this.MODES.SELECT) {
+    } else if (this.selectAction === this.SELECT_ACTIONS.SELECT) {
       this.dispatchEvent({type:'select', selection:this.selection});
     }
   };
@@ -6535,18 +6544,20 @@ FOUR.MarqueeSelectionController = (function () {
 FOUR.SelectionController = (function () {
 
   /**
-   * Mouse based selection controller. The controller emits the following
-   * selection events:
+   * Mouse based selection controller. The controller supports LMB based mouse
+   * hover, single click, double click and click-drag/marquee based selection.
+   * The controller emits the following selection events:
    *
    * add    - add one or more objects to the selection set
    * hover  - mouse over one or more objects
    * remove - remove one or more objects from the selection set
+   * select - select the identified objects
    * toggle - toggle the selection state for one or more objects
-   *
-   * The controller emits the following camera realted events:
-   *
    * lookat    - look at the specified point
-   * settarget - move the camera target to the specified point
+   * settarget - set the camera target to the specified point
+   *
+   * A selection filter can be assigned to the controller to ensure selection
+   * of specific types of entities.
    *
    * @param {Object} config Configuration
    * @constructor
@@ -6556,27 +6567,54 @@ FOUR.SelectionController = (function () {
     config = config || {};
     var self = this;
 
+    // the maximum number of pixels the mouse can move before the selection
+    // mode changes from CLICK to MARQUEE
     self.EPS = 2;
+
+    // wait for the timeout to expire before indexing the scene
+    self.INDEX_TIMEOUT = 500;
+
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
-    self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
+    self.SELECT_ACTION = {ADD:0, REMOVE:1, SELECT:2};
+    self.SELECT_MODE = {CLICK: 0, MARQUEE: 1};
 
+    // the minimum number of milliseconds of mouse button inactivity for a
+    // single click event
+    self.SINGLE_CLICK_TIMEOUT = 400;
+
+    self.camera = config.camera;
+    self.clickTimeout = null;
     self.domElement = config.viewport.domElement;
     self.enabled = false;
-    self.filter = function () { return true; };
-    self.filters = {};
+    self.filter = null;
+    self.filters = {
+      all: self.selectAll,
+      nearest: self.selectNearest,
+      objects: self.selectObjects,
+      points: self.selectPoints
+    };
+    self.frustum = new THREE.Frustum();
+    self.indexingTimeout = null;
     self.intersects = [];
     self.listeners = {};
+    self.marquee = document.getElementById('marquee');
+    self.mode = self.SELECT_MODE.CLICK;
     self.modifiers = {};
     self.mouse = {
       end: new THREE.Vector2(),
       start: new THREE.Vector2(),
       state: self.MOUSE_STATE.UP
     };
+    self.quadtree = new Quadtree({height: 1, width: 1});
     self.raycaster = new THREE.Raycaster();
     self.sceneRoot = config.viewport.scene.model.children;
-    self.timeout = null;
+    self.selection = [];
+    self.selectAction = self.SELECT_ACTION.SELECT;
     self.viewport = config.viewport;
+
+    // selection thresholds
+    self.raycaster.params.Points.threshold = 0.1;
 
     Object.keys(self.KEY).forEach(function (key) {
       self.modifiers[self.KEY[key]] = false;
@@ -6584,6 +6622,15 @@ FOUR.SelectionController = (function () {
   }
 
   SelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  /**
+   * Add selection filter.
+   * @param {String} key Key
+   * @param {Function} fn Filter
+   */
+  SelectionController.prototype.addFilter = function (key, fn) {
+    this.filters[key] = fn;
+  };
 
   SelectionController.prototype.contextMenu = function (event) {
     event.preventDefault();
@@ -6614,16 +6661,21 @@ FOUR.SelectionController = (function () {
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
+    self.filter = self.filter || self.selectNearest;
     self.enabled = true;
   };
 
+  /**
+   * Get the list of selected scene elements.
+   * @returns {Array.<T>}
+   */
   SelectionController.prototype.getSelected = function () {
     // update the picking ray with the camera and mouse position
     this.raycaster.setFromCamera(this.mouse.end, this.viewport.camera);
     // calculate objects intersecting the picking ray
-    this.intersects = this.raycaster.intersectObjects(this.sceneRoot, true);
-    // update the selection set using only the nearest selected object
-    return this.intersects && this.intersects.length > 0 ? this.intersects[0] : null;
+    this.intersects = this.raycaster.intersectObjects(this.sceneRoot, true) || [];
+    // filter the intersects list
+    return this.intersects.filter(this.filter);
   };
 
   SelectionController.prototype.onContextMenu = function () {};
@@ -6642,25 +6694,33 @@ FOUR.SelectionController = (function () {
     }
   };
 
+  /**
+   * Handle key down event.
+   * @param {Object} event Keyinput event
+   */
   SelectionController.prototype.onKeyDown = function (event) {
-    if (!this.enabled) {
-      return;
-    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
-      this.modifiers[event.keyCode] = true;
+    if (event.keyCode === this.KEY.ALT) {
+      this.selectAction = this.SELECT_ACTION.REMOVE;
+    } else if (event.keyCode === this.KEY.SHIFT) {
+      this.selectAction = this.SELECT_ACTION.ADD;
     }
   };
 
+  /**
+   * Handle key up event.
+   * @param {Object} event Keyinput event
+   */
   SelectionController.prototype.onKeyUp = function (event) {
-    if (!this.enabled) {
-      return;
-    } else if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
-      this.modifiers[event.keyCode] = false;
+    if (event.keyCode === this.KEY.ALT) {
+      this.selectAction = this.SELECT_ACTION.SELECT;
+    } else if (event.keyCode === this.KEY.SHIFT) {
+      this.selectAction = this.SELECT_ACTION.SELECT;
     }
   };
 
   SelectionController.prototype.onMouseDown = function (event) {
     event.preventDefault();
-    if (this.enabled && event.button === THREE.MOUSE.LEFT) {
+    if (event.button === THREE.MOUSE.LEFT) {
       this.mouse.state = this.MOUSE_STATE.DOWN;
       // calculate mouse position in normalized device coordinates (-1 to +1)
       this.mouse.start.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
@@ -6671,36 +6731,41 @@ FOUR.SelectionController = (function () {
 
   SelectionController.prototype.onMouseMove = function (event) {
     var diff = new THREE.Vector2(event.offsetX, event.offsetY);
-    if (this.enabled) {
-      if (this.mouse.state === this.MOUSE_STATE.DOWN && diff.length() <= this.EPS) {
+    if (this.mouse.state === this.MOUSE_STATE.DOWN) {
+      // single, double click selection
+      if (diff.length() <= this.EPS) {
         // calculate mouse position in normalized device coordinates (-1 to +1)
         this.mouse.end.x = (event.offsetX / this.domElement.clientWidth) * 2 - 1;
         this.mouse.end.y = -(event.offsetY / this.domElement.clientHeight) * 2 + 1;
-        // on mouse over object
-        // this.dispatchEvent({type:'hover',items:objs});
       }
+      // marquee selection
+      else {
+        console.info('marquee selection mode');
+      }
+    } else {
+      // on mouse over object
+      // this.dispatchEvent({type:'hover',items:objs});
     }
   };
 
   SelectionController.prototype.onMouseUp = function (event) {
-    var self = this;
     event.preventDefault();
-    if (self.enabled) {
-      self.mouse.state = self.MOUSE_STATE.UP;
-      if (self.timeout !== null) {
-        // handle double click event
-        clearTimeout(self.timeout);
-        self.timeout = null;
-        self.onDoubleClick();
-      } else {
-        // handle single click event
-        self.timeout = setTimeout(function () {
-          clearTimeout(self.timeout);
-          self.timeout = null;
-          self.onSingleClick();
-        }, self.SINGLE_CLICK_TIMEOUT);
-      }
+    var self = this;
+    // TODO check the current selection mode
+    if (self.clickTimeout !== null) {
+      // handle double click event
+      clearTimeout(self.clickTimeout);
+      self.clickTimeout = null;
+      self.onDoubleClick();
+    } else {
+      // handle single click event
+      self.clickTimeout = setTimeout(function () {
+        clearTimeout(self.clickTimeout);
+        self.clickTimeout = null;
+        self.onSingleClick();
+      }, self.SINGLE_CLICK_TIMEOUT);
     }
+    self.mouse.state = self.MOUSE_STATE.UP;
   };
 
   SelectionController.prototype.onSingleClick = function () {
@@ -6708,20 +6773,68 @@ FOUR.SelectionController = (function () {
     if (selected) {
       // add objects
       if (this.modifiers[this.KEY.SHIFT] === true) {
-        this.dispatchEvent({type:'add', object: selected.object});
+        this.dispatchEvent({type:'add', selection: selected.object});
       }
       // remove objects
       else if (this.modifiers[this.KEY.ALT] === true) {
-        this.dispatchEvent({type:'remove', object: selected.object});
+        this.dispatchEvent({type:'remove', selection: selected.object});
       }
       // toggle selection state
       else {
-        this.dispatchEvent({type:'toggle', object: selected.object});
+        this.dispatchEvent({type:'select', selection: selected.object});
+        this.dispatchEvent({type:'toggle', selection: selected.object});
       }
     }
   };
 
-  SelectionController.prototype.setFilter = function () {};
+  /**
+   * Select all intersected objects.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Number} index Index in intersects list
+   * @returns {boolean}
+   */
+  SelectionController.prototype.selectAll = function (obj, index) {
+    return true;
+  };
+
+  /**
+   * Select all intersected Object3Ds.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Number} index Index in intersects list
+   * @returns {boolean}
+   */
+  SelectionController.prototype.selectObjects = function (obj, index) {
+    return true;
+  };
+
+  /**
+   * Select the nearest Object3D.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Number} index Index in intersects list
+   * @returns {boolean}
+   */
+  SelectionController.prototype.selectNearest = function (obj, index) {
+    // return the nearest intersection
+    return index === 0 ? true : false;
+  };
+
+  /**
+   * Select all intersected points.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Number} index Index in intersects list
+   * @returns {boolean}
+   */
+  SelectionController.prototype.selectPoints = function (obj, index) {
+    return true;
+  };
+
+  /**
+   * Set the active selection filter.
+   * @param {String} key Filter key
+   */
+  SelectionController.prototype.setFilter = function (key) {
+    this.filter = this.filters[key];
+  };
 
   SelectionController.prototype.update = function () {}; // do nothing
 

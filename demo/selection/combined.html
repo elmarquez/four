@@ -6,24 +6,54 @@
   <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/mousetrap/mousetrap.js"></script>
-    <script src="../../vendor/quadtree-lib/build/js/quadtree.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
+  <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../../vendor/jquery/dist/jquery.js"></script>
+  <script src="../../vendor/angular/angular.js"></script>
+  <script src="../../vendor/mousetrap/mousetrap.js"></script>
+  <script src="../../vendor/quadtree-lib/build/js/quadtree.js"></script>
+  <script src="../../vendor/three.js/three.js"></script>
+  <script src="../../vendor/tween.js/src/Tween.js"></script>
 
-    <!-- lib -->
-    <script src="../../fonts/helvetiker_regular.typeface.js"></script>
-    <script src="../../dist/four.js"></script>
+  <!-- lib -->
+  <script src="../../fonts/helvetiker_regular.typeface.js"></script>
+  <script src="../../dist/four.js"></script>
+  <script type="x-shader/x-fragment" id="fragmentshader">
+    uniform vec3 color;
+    uniform sampler2D texture;
+    varying vec3 vColor;
+    void main() {
+      gl_FragColor = vec4( color * vColor, 1.0 );
+      gl_FragColor = gl_FragColor * texture2D( texture, gl_PointCoord );
+      if ( gl_FragColor.a < ALPHATEST ) discard;
+    }
+  </script>
+  <script type="x-shader/x-vertex" id="vertexshader">
+    attribute float size;
+    attribute vec3 customColor;
+    varying vec3 vColor;
+    void main() {
+      vColor = customColor;
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = size * (300.0 / length(mvPosition.xyz));
+      gl_Position = projectionMatrix * mvPosition;
+    }
+  </script>
   <style>
     body {
       margin: 0;
       padding: 0;
     }
-    #webgl {
+    #controls {
+      background-color: rgba(255,255,255,0.4);
       bottom: 0;
+      height: 50px;
+      left: 0;
+      padding: 0px;
+      position: absolute;
+      z-index: 900;
+    }
+    #webgl {
+      bottom: 50px;
       left: 0;
       overflow: hidden;
       position: absolute;
@@ -34,13 +64,40 @@
     #webgl:focus {
       outline: none;
     }
+    .inner {
+      margin: 12px;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
 <div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
+<div id="controls">
+  <div class="inner">
+    Select
+    <button class="btn" onclick="selectAll();">All</button>
+    <button class="btn" onclick="selectPoints();">Points</button>
+    <button class="btn" onclick="selectObjects();">Objects</button>
+  </div>
+</div>
 <script>
-  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, rotate, scene, select, selectionSet, viewport;
+  var camera, count = 500, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, select, selectionSet, viewport;
+
+  function selectAll () {
+    console.info('select all');
+    select.setFilter('all');
+  }
+
+  function selectObjects () {
+    console.info('select objects');
+    select.setFilter('objects');
+  }
+
+  function selectPoints () {
+    console.info('select points');
+    select.setFilter('points');
+  }
 
   $(document).ready(function () {
     // scene
@@ -66,10 +123,23 @@
     helper = new THREE.AxisHelper(10);
     scene.helpers.add(helper);
 
-    // world
+    // add random points to the scene
+    material = new THREE.PointsMaterial();
+    geometry = new THREE.Geometry();
+    for (i = 0; i < count * 15; i ++) {
+      var vertex = new THREE.Vector3();
+      vertex.x = (Math.random() - 0.5) * 1000;
+      vertex.y = (Math.random() - 0.5) * 1000;
+      vertex.z = (Math.random() - 0.5) * 1000;
+      geometry.vertices.push(vertex);
+    }
+    particles = new THREE.Points(geometry, material);
+    scene.model.add(particles);
+
+    // add random primitives to the scene
     geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
     material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
-    for (i = 0; i < 500; i++) {
+    for (i = 0; i < count; i++) {
       mesh = new THREE.Mesh(geometry, material);
       mesh.position.x = (Math.random() - 0.5) * 1000;
       mesh.position.y = (Math.random() - 0.5) * 1000;
@@ -91,7 +161,6 @@
     multi.addController(rotate, 'rotate');
     multi.addController(marquee, 'marquee');
     multi.addController(select, 'select');
-    multi.enable();
 
     viewport.addController(multi, 'multi');
     viewport.setActiveController('multi');
@@ -107,6 +176,20 @@
     });
     marquee.addEventListener('select', function (event) {
       selectionSet.removeAll();
+      selectionSet.toggle(event.selection);
+    });
+
+    select.addEventListener('add', function (event) {
+      selectionSet.addAll(event.selection);
+    });
+    select.addEventListener('remove', function (event) {
+      selectionSet.removeAll(event.selection);
+    });
+    select.addEventListener('select', function (event) {
+      selectionSet.removeAll();
+      selectionSet.toggle(event.selection);
+    });
+    select.addEventListener('toggle', function (event) {
       selectionSet.toggle(event.selection);
     });
 
