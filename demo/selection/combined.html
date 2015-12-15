@@ -82,7 +82,7 @@
   </div>
 </div>
 <script>
-  var camera, count = 500, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, select, selectionSet, viewport;
+  var camera, click, count = 500, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, select, selectionSet, viewport;
 
   function selectAll () {
     console.info('select all');
@@ -156,11 +156,11 @@
     // viewport controllers
     multi = new FOUR.MultiController({viewport: viewport});
     rotate = new FOUR.RotateController({viewport: viewport});
-    select = new FOUR.SelectionController({viewport: viewport});
+    click = new FOUR.ClickSelectionController({viewport: viewport});
     marquee = new FOUR.MarqueeSelectionController({viewport: viewport});
     multi.addController(rotate, 'rotate');
     multi.addController(marquee, 'marquee');
-    multi.addController(select, 'select');
+    multi.addController(click, 'click');
 
     viewport.addController(multi, 'multi');
     viewport.setActiveController('multi');
@@ -168,6 +168,28 @@
     selectionSet = new FOUR.SelectionSet();
 
     // event listeners
+    click.addEventListener('add', function (event) {
+      selectionSet.addAll(event.selection);
+    });
+    click.addEventListener('hover', function (event) {
+      console.info('hover');
+    });
+    click.addEventListener('lookat', function (event) {
+      console.info('lookat', event.position);
+    });
+    click.addEventListener('remove', function (event) {
+      selectionSet.removeAll(event.selection);
+    });
+    click.addEventListener('settarget', function (event) {
+      console.info('settarget', event.position);
+    });
+    click.addEventListener('select', function (event) {
+      selectionSet.select(event.selection);
+    });
+    click.addEventListener('toggle', function (event) {
+      selectionSet.toggle(event.selection);
+    });
+
     marquee.addEventListener('add', function (event) {
       selectionSet.addAll(event.selection);
     });
@@ -175,22 +197,7 @@
       selectionSet.removeAll(event.selection);
     });
     marquee.addEventListener('select', function (event) {
-      selectionSet.removeAll();
-      selectionSet.toggle(event.selection);
-    });
-
-    select.addEventListener('add', function (event) {
-      selectionSet.addAll(event.selection);
-    });
-    select.addEventListener('remove', function (event) {
-      selectionSet.removeAll(event.selection);
-    });
-    select.addEventListener('select', function (event) {
-      selectionSet.removeAll();
-      selectionSet.toggle(event.selection);
-    });
-    select.addEventListener('toggle', function (event) {
-      selectionSet.toggle(event.selection);
+      selectionSet.select(event.selection);
     });
 
     selectionSet.addEventListener('update', function (event) {
@@ -210,7 +217,7 @@
       selectionSet.removeAll();
     });
     Mousetrap.bind('u', function () {
-      console.info('update selection cache');
+      console.info('update marquee selection index');
       marquee.onCameraUpdate();
     });
 
