@@ -2,7 +2,7 @@
 <html>
 <head lang="en">
   <meta charset="UTF-8">
-  <title>FOUR - Combined Selection</title>
+  <title>FOUR - Combined Click and Marquee Selection</title>
   <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
@@ -10,7 +10,7 @@
   <script src="../../vendor/jquery/dist/jquery.js"></script>
   <script src="../../vendor/angular/angular.js"></script>
   <script src="../../vendor/mousetrap/mousetrap.js"></script>
-  <script src="../../vendor/quadtree-lib/build/js/quadtree.js"></script>
+  <script src="../../vendor/quadtree-js/quadtree.js"></script>
   <script src="../../vendor/three.js/three.js"></script>
   <script src="../../vendor/tween.js/src/Tween.js"></script>
 
@@ -82,7 +82,9 @@
   </div>
 </div>
 <script>
-  var camera, click, count = 500, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, select, selectionSet, viewport;
+  var camera, click, count = 500, marquee, domElement, geometry, helper, i,
+      light, material, mesh, multi, particles, rotate, scene, select,
+      selectionSet, viewport, zoom;
 
   function selectAll () {
     console.info('select all');
@@ -156,9 +158,11 @@
     // viewport controllers
     multi = new FOUR.MultiController({viewport: viewport});
     rotate = new FOUR.RotateController({viewport: viewport});
+    zoom = new FOUR.ZoomController({viewport: viewport});
     click = new FOUR.ClickSelectionController({viewport: viewport});
     marquee = new FOUR.MarqueeSelectionController({viewport: viewport});
-    multi.addController(rotate, 'rotate');
+//    multi.addController(rotate, 'rotate');
+    multi.addController(zoom, 'zoom');
     multi.addController(marquee, 'marquee');
     multi.addController(click, 'click');
 

@@ -2667,12 +2667,13 @@ FOUR.OrbitController = (function () {
 }());
 ;
 
-/**
- * Camera pan controller. Panning can be performed using the right mouse button
- * or the combination of a keypress, left mouse button down and mouse move.
- */
 FOUR.PanController = (function () {
 
+    /**
+     * Camera pan controller. Panning can be performed using the right mouse
+     * button or the combination of a keypress, left mouse button down and
+     * mouse move.
+     */
     function PanController (config) {
         THREE.EventDispatcher.call(this);
         config = config || {};
@@ -2773,7 +2774,6 @@ FOUR.PanController = (function () {
     };
 
     PanController.prototype.onMouseDown = function (event) {
-        event.preventDefault();
         if (event.button === THREE.MOUSE.RIGHT) {
             this.domElement.style.cursor = this.CURSOR.PAN;
             this.mode = this.MODES.PAN;
@@ -2781,25 +2781,26 @@ FOUR.PanController = (function () {
             this.pan.start.copy(ndc);
             this.pan.end.copy(ndc);
             this.dispatchEvent(this.EVENT.START);
+            event.preventDefault();
         }
     };
 
     PanController.prototype.onMouseMove = function (event) {
-        event.preventDefault();
         if (event.button === THREE.MOUSE.RIGHT) {
             var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
             //console.info('ndc', ndc);
             this.pan.end.copy(ndc);
+            event.preventDefault();
         }
     };
 
     PanController.prototype.onMouseUp = function (event) {
-        event.preventDefault();
         if (this.mode === this.MODES.PAN) {
             this.domElement.style.cursor = this.CURSOR.DEFAULT;
             this.mode = this.MODES.NONE;
             this.pan.delta.set(0,0);
             this.dispatchEvent(this.EVENT.END);
+            event.preventDefault();
         }
     };
 
@@ -3043,6 +3044,7 @@ FOUR.RotateController = (function () {
             this.domElement.style.cursor = this.CURSOR.ROTATE;
             this.rotateStart.set(event.clientX, event.clientY);
             this.dispatchEvent(this.EVENT.START);
+            event.preventDefault();
         }
     };
 
@@ -3055,15 +3057,17 @@ FOUR.RotateController = (function () {
             // rotating up and down along whole screen attempts to go 360, but limited to 180
             this.constraint.rotateUp(2 * Math.PI * this.rotateDelta.y / this.domElement.clientHeight * this.rotateSpeed);
             this.rotateStart.copy(this.rotateEnd);
-            this.update();
+            this.update(); // TODO do we need this???
+            event.preventDefault();
         }
     };
 
-    RotateController.prototype.onMouseUp = function () {
+    RotateController.prototype.onMouseUp = function (event) {
         if (this.state === this.STATE.ROTATE) {
             this.domElement.style.cursor = this.CURSOR.DEFAULT;
             this.state = this.STATE.NONE;
             this.dispatchEvent(this.EVENT.END);
+            event.preventDefault();
         }
     };
 
@@ -6523,7 +6527,12 @@ FOUR.MarqueeSelectionController = (function () {
       start: new THREE.Vector2(),
       state: self.MOUSE_STATE.UP
     };
-    self.quadtree = new Quadtree({height: 1, width: 1});
+    self.quadtree = new Quadtree({
+      x: 0,
+      y: 0,
+      height: config.viewport.domElement.clientHeight,
+      width: config.viewport.domElement.clientWidth
+    });
     self.selectAction = self.SELECT_ACTIONS.SELECT;
     self.selection = [];
     self.viewport = config.viewport;
@@ -6541,29 +6550,36 @@ FOUR.MarqueeSelectionController = (function () {
    */
   MarqueeSelectionController.prototype.buildQuadtree = function () {
     // TODO perform indexing in a worker if possible
-    var self = this;
-    try {
-      // clear the current index
-      self.quadtree = new Quadtree({height: 1, width: 1});
-      // build a frustum for the current camera view
-      var matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
-      self.frustum.setFromMatrix(matrix);
-      // traverse the scene and add all entities within the frustum to the index
-      var total = 0;
-      self.viewport.getScene().getModelObjects().forEach(function (child) {
-        if (self.frustum.intersectsObject(child)) {
+    var matrix, self = this, p, total = 0;
+    // clear the current index
+    self.quadtree.clear();
+    // build a frustum for the current camera view
+    matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
+    self.frustum.setFromMatrix(matrix);
+    // traverse the scene and add all entities within the frustum to the index
+    self.viewport.getScene().getModelObjects().forEach(function (child) {
+      if (self.frustum.intersectsObject(child)) {
+        // switch indexing strategy depending on the type of scene object
+        if (child instanceof THREE.Points) {
+          child.geometry.vertices.forEach(function (vertex) {
+            total += 1;
+            p = self.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+            if (p.x >= 0 && p.y >= 0) {
+              //self.quadtree.insert({x:p.x, y:p.y, uuid:child.uuid, obj:vertex, parent:child, type:'point'});
+              self.quadtree.insert({x:Number(p.x), y:Number(p.y), uuid:'uuid', obj:{}, type:'point'});
+            }
+          });
+        } else if (child instanceof THREE.Object3D) {
           total += 1;
-          // TODO switch strategy based on type of object
-          var p = self.getObjectScreenCoordinates(child, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+          p = self.getObjectScreenCoordinates(child, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
           if (p.x >= 0 && p.y >= 0) {
-            self.quadtree.push({x: p.x, y: p.y, uuid: child.uuid, obj:child});
+            //self.quadtree.insert({x:p.x, y:p.y, uuid:child.uuid, obj:child, type:'object'});
+            self.quadtree.insert({x:Number(p.x), y:Number(p.y), uuid:'uuid', obj:{}, type:'object'});
           }
         }
-      });
-      console.info('Found %s objects in the view', total);
-    } catch (e) {
-      console.error(e);
-    }
+      }
+    });
+    console.info('Found %s objects in the view', total);
   };
 
   MarqueeSelectionController.prototype.disable = function () {
@@ -6609,8 +6625,12 @@ FOUR.MarqueeSelectionController = (function () {
    */
   MarqueeSelectionController.prototype.getObjectScreenCoordinates = function (obj, camera, screenWidth, screenHeight) {
     var pos = new THREE.Vector3();
-    obj.updateMatrixWorld();
-    pos.setFromMatrixPosition(obj.matrixWorld);
+    if (obj instanceof THREE.Object3D) {
+      //obj.updateMatrixWorld();
+      pos.setFromMatrixPosition(obj.matrixWorld);
+    } else {
+      pos.copy(obj);
+    }
     pos.project(camera);
     // get screen coordinates
     pos.x = Math.round((pos.x + 1) * screenWidth / 2);
@@ -6746,10 +6766,9 @@ FOUR.SelectionSet = (function () {
     config = config || {};
     var self = this;
     self.boundingBox = new FOUR.BoundingBox(); // TODO update the bounding box when the selection set changes
-    self.count = 0;
     self.name = 'default-selection-set';
     self.selectedColor = 0xff5a00;
-    self.selection = {};
+    self.selection = [];
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
     });
@@ -6760,7 +6779,10 @@ FOUR.SelectionSet = (function () {
   SelectionSet.prototype.constructor = SelectionSet;
 
   /**
-   * Add object to the selection set.
+   * Add object to the selection set. The set contains only the object UUID in
+   * the case of instances of Object3D. For instances of THREE.Points, we
+   * record the parent UUID and the point's index within the geometry
+   * collection.
    * @param {THREE.Object3D} obj Scene object
    * @param {Boolean} update Emit update event
    */
@@ -6770,8 +6792,8 @@ FOUR.SelectionSet = (function () {
     }
     update = typeof update === 'undefined' ? true : update;
     var self = this;
-    self.selection[obj.uuid] = obj;
-    self.count = Object.keys(self.selection).length;
+    // check for THREE.Object3D, THREE.Points
+    self.selection.push({uuid:obj.uuid.slice(), index:0, type:'THREE.Object3D'});
     if (update) {
       self.dispatchEvent({type:'update', added:[obj], removed:[], selected:self.getSelected()});
     }
@@ -6814,10 +6836,10 @@ FOUR.SelectionSet = (function () {
    */
   SelectionSet.prototype.getSelected = function () {
     var objects = [], self = this;
-    Object.keys(self.selection).forEach(function (key) {
-      objects.push(self.selection[key]);
-    });
-    return objects;
+    //Object.keys(self.selection).forEach(function (key) {
+    //  objects.push(self.selection[key]);
+    //});
+    return self.selection;
   };
 
   /**
@@ -6829,7 +6851,6 @@ FOUR.SelectionSet = (function () {
     update = typeof update === 'undefined' ? true : update;
     var self = this;
     delete self.selection[obj.uuid];
-    self.count = Object.keys(self.selection).length;
     if (update) {
       self.dispatchEvent({type:'update', added:[], removed:[obj], selected:[]});
     }
@@ -6846,10 +6867,11 @@ FOUR.SelectionSet = (function () {
     var removed = [], self = this;
     if (!objects) {
       // remove everything
-      Object.keys(self.selection).forEach(function (uuid) {
-        removed.push(self.selection[uuid]);
-        self.remove(self.selection[uuid], false);
-      });
+      //removed = self.selection.slice();
+      //Object.keys(self.selection).forEach(function (uuid) {
+      //  removed.push(self.selection[uuid]);
+      //  self.remove(self.selection[uuid], false);
+      //});
     } else if (objects.length > 0) {
       // remove the specified objects
       objects.forEach(function (obj) {
