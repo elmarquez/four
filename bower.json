@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "bluebird": "~3.0.6",
-    "quadtree-js": "https://github.com/timohausmann/quadtree-js.git",
+    "quadtree-lib": "~0.1.2",
     "three.js": "0.72.0",
     "tween.js": "tweenjs#~16.3.1"
   },

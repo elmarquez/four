@@ -310,7 +310,7 @@
             var walk = new FOUR.WalkController({viewport: viewport});
             var zoom = new FOUR.ZoomController({viewport: viewport});
 
-            var select = new FOUR.SelectionController({viewport: viewport});
+            var select = new FOUR.ClickSelectionController({viewport: viewport});
             select.addEventListener('update', viewport.render.bind(viewport));
             select.addEventListener('add', function (event) {
                 selectionSet.addAll([event.object]);

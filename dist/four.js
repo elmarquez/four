@@ -46,6 +46,41 @@ FOUR.VIEW = {
   LEFT: 'left',
   BOTTOM: 'bottom'
 };
+
+/**
+ * Utility functions namespace.
+ * @type {*}
+ */
+FOUR.utils = {};
+
+/**
+ * Determine if R1 intersects R2.
+ * @param {Object} r1 Rectangle 1
+ * @param {Object} r2 Rectangle 2
+ */
+FOUR.utils.intersects = function (r1, r2) {
+  throw new Error('not implemented'); // FIXME implement function
+};
+
+/**
+ * Determine if R1 is contained inside R2.
+ * @param {Object} r1 Rectangle 1
+ * @param {Object} r2 Rectangle 2
+ */
+FOUR.utils.isContained = function (r1, r2) {
+  // compare X dimension
+  if (r1.p1.x >= r2.p1.x && r1.p1.x <= r2.p2.x) {
+    if (r1.p2.x >= r2.p1.x && r1.p2.x <= r2.p2.x) {
+      // compare y dimension
+      if (r1.p1.y >= r2.p1.y && r1.p1.y <= r2.p2.y) {
+        if (r1.p2.y >= r2.p1.y && r1.p2.y <= r2.p2.y) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
 ;
 
 FOUR.KeyInputController = (function () {
@@ -3471,7 +3506,6 @@ FOUR.TrackballController = (function () {
             UP: 0,
             DOWN: 1
         };
-        self.SINGLE_CLICK_TIMEOUT = 400;
 
         // API
         self.allowZoom = true;
@@ -3731,7 +3765,7 @@ FOUR.TrackballController = (function () {
         } else {
             self.timeout = setTimeout(function () {
                 self.timeout = null;
-            }, self.SINGLE_CLICK_TIMEOUT);
+            }, FOUR.SINGLE_CLICK_TIMEOUT);
             self.dispatchEvent(self.EVENTS.END);
         }
     };
@@ -5015,7 +5049,6 @@ FOUR.WalkController = (function () {
             DOWN: 0,
             UP: 1
         };
-        self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
 
         self.camera = config.camera || config.viewport.camera;
         self.domElement = config.domElement || config.viewport.domElement;
@@ -6310,7 +6343,6 @@ FOUR.ClickSelectionController = (function () {
     self.EPS = 2;
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
-    self.SINGLE_CLICK_TIMEOUT = 400; // milliseconds
 
     self.domElement = config.viewport.domElement;
     self.enabled = false;
@@ -6445,7 +6477,7 @@ FOUR.ClickSelectionController = (function () {
           clearTimeout(self.timeout);
           self.timeout = null;
           self.onSingleClick();
-        }, self.SINGLE_CLICK_TIMEOUT);
+        }, FOUR.SINGLE_CLICK_TIMEOUT);
       }
       self.mouse.state = self.MOUSE_STATE.UP;
       event.preventDefault();
@@ -6491,7 +6523,7 @@ FOUR.MarqueeSelectionController = (function () {
    * @param {Object} config Configuration
    * @constructor
    */
-  function MarqueeSelectionController (config) {
+  function MarqueeSelectionController(config) {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
@@ -6504,7 +6536,7 @@ FOUR.MarqueeSelectionController = (function () {
     self.INDEX_TIMEOUT = 500;
 
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
-    self.SELECT_ACTIONS = {ADD:0, REMOVE:1, SELECT:2};
+    self.SELECT_ACTIONS = {ADD: 0, REMOVE: 1, SELECT: 2};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
     self.camera = config.camera;
@@ -6528,8 +6560,8 @@ FOUR.MarqueeSelectionController = (function () {
       state: self.MOUSE_STATE.UP
     };
     self.quadtree = new Quadtree({
-      x: 0,
-      y: 0,
+      //x: 0,
+      //y: 0,
       height: config.viewport.domElement.clientHeight,
       width: config.viewport.domElement.clientWidth
     });
@@ -6548,11 +6580,15 @@ FOUR.MarqueeSelectionController = (function () {
    * Build a quadtree index from the set of objects that are contained within
    * the camera frustum. Index each object by its projected screen coordinates.
    */
-  MarqueeSelectionController.prototype.buildQuadtree = function () {
+  MarqueeSelectionController.prototype.buildIndex = function () {
     // TODO perform indexing in a worker if possible
-    var matrix, self = this, p, total = 0;
+    var matrix, self = this, i, p, total = 0, vertex;
     // clear the current index
-    self.quadtree.clear();
+    //self.quadtree.clear();
+    self.quadtree = new Quadtree({
+      height: self.viewport.domElement.clientHeight,
+      width: self.viewport.domElement.clientWidth
+    });
     // build a frustum for the current camera view
     matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
@@ -6561,21 +6597,10 @@ FOUR.MarqueeSelectionController = (function () {
       if (self.frustum.intersectsObject(child)) {
         // switch indexing strategy depending on the type of scene object
         if (child instanceof THREE.Points) {
-          child.geometry.vertices.forEach(function (vertex) {
-            total += 1;
-            p = self.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-            if (p.x >= 0 && p.y >= 0) {
-              //self.quadtree.insert({x:p.x, y:p.y, uuid:child.uuid, obj:vertex, parent:child, type:'point'});
-              self.quadtree.insert({x:Number(p.x), y:Number(p.y), uuid:'uuid', obj:{}, type:'point'});
-            }
-          });
+          total += self.indexPointsVertices(child, self.quadtree);
         } else if (child instanceof THREE.Object3D) {
+          self.indexObject3DVertices(child, self.quadtree);
           total += 1;
-          p = self.getObjectScreenCoordinates(child, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-          if (p.x >= 0 && p.y >= 0) {
-            //self.quadtree.insert({x:p.x, y:p.y, uuid:child.uuid, obj:child, type:'object'});
-            self.quadtree.insert({x:Number(p.x), y:Number(p.y), uuid:'uuid', obj:{}, type:'object'});
-          }
         }
       }
     });
@@ -6594,7 +6619,7 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.enable = function () {
     var self = this;
     self.camera = self.viewport.getCamera();
-    function addListener (element, event, fn) {
+    function addListener(element, event, fn) {
       self.listeners[event] = {
         element: element,
         event: event,
@@ -6602,6 +6627,7 @@ FOUR.MarqueeSelectionController = (function () {
       };
       element.addEventListener(event, self.listeners[event].fn, false);
     }
+
     addListener(self.camera, 'update', self.onCameraUpdate);
     addListener(self.viewport, 'camera-change', self.onCameraChange);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
@@ -6611,7 +6637,7 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(window, 'keyup', self.onKeyUp);
     self.enabled = true;
     // FIXME the first time the index runs it appears to get every scene object
-    self.buildQuadtree();
+    self.buildIndex();
   };
 
   /**
@@ -6639,8 +6665,65 @@ FOUR.MarqueeSelectionController = (function () {
     return pos;
   };
 
+  MarqueeSelectionController.prototype.getVertexScreenCoordinates = function (vertex, camera, screenWidth, screenHeight) {
+    var pos = new THREE.Vector3().copy(vertex);
+    pos.project(camera);
+    // get screen coordinates
+    pos.x = Math.round((pos.x + 1) * screenWidth / 2);
+    pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
+    pos.z = 0;
+    return pos;
+  };
+
   MarqueeSelectionController.prototype.hideMarquee = function () {
     this.marquee.setAttribute('style', 'display:none;height:0;width:0;');
+  };
+
+  /**
+   * Index the THREE.Object3D by its vertices.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Object} index Spatial index
+   */
+  MarqueeSelectionController.prototype.indexObject3DVertices = function (obj, index) {
+    var height, maxX = 0, maxY = 0,
+      minX = this.viewport.domElement.clientWidth,
+      minY = this.viewport.domElement.clientHeight,
+      p, self = this, width, x, y;
+    if (obj.matrixWorldNeedsUpdate) {
+      obj.updateMatrixWorld();
+    }
+    // project the object vertices into the screen space, then find the screen
+    // space bounding box for the scene object
+    obj.geometry.vertices.forEach(function (vertex) {
+      p = vertex.clone();
+      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
+      p = self.getVertexScreenCoordinates(p, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+      maxX = p.x > maxX ? p.x : maxX;
+      maxY = p.y > maxY ? p.y : maxY;
+      minX = p.x < minX ? p.x : minX;
+      minY = p.y < minY ? p.y : minY;
+    });
+    height = (maxY - minY) > 0 ? maxY - minY : 0;
+    width = (maxX - minX) > 0 ? maxX - minX : 0;
+    x = minX >= 0 ? minX : 0;
+    y = minY >= 0 ? minY : 0;
+    // add the object screen bounding box to the index
+    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, type: 'THREE.Object3D'});
+    //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
+  };
+
+  MarqueeSelectionController.prototype.indexPointsVertices = function (obj, index) {
+    var i, p, self = this, total = 0, vertex;
+    for (i = 0; i < obj.geometry.vertices.length; i++) {
+      total += 1;
+      vertex = obj.geometry.vertices[i];
+      p = self.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+      // TODO use an index that can support negative numbers
+      if (p.x >= 0 && p.y >= 0) {
+        index.push({uuid:obj.uuid.slice(), index:i, x:Number(p.x), y:Number(p.y), type:'THREE.Points'});
+      }
+    }
+    return total;
   };
 
   MarqueeSelectionController.prototype.onCameraChange = function () {
@@ -6658,7 +6741,7 @@ FOUR.MarqueeSelectionController = (function () {
       clearTimeout(this.indexingTimeout);
       this.indexingTimeout = null;
     }
-    this.indexingTimeout = setTimeout(this.buildQuadtree.bind(this), this.INDEX_TIMEOUT);
+    this.indexingTimeout = setTimeout(this.buildIndex.bind(this), this.INDEX_TIMEOUT);
   };
 
   MarqueeSelectionController.prototype.onContextMenu = function (event) {
@@ -6696,57 +6779,109 @@ FOUR.MarqueeSelectionController = (function () {
       //console.info('marquee selection');
       event.preventDefault();
       event.stopPropagation();
-      this.mouse.end.set(event.offsetX, event.offsetY);
       // draw the selection marquee
-      // drawn from top level to bottom right
+      this.mouse.end.set(event.offsetX, event.offsetY);
       var width = Math.abs(this.mouse.end.x - this.mouse.start.x);
       var height = Math.abs(this.mouse.end.y - this.mouse.start.y);
+      // drawn from top left to bottom right
+      if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.start.x, this.mouse.start.y, width, height);
+      }
+      // drawn from the top right to the bottom left
+      else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.end.x, this.mouse.start.y, width, height);
+      }
+      // drawn from the bottom left to the top right
+      else if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.start.x, this.mouse.end.y, width, height);
+      }
+      // drawn from the bottom right to the top left
+      else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
+        this.setMarqueePosition(this.mouse.end.x, this.mouse.end.y, width, height);
+      }
+    }
+  };
+
+  MarqueeSelectionController.prototype.onMouseUp = function (event) {
+    if (this.mouse.state === this.MOUSE_STATE.DOWN && event.button === THREE.MOUSE.LEFT) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.mouse.state = this.MOUSE_STATE.UP;
+      // hide the selection marquee
+      this.hideMarquee();
+      // emit the selection event
+      var width = Math.abs(this.mouse.end.x - this.mouse.start.x);
+      var height = Math.abs(this.mouse.end.y - this.mouse.start.y);
+      // drawn from top left to bottom right
       if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
         this.select(this.mouse.start.x, this.mouse.start.y, width, height);
       }
-      // draw from the top right to the bottom left
+      // drawn from the top right to the bottom left
       else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y > this.mouse.start.y) {
         this.select(this.mouse.end.x, this.mouse.start.y, width, height);
       }
-      // draw from the bottom left to the top right
+      // drawn from the bottom left to the top right
       else if (this.mouse.end.x > this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
         this.select(this.mouse.start.x, this.mouse.end.y, width, height);
       }
-      // draw from the bottom right to the top left
+      // drawn from the bottom right to the top left
       else if (this.mouse.end.x < this.mouse.start.x && this.mouse.end.y < this.mouse.start.y) {
         this.select(this.mouse.end.x, this.mouse.end.y, width, height);
       }
     }
   };
 
-  MarqueeSelectionController.prototype.onMouseUp = function (event) {
-    if (event.button === THREE.MOUSE.LEFT) {
-      event.preventDefault();
-      event.stopPropagation();
-      this.mouse.state = this.MOUSE_STATE.UP;
-      this.hideMarquee();
-    }
-  };
-
+  /**
+   * Select entities by marquee.
+   * @param {Number} x Selection top left screen X coordinate
+   * @param {Number} y Selection top left screen Y coordinate
+   * @param {Number} width Selection bottom right screen X coordinate
+   * @param {Number} height Selection bottom right screen Y coordinate
+   */
   MarqueeSelectionController.prototype.select = function (x, y, width, height) {
-    this.setMarqueePosition(x, y, width, height);
-    this.selection = this.quadtree.colliding({x:x, y:y, width:width, height:height});
+    // find entities that are wholly contained inside the selection marquee
+    var r1 = {p1: {}, p2: {}}, r2 = {p1: {}, p2: {}};
+    this.selection = this.quadtree.colliding({x: x, y: y, width: width, height: height}, function (selection, obj) {
+      r1.p1.x = obj.x;
+      r1.p1.y = obj.y;
+      r1.p2.x = obj.x + obj.width;
+      r1.p2.y = obj.y + obj.height;
+      r2.p1.x = selection.x;
+      r2.p1.y = selection.y;
+      r2.p2.x = selection.x + selection.width;
+      r2.p2.y = selection.y + selection.height;
+      return FOUR.utils.isContained(r1, r2);
+    });
+    // dispatch selection event
     if (this.selectAction === this.SELECT_ACTIONS.ADD) {
-      this.dispatchEvent({type:'add', selection:this.selection});
+      this.dispatchEvent({type: 'add', selection: this.selection});
     } else if (this.selectAction === this.SELECT_ACTIONS.REMOVE) {
-      this.dispatchEvent({type:'remove', selection:this.selection});
+      this.dispatchEvent({type: 'remove', selection: this.selection});
     } else if (this.selectAction === this.SELECT_ACTIONS.SELECT) {
-      this.dispatchEvent({type:'select', selection:this.selection});
+      this.dispatchEvent({type: 'select', selection: this.selection});
     }
   };
 
-  MarqueeSelectionController.prototype.setFilter = function () {};
+  /**
+   * Set selection filter.
+   */
+  MarqueeSelectionController.prototype.setFilter = function () {
+    throw new Error('not implemented');
+  };
 
+  /**
+   * Set the marquee screen position.
+   * @param {Number} x Marquee top left screen X coordinate
+   * @param {Number} y Marquee top left screen Y coordinate
+   * @param {Number} w Marquee bottom right screen X coordinate
+   * @param {Number} h Marquee bottom right screen Y coordinate
+   */
   MarqueeSelectionController.prototype.setMarqueePosition = function (x, y, w, h) {
     this.marquee.setAttribute('style', 'display:block;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;');
   };
 
-  MarqueeSelectionController.prototype.update = function () {}; // noop
+  MarqueeSelectionController.prototype.update = function () {
+  }; // noop
 
   return MarqueeSelectionController;
 
@@ -6760,12 +6895,13 @@ FOUR.SelectionSet = (function () {
    * @param {Object} config Configuration
    * @constructor
    * TODO selection set should retain the order in which elements were selected
+   * TODO update the bounding box when the selection set changes
    */
   function SelectionSet (config) {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
-    self.boundingBox = new FOUR.BoundingBox(); // TODO update the bounding box when the selection set changes
+    self.boundingBox = new FOUR.BoundingBox();
     self.name = 'default-selection-set';
     self.selectedColor = 0xff5a00;
     self.selection = [];
@@ -6779,10 +6915,7 @@ FOUR.SelectionSet = (function () {
   SelectionSet.prototype.constructor = SelectionSet;
 
   /**
-   * Add object to the selection set. The set contains only the object UUID in
-   * the case of instances of Object3D. For instances of THREE.Points, we
-   * record the parent UUID and the point's index within the geometry
-   * collection.
+   * Add object to the selection set.
    * @param {THREE.Object3D} obj Scene object
    * @param {Boolean} update Emit update event
    */
@@ -6792,8 +6925,11 @@ FOUR.SelectionSet = (function () {
     }
     update = typeof update === 'undefined' ? true : update;
     var self = this;
-    // check for THREE.Object3D, THREE.Points
-    self.selection.push({uuid:obj.uuid.slice(), index:0, type:'THREE.Object3D'});
+    if (obj instanceof THREE.Points) {
+      //self.selection.push({uuid:obj.uuid.slice(), index:0, type:'THREE.Object3D'});
+    } else {
+      self.selection.push({uuid:obj.uuid.slice(), index:0, type:'THREE.Object3D'});
+    }
     if (update) {
       self.dispatchEvent({type:'update', added:[obj], removed:[], selected:self.getSelected()});
     }

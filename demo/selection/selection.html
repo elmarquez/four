@@ -83,7 +83,7 @@
     viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
     // controllers
-    controller = new FOUR.SelectionController({viewport: viewport});
+    controller = new FOUR.ClickSelectionController({viewport: viewport});
     viewport.addController(controller, 'selection');
     viewport.setActiveController('selection');
 
