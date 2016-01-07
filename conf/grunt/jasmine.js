@@ -4,7 +4,10 @@ module.exports = {
     test: {
         src: 'dist/four.js',
         options: {
-            specs: 'test/TargetCamera.js',
+            specs: [
+                'test/SelectionSet.js',
+                'test/TargetCamera.js'
+            ],
             vendor: [
                 'vendor/bluebird/js/browser/bluebird.js',
                 'vendor/jquery/dist/jquery.js',

@@ -2,13 +2,15 @@
 
 module.exports = {
     options: {
+        debounceDelay: 250,
+        spawn: false
     },
-    test: {
+    src: {
         files: ['conf/**/*.js','demo/**/*','lib/**/*.js','test/**/*.js'],
-        tasks: ['compile','test'],
-        options: {
-            debounceDelay: 250,
-            spawn: false
-        }
+        tasks: ['compile','test']
     }
+    //,test: {
+    //    files: ['test/**/*.js'],
+    //    tasks: ['test']
+    //}
 };
