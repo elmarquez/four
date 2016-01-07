@@ -2,6 +2,7 @@
 
 /**
  * Selection set tests.
+ * @todo need to check the emitted event to confirm the added, removed, selected items lists are correct
  */
 describe('SelectionSet', function () {
 

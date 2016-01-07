@@ -6708,7 +6708,7 @@ FOUR.MarqueeSelectionController = (function () {
     x = minX >= 0 ? minX : 0;
     y = minY >= 0 ? minY : 0;
     // add the object screen bounding box to the index
-    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, type: 'THREE.Object3D'});
+    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D'});
     //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
   };
 
@@ -6718,9 +6718,9 @@ FOUR.MarqueeSelectionController = (function () {
       total += 1;
       vertex = obj.geometry.vertices[i];
       p = self.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-      // TODO use an index that can support negative numbers
       if (p.x >= 0 && p.y >= 0) {
-        index.push({uuid:obj.uuid.slice(), index:i, x:Number(p.x), y:Number(p.y), type:'THREE.Points'});
+        index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
+        console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
       }
     }
     return total;
@@ -6967,6 +6967,19 @@ FOUR.SelectionSet = (function () {
   };
 
   /**
+   * Build an identifier to selection record index.
+   * @param {Array} objects List of selection records.
+   * @returns {Object} Id to selection record map
+   */
+  SelectionSet.prototype.buildIndex = function (objects) {
+    var self = this;
+    return objects.reduce(function (map, obj) {
+      map[self.getObjectIndexId(obj)] = obj;
+      return map;
+    }, {});
+  };
+
+  /**
    * Determine if the selection set contains the object.
    * @param {Object} obj Object record comprising a uuid and index field.
    * @returns {boolean} True if the object is contained in the selection set.
@@ -7040,13 +7053,30 @@ FOUR.SelectionSet = (function () {
 
   /**
    * Update the selection set to include only those objects provided.
-   * @param {Object|Array} selection Selected item or list of items.
+   * @param {Array} selection Selected items.
    */
   SelectionSet.prototype.select = function (selection) {
-    selection = Array.isArray(selection) ? selection : [selection];
-    this.index = [];
-    this.items = [];
-    this.addAll(selection);
+    var added = [], id, removed = [], self = this;
+    // a map of entities that should be selected at the end of the operation
+    var selected = self.buildIndex(selection);
+    var ids = Object.keys(selected);
+    // entities in the selection set that are not in the select list
+    self.items.forEach(function (obj) {
+      id = self.getObjectIndexId(obj);
+      if (ids.indexOf(id) === -1) {
+        removed.push(obj);
+      }
+    });
+    // entities in the select list that are not in the selection set
+    selection.forEach(function (obj) {
+      if (!self.contains(obj)) {
+        added.push(obj);
+      }
+    });
+    // update the selection set
+    this.removeAll(removed, false);
+    this.addAll(added, false);
+    this.dispatchEvent({type:'update', added:added, removed:removed, selected: this.items});
   };
 
   /**
@@ -7074,10 +7104,7 @@ FOUR.SelectionSet = (function () {
    * Update the index of selected entity IDs.
    */
   SelectionSet.prototype.updateIndex = function () {
-    var self = this;
-    self.index = self.items.map(function (item) {
-      return self.getObjectIndexId(item);
-    });
+    this.index = Object.keys(this.buildIndex(this.items));
   };
 
   return SelectionSet;

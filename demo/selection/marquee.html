@@ -40,7 +40,10 @@
 <div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
 <script>
-  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, rotate, scene, selectionSet, viewport;
+  var points = 50;
+  var primitives = 50;
+
+  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, selectionSet, viewport;
 
   $(document).ready(function () {
     // scene
@@ -66,10 +69,23 @@
     helper = new THREE.AxisHelper(10);
     scene.helpers.add(helper);
 
-    // world
+    // add random points to the scene
+    material = new THREE.PointsMaterial();
+    geometry = new THREE.Geometry();
+    for (i = 0; i < points; i ++) {
+      var vertex = new THREE.Vector3();
+      vertex.x = (Math.random() - 0.5) * 1000;
+      vertex.y = (Math.random() - 0.5) * 1000;
+      vertex.z = (Math.random() - 0.5) * 1000;
+      geometry.vertices.push(vertex);
+    }
+    particles = new THREE.Points(geometry, material);
+    scene.model.add(particles);
+
+    // add random primitives to the scene
     geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
     material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
-    for (i = 0; i < 500; i++) {
+    for (i = 0; i < primitives; i++) {
       mesh = new THREE.Mesh(geometry, material);
       mesh.position.x = (Math.random() - 0.5) * 1000;
       mesh.position.y = (Math.random() - 0.5) * 1000;
@@ -107,12 +123,11 @@
     });
     marquee.addEventListener('select', function (event) {
       console.info('select', event);
-      selectionSet.removeAll();
-      selectionSet.toggle(event.selection);
+      selectionSet.select(event.selection);
     });
 
     selectionSet.addEventListener('update', function (event) {
-//      console.info('update', event);
+      console.info('update', event);
       var obj;
       event.removed.forEach(function (item) {
         obj = scene.getObjectByProperty('uuid', item.uuid);
