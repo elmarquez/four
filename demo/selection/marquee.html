@@ -40,8 +40,8 @@
 <div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
 <script>
-  var points = 50;
-  var primitives = 50;
+  var points = 500;
+  var primitives = 500;
 
   var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, selectionSet, viewport;
 
@@ -128,15 +128,16 @@
 
     selectionSet.addEventListener('update', function (event) {
       console.info('update', event);
-      var obj;
-      event.removed.forEach(function (item) {
-        obj = scene.getObjectByProperty('uuid', item.uuid);
-        obj.material.color = '#FFFFFF';
-      });
-      event.added.forEach(function (item) {
-        obj = scene.getObjectByProperty('uuid', item.uuid);
-        obj.material.color = '#FF0000';
-      });
+      // FIXME this part was breaking the demo
+//      var obj;
+//      event.removed.forEach(function (item) {
+//        obj = scene.getObjectByProperty('uuid', item.uuid);
+//        obj.material.color = '#FFFFFF';
+//      });
+//      event.added.forEach(function (item) {
+//        obj = scene.getObjectByProperty('uuid', item.uuid);
+//        obj.material.color = '#FF0000';
+//      });
     });
 
     Mousetrap.bind('esc', function () {
