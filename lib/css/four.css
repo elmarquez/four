@@ -11,3 +11,16 @@
     width: 1px;
     z-index: 999;
 }
+
+.overlay {
+    z-index: 899;
+}
+
+.overlay .label {
+    background-color: #484848;
+    box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+    color: white;
+    padding: 3px;
+    -moz-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+    -webkit-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+}
