@@ -1,12 +1,13 @@
 Work to be Done
 ===============
 
-* update repo name
-* tour controller
-* simulated annealing path planner
-* camera tests
-* documentation
-* marquee selection
+x update repo name
+x tour controller
+x simulated annealing path planner
+x camera tests
+x marquee selection
+
+
 - decouple selection and path _navigation_
 - arrow controls for all navigation modes
 - !!! need to check both mouse down and which mouse button was pressed
@@ -23,10 +24,18 @@ Work to be Done
 - command palette, hotbox
 - transform controller
 - make web site for library
+- selection overlay/popup
 - construction plane
 - lidar editing
+- documentation
+
+
 - solid modelling
 - packaging into an Electron application
+- angular application components
+    - layer palette
+    - tool palette
+    - selection palette
   
 ## Bugs
 

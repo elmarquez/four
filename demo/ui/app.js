@@ -1,4 +1,4 @@
-angular.module('cad', []);
+angular.module('cad', ['four']);
 
 angular
     .module('cad')

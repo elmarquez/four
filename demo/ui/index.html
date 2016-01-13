@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <title>FOUR - Sample CAD Application Interface</title>
     <!-- fonts -->
-    <link href='https://fonts.googleapis.com/css?family=Lato:400,300,100,700,900' rel='stylesheet' type='text/css'>
-    <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600' rel='stylesheet' type='text/css'>
-    <link href='../../vendor/font-awesome/css/font-awesome.css' rel='stylesheet' type='text/css'>
-    <link href='../../vendor/jqTree/jqtree.css' rel='stylesheet' type='text/css'>
-    <link href='../../vendor/ol3/ol.css' rel='stylesheet' type='text/css'>
-    <link href='../../vendor/slickgrid/slick.grid.css' rel='stylesheet' type='text/css'>
-    <link href='../../vendor/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css' rel='stylesheet' type='text/css'>
-    <link href='../../vendor/slickgrid/examples/examples.css' rel='stylesheet' type='text/css'>
-    <link href='ui.css' rel='stylesheet' type='text/css'>
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,300,100,700,900" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600" rel="stylesheet" type="text/css">
+    <link href="../../vendor/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css">
+    <link href="../../vendor/four-angular/dist/four-angular.css" rel="stylesheet" type="text/css">
+    <link href="../../vendor/jqTree/jqtree.css" rel="stylesheet" type="text/css">
+    <link href="../../vendor/ol3/ol.css" rel="stylesheet" type="text/css">
+    <link href="../../vendor/slickgrid/slick.grid.css" rel="stylesheet" type="text/css">
+    <link href="../../vendor/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css" rel="stylesheet" type="text/css">
+    <link href="../../vendor/slickgrid/examples/examples.css" rel="stylesheet" type="text/css">
+    <link href="ui.css" rel="stylesheet" type="text/css">
 
     <!-- vendor -->
     <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
@@ -21,6 +22,13 @@
     <script src="../../vendor/jquery.event.dragdrop/event.drag/jquery.event.drag.js"></script>
     <script src="../../vendor/jqTree/tree.jquery.js"></script>
     <script src="../../vendor/angular/angular.js"></script>
+    <script src="../../vendor/angular-animate/angular-animate.js"></script>
+    <script src="../../vendor/angular-aria/angular-aria.js"></script>
+    <script src="../../vendor/angular-cookies/angular-cookies.js"></script>
+    <script src="../../vendor/angular-route/angular-route.js"></script>
+    <script src="../../vendor/angular-sanitize/angular-sanitize.js"></script>
+    <script src="../../vendor/angular-touch/angular-touch.js"></script>
+    <script src="../../vendor/angular-uuid4/angular-uuid4.js"></script>
     <script src="../../vendor/mousetrap/mousetrap.js"></script>
     <script src="../../vendor/ol3/ol.js"></script>
     <script src="../../vendor/slickgrid/slick.core.js"></script>
@@ -33,9 +41,13 @@
     <script src="../../dist/four.js"></script>
 
     <!-- demo application -->
-    <script src="../app.js"></script>
+    <script src="../../vendor/four-angular/dist/four-angular.js"></script>
+    <script src="app.js"></script>
 </head>
 <body>
+
+<div id="hud"></div>
+
 <!--<div id="hud">-->
     <!--<div class="row top">-->
         <!--<div class="tools">-->
@@ -83,8 +95,14 @@
     </div>
 </div>
 <div id="sidebar">
-    <div class="palette">
-        <div class="row">
+
+    <div class="palette" ng-controller="ToolController">
+        <div class="title">
+            <i class="fa fa-caret-down"></i>
+            Layers
+            <i class="fa fa-gear"></i>
+        </div>
+        <div class="body">
             <button class="button tool"><i class="fa fa-mouse-pointer fa-2x fa-fw fa-inverse"></i></button>
             <button class="button tool active"><i class="fa fa-arrows fa-2x fa-fw fa-inverse"></i></button>
             <button class="button tool"><i class="fa fa-cube fa-2x fa-fw fa-inverse"></i></button>
@@ -92,8 +110,13 @@
             <button class="button tool"><i class="fa fa-history fa-2x fa-fw fa-inverse"></i></button>
         </div>
     </div>
-    <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Points</div>
+
+    <div class="palette" ng-controller="LayerController">
+        <div class="title">
+            <i class="fa fa-caret-down"></i>
+            Layers
+            <i class="fa fa-gear"></i>
+        </div>
         <div class="body">
             <ul class="list">
                 <li>
@@ -127,55 +150,27 @@
             </ul>
         </div>
     </div>
-    <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Features</div>
+    <div class="palette" ng-controller="ViewController">
+        <div class="title">
+            <i class="fa fa-caret-down"></i>
+            Views
+            <i class="fa fa-gear"></i>
+        </div>
         <div class="body">
-            <ul class="list">
-                <li>
-                    <i class="fa fa-eye"></i>
-                    Layer Name
-                    <span class="color-swatch"></span>
-                </li>
-                <li>
-                    <i class="fa fa-eye"></i>
-                    Layer Name
-                    <span class="color-swatch"></span>
-                </li>
-                <li>
-                    <i class="fa fa-eye"></i>
-                    Layer Name
-                    <span class="color-swatch"></span>
-                </li>
-                <li>
-                    <i class="fa fa-eye"></i>
-                    Layer Name
-                    <span class="color-swatch"></span>
-                </li>
-            </ul>
-        </div>
-    </div>
-    <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Tasks</div>
-        <div class="body inset inset-top inset-bottom">
             Content of the palette
         </div>
     </div>
-    <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Pins</div>
-        <div class="body inset inset-top inset-bottom">
-            Content of the palette
+    <div class="palette" ng-controller="UndoController">
+        <div class="title">
+            <i class="fa fa-caret-down"></i>
+            Undo
+            <i class="fa fa-gear"></i>
         </div>
-    </div>
-    <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Changes</div>
-        <div class="body inset inset-top inset-bottom">
-            Content of the palette
-            <button>Save Changes</button>
+        <div class="body">
+            <div class="item" ng-repeat="item in items">
+                {{ action.title }}
+            </div>
         </div>
-    </div>
-    <div class="palette">
-        <div class="header"><i class="fa fa-caret-down"></i>&nbsp; Map</div>
-        <div id="map" class="map"></div>
     </div>
     <div class="footer">
         <div class="inset">
@@ -329,7 +324,7 @@
             // view controls
             Mousetrap.bind('f', function () {
                 var bbox = getViewBoundingBox();
-                camera.zoomToFit(bbox).then(function () {
+                camera.zoomToFit(bbox, true).then(function () {
                 });
             });
 
@@ -347,27 +342,27 @@
             });
             Mousetrap.bind('5', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.TOP, bbox);
+                camera.setView(camera.VIEWS.TOP, bbox, true);
             });
             Mousetrap.bind('6', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.FRONT, bbox);
+                camera.setView(camera.VIEWS.FRONT, bbox, true);
             });
             Mousetrap.bind('7', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.LEFT, bbox);
+                camera.setView(camera.VIEWS.LEFT, bbox, true);
             });
             Mousetrap.bind('8', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.RIGHT, bbox);
+                camera.setView(camera.VIEWS.RIGHT, bbox, true);
             });
             Mousetrap.bind('9', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.BACK, bbox);
+                camera.setView(camera.VIEWS.BACK, bbox, true);
             });
             Mousetrap.bind('0', function () {
                 var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.PERSPECTIVE, bbox);
+                camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
             });
 
             // tour controls
@@ -416,17 +411,17 @@
                 }
             });
             Mousetrap.bind('=', function () {
-                camera.zoomIn();
+                camera.zoomIn(true);
             });
             Mousetrap.bind('-', function () {
-                camera.zoomOut();
+                camera.zoomOut(true);
             });
         }
 
         function setupControllers() {
             // TODO for most controllers, passing in the viewport should provide the required information
             // selection controller
-            viewport.controllers.selection = new FOUR.SelectionController({
+            viewport.controllers.selection = new FOUR.ClickSelectionController({
                 viewport: viewport,
                 selection: scene.selection
             });
