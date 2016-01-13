@@ -3,6 +3,8 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Overlays</title>
+  <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
+
   <!-- vendor -->
   <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
   <script src="../../vendor/jquery/dist/jquery.js"></script>
@@ -16,6 +18,7 @@
   <style>
     body {
       margin: 0;
+      overflow: hidden;
       padding: 0;
     }
 
@@ -35,8 +38,8 @@
       overflow: hidden;
       position: absolute;
       right: 0;
-      top: 0px;
-      z-index: 500;
+      top: 0;
+      z-index: 0;
     }
 
     #webgl:focus {
@@ -54,14 +57,14 @@
   </style>
 </head>
 <body>
-<div id="webgl">
-  <div id="overlay"></div>
-</div>
+<div id="overlay"></div>
+<div id="webgl"></div>
 <div id="controls">
   <button type="button" class="btn" onclick="addLabel()">Add Label</button>
+  <button type="button" class="btn" onclick="clearLabels()">Clear Labels</button>
 </div>
 <script>
-  var camera, controller, domElement, geometry, helper, i, light, material, mesh, multi, rotate, overlay, scene, viewport;
+  var camera, controller, domElement, geometry, helper, i, light, material, mesh, multi, overlayElement, rotate, overlay, scene, viewport;
 
   $(document).ready(function () {
     // scene
@@ -94,11 +97,14 @@
     window.addEventListener('mousemove', viewport.render.bind(viewport));
 
     // controls
+    overlayElement = document.getElementById('overlay');
+    overlay = new FOUR.Overlay({viewport: viewport, domElement: overlayElement});
+
     multi = new FOUR.MultiController({viewport: viewport});
     rotate = new FOUR.RotateController({viewport: viewport});
-    overlay = new FOUR.Overlay({viewport: viewport});
+
     multi.addController(rotate, 'rotate');
-    multi.addController(overlay, 'overlay');
+//    multi.addController(overlay, 'overlay');
     viewport.addController(multi, 'multi');
     viewport.setActiveController('multi');
 
@@ -112,8 +118,10 @@
       mesh.position.z = (Math.random() - 0.5) * 1000;
       mesh.updateMatrix();
       mesh.matrixAutoUpdate = false;
-      scene.add(mesh);
+      scene.model.add(mesh);
     }
+
+    camera.addEventListener('update', overlay.update.bind(overlay));
 
     viewport.render();
     viewport.update();
@@ -131,7 +139,51 @@
   }
 
   function addLabel () {
-    overlay.add({cls: [], content: ''});
+    function getChildren (obj) {
+      var items = [obj];
+      obj.children.forEach(function (item) {
+        getChildren(item).forEach(function (child) {
+          items.push(child);
+        });
+      });
+      return items;
+    }
+    // get the list of scene entities
+    var objs = getChildren(scene.model);
+
+    // pick a random entity
+    var i = Math.floor(Math.random() * objs.length);
+    var obj = objs[i];
+    var colors = [
+      'label darkgray',
+      'label firebrick',
+      'label lightgray',
+      'label orange',
+      'label yellow'
+    ];
+
+    // create a label
+    if (Math.random() >= 0.9) {
+      // fixed label
+      overlay.add({
+        className: 'label fixed',
+        innerHTML: '<div class="title">Fixed Label</div>',
+        position: overlay.POSITION.FIXED
+      });
+    } else {
+      var r = Math.floor(Math.random() * colors.length);
+      // tracking label
+      overlay.add({
+        className: colors[r],
+        innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
+        position: overlay.POSITION.CENTER,
+        target: obj.uuid
+      });
+    }
+  }
+
+  function clearLabels () {
+    overlay.clear();
   }
 
 </script>

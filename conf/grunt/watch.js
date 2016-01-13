@@ -6,7 +6,7 @@ module.exports = {
         spawn: false
     },
     src: {
-        files: ['conf/**/*.js','demo/**/*','lib/**/*.js','test/**/*.js'],
+        files: ['conf/**/*','demo/**/*','lib/**/*','test/**/*'],
         tasks: ['compile','test']
     }
     //,test: {

@@ -54,6 +54,64 @@ FOUR.VIEW = {
 FOUR.utils = {};
 
 /**
+ * Get the screen bounding box for the object 3D.
+ * @param {THREE.Object3D} obj Scene object
+ * @param {THREE.Camera} camera Camera
+ * @param {Number} screenWidth Viewport width
+ * @param {Number} screenHeight Viewport height
+ * @param {String} strategy Strategy
+ * @returns {Object} Screen coordinates, object metadata
+ */
+FOUR.utils.getObject3DScreenBoundingBox = function (obj, camera, screenWidth, screenHeight, strategy) {
+  throw new Error('not implemented'); // FIXME implement function
+};
+
+/**
+ * Transform object position to screen coordinates.
+ * @see http://zachberry.com/blog/tracking-3d-objects-in-2d-with-three-js/
+ * @param {THREE.Object3D} obj Object
+ * @param {THREE.Camera} camera Camera
+ * @param {Number} screenWidth Viewport width
+ * @param {Number} screenHeight Viewport height
+ * @returns {Object} Screen coordinates, object metadata
+ */
+FOUR.utils.getObjectScreenCoordinates = function (obj, camera, screenWidth, screenHeight) {
+  var pos = new THREE.Vector3();
+  if (obj instanceof THREE.Object3D) {
+    //obj.updateMatrixWorld();
+    pos.setFromMatrixPosition(obj.matrixWorld);
+  } else {
+    pos.copy(obj);
+  }
+  pos.project(camera);
+  // get screen coordinates
+  pos.x = Math.round((pos.x + 1) * screenWidth / 2);
+  pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
+  pos.z = 0;
+  return pos;
+};
+
+/**
+ * Transform vertex position to screen coordinates.
+ * @param {THREE.Vector3} vertex Vertex
+ * @param {THREE.Camera} camera Camera
+ * @param {Number} screenWidth Viewport width
+ * @param {Number} screenHeight Viewport height
+ * @returns {Object} Screen coordinates, object metadata
+ *
+ * @todo should take an object and then return an array with screen coordinates
+ */
+FOUR.utils.getVertexScreenCoordinates = function (vertex, camera, screenWidth, screenHeight) {
+  var pos = new THREE.Vector3().copy(vertex);
+  pos.project(camera);
+  // get screen coordinates
+  pos.x = Math.round((pos.x + 1) * screenWidth / 2);
+  pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
+  pos.z = 0;
+  return pos;
+};
+
+/**
  * Determine if R1 intersects R2.
  * @param {Object} r1 Rectangle 1
  * @param {Object} r2 Rectangle 2
@@ -63,7 +121,8 @@ FOUR.utils.intersects = function (r1, r2) {
 };
 
 /**
- * Determine if R1 is contained inside R2.
+ * Determine if rectangle R1 is contained inside rectangle R2. Rectangles are
+ * screen axes aligned.
  * @param {Object} r1 Rectangle 1
  * @param {Object} r2 Rectangle 2
  */
@@ -902,7 +961,7 @@ FOUR.Overlay = (function () {
             BOTTOM: 2,
             LEFT: 3,
             RIGHT: 4,
-            BEST: 5
+            FIXED: 6
         };
 
         self.domElement = config.domElement || config.viewport.domElement;
@@ -921,19 +980,42 @@ FOUR.Overlay = (function () {
     /**
      * Add overlay element.
      * @param {Object} config Configuration
+     *
+     * {
+     *   position: self.POSITION.CENTER,
+     *   innerHTML: '<h1>Title</h1><p>Content</p>',
+     *   target: [scene entity UUID],
+     *   index: [scene entity index if tracking a point]
+     * }
+     *
      */
     Overlay.prototype.add = function (config) {
         // generate a random ID
-        var id = 'overlay-' + Date.now();
-        var element = document.createElement('div');
-        element.className = element.className + ' ' + 'label';
-        element.id = id;
-        element.html = 'just a test';
-        this.domElement.appendChild(element);
-        this.elements[id] = element;
+        config.id = 'overlay-' + Date.now();
+        config.element = document.createElement('div');
+        config.element.className = config.className || 'label';
+        config.element.id = config.id;
+        config.element.innerHTML = config.innerHTML;
+
+        this.domElement.appendChild(config.element);
+        this.elements[config.id] = config;
         this.update();
+        return config;
     };
 
+    /**
+     * Remove all overlay elements.
+     */
+    Overlay.prototype.clear = function () {
+        var self = this;
+        Object.keys(this.elements).forEach(function (id) {
+            self.remove(id);
+        });
+    };
+
+    /**
+     * Disable the controller.
+     */
     Overlay.prototype.disable = function () {
         var self = this;
         self.enabled = false;
@@ -943,6 +1025,9 @@ FOUR.Overlay = (function () {
         });
     };
 
+    /**
+     * Enable the controller.
+     */
     Overlay.prototype.enable = function () {
         var self = this;
         self.enabled = true;
@@ -959,11 +1044,33 @@ FOUR.Overlay = (function () {
      * @param {String} id Identifier
      */
     Overlay.prototype.remove = function (id) {
+        var el = document.getElementById(id);
+        this.domElement.removeChild(el);
         delete this.elements[id];
-        this.update();
     };
 
-    Overlay.prototype.update = function () {};
+    /**
+     * Update the position of overlay elements.
+     */
+    Overlay.prototype.update = function () {
+        var el, obj, pos, screen, self = this;
+        var camera = this.viewport.getCamera();
+        var scene = this.viewport.getScene();
+        var width = this.viewport.domElement.clientWidth;
+        var height = this.viewport.domElement.clientHeight;
+
+        Object.keys(this.elements).forEach(function (key) {
+            el = self.elements[key];
+            if (el.position !== self.POSITION.FIXED) {
+                obj = scene.getObjectByProperty('uuid', el.target);
+                if (el.index) {} // point elements
+                pos = new THREE.Vector3().copy(obj.position);
+                screen = FOUR.utils.getObjectScreenCoordinates(obj, camera, width, height);
+                el.element.style.left = screen.x + 'px';
+                el.element.style.top = screen.y + 'px';
+            }
+        });
+    };
 
     return Overlay;
 
@@ -6668,7 +6775,7 @@ FOUR.MarqueeSelectionController = (function () {
    */
   MarqueeSelectionController.prototype.buildIndex = function () {
     // TODO perform indexing in a worker if possible
-    var matrix, self = this, i, p, total = 0, vertex;
+    var matrix, self = this, total = 0;
     // clear the current index
     //self.quadtree.clear();
     self.quadtree = new Quadtree({
@@ -6680,6 +6787,9 @@ FOUR.MarqueeSelectionController = (function () {
     self.frustum.setFromMatrix(matrix);
     // traverse the scene and add all entities within the frustum to the index
     self.viewport.getScene().getModelObjects().forEach(function (child) {
+      if (child.matrixWorldNeedsUpdate) {
+        child.updateMatrixWorld();
+      }
       if (self.frustum.intersectsObject(child)) {
         // switch indexing strategy depending on the type of scene object
         if (child instanceof THREE.Points) {
@@ -6690,7 +6800,7 @@ FOUR.MarqueeSelectionController = (function () {
         }
       }
     });
-    console.info('Found %s objects in the view', total);
+    console.info('Added %s objects to the view index', total);
   };
 
   MarqueeSelectionController.prototype.disable = function () {
@@ -6721,44 +6831,10 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
+    addListener(window, 'resize', self.onWindowResize);
     self.enabled = true;
     // FIXME the first time the index runs it appears to get every scene object
     self.buildIndex();
-  };
-
-  /**
-   * Transform object position to screen coordinates.
-   * @see http://zachberry.com/blog/tracking-3d-objects-in-2d-with-three-js/
-   * @param {THREE.Object3D} obj Object
-   * @param {THREE.Camera} camera Camera
-   * @param {Number} screenWidth Viewport width
-   * @param {Number} screenHeight Viewport height
-   * @returns {Object} Screen coordinates, object metadata
-   */
-  MarqueeSelectionController.prototype.getObjectScreenCoordinates = function (obj, camera, screenWidth, screenHeight) {
-    var pos = new THREE.Vector3();
-    if (obj instanceof THREE.Object3D) {
-      //obj.updateMatrixWorld();
-      pos.setFromMatrixPosition(obj.matrixWorld);
-    } else {
-      pos.copy(obj);
-    }
-    pos.project(camera);
-    // get screen coordinates
-    pos.x = Math.round((pos.x + 1) * screenWidth / 2);
-    pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
-    pos.z = 0;
-    return pos;
-  };
-
-  MarqueeSelectionController.prototype.getVertexScreenCoordinates = function (vertex, camera, screenWidth, screenHeight) {
-    var pos = new THREE.Vector3().copy(vertex);
-    pos.project(camera);
-    // get screen coordinates
-    pos.x = Math.round((pos.x + 1) * screenWidth / 2);
-    pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
-    pos.z = 0;
-    return pos;
   };
 
   MarqueeSelectionController.prototype.hideMarquee = function () {
@@ -6783,7 +6859,7 @@ FOUR.MarqueeSelectionController = (function () {
     obj.geometry.vertices.forEach(function (vertex) {
       p = vertex.clone();
       p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
-      p = self.getVertexScreenCoordinates(p, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+      p = FOUR.utils.getVertexScreenCoordinates(p, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
       maxX = p.x > maxX ? p.x : maxX;
       maxY = p.y > maxY ? p.y : maxY;
       minX = p.x < minX ? p.x : minX;
@@ -6803,7 +6879,7 @@ FOUR.MarqueeSelectionController = (function () {
     for (i = 0; i < obj.geometry.vertices.length; i++) {
       total += 1;
       vertex = obj.geometry.vertices[i];
-      p = self.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+      p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
       if (p.x >= 0 && p.y >= 0) {
         index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
         console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
@@ -6817,17 +6893,8 @@ FOUR.MarqueeSelectionController = (function () {
     this.enable();
   };
 
-  /**
-   * Rebuild the view index when the camera position changes. Execute the
-   * indexing operation after the timeout expires to ensure that we update the
-   * index only after the camera has stopped moving.
-   */
   MarqueeSelectionController.prototype.onCameraUpdate = function () {
-    if (this.indexingTimeout) {
-      clearTimeout(this.indexingTimeout);
-      this.indexingTimeout = null;
-    }
-    this.indexingTimeout = setTimeout(this.buildIndex.bind(this), this.INDEX_TIMEOUT);
+    this.reindex();
   };
 
   MarqueeSelectionController.prototype.onContextMenu = function (event) {
@@ -6917,6 +6984,21 @@ FOUR.MarqueeSelectionController = (function () {
     }
   };
 
+  MarqueeSelectionController.prototype.onWindowResize = function () {
+  };
+
+  /**
+   * Execute the indexing operation after the timeout expires to ensure that
+   * we update the index only after the camera has stopped moving.
+   */
+  MarqueeSelectionController.prototype.reindex = function () {
+    if (this.indexingTimeout) {
+      clearTimeout(this.indexingTimeout);
+      this.indexingTimeout = null;
+    }
+    this.indexingTimeout = setTimeout(this.buildIndex.bind(this), this.INDEX_TIMEOUT);
+  };
+
   /**
    * Select entities by marquee.
    * @param {Number} x Selection top left screen X coordinate
@@ -6966,8 +7048,7 @@ FOUR.MarqueeSelectionController = (function () {
     this.marquee.setAttribute('style', 'display:block;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;');
   };
 
-  MarqueeSelectionController.prototype.update = function () {
-  }; // noop
+  MarqueeSelectionController.prototype.update = function () {}; // noop
 
   return MarqueeSelectionController;
 
