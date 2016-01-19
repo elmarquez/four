@@ -5,6 +5,7 @@ module.exports = {
         src: 'dist/four.js',
         options: {
             specs: [
+                'test/Scene.js',
                 'test/SelectionSet.js',
                 'test/TargetCamera.js'
             ],

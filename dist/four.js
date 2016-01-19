@@ -331,8 +331,24 @@ FOUR.Scene = (function () {
         return this.getLayerObject('model', name);
     };
 
+    /**
+     * Get model objects.
+     * @returns {Array} List of model objects.
+     */
     Scene.prototype.getModelObjects = function () {
-        return this.getLayerObjects('model');
+        function getChildren (obj) {
+            var children = [];
+            if (obj.children && obj.children.length > 0) {
+                obj.children.forEach(function (child) {
+                    children.push(child);
+                    getChildren(child).forEach(function (obj) {
+                        children.push(obj);
+                    });
+                });
+            }
+            return children;
+        }
+        return getChildren(this.model);
     };
 
     return Scene;
@@ -6796,7 +6812,7 @@ FOUR.MarqueeSelectionController = (function () {
    */
   MarqueeSelectionController.prototype.buildIndex = function () {
     // TODO perform indexing in a worker if possible
-    var matrix, self = this, total = 0;
+    var matrix, objs, self = this, total = 0;
     // clear the current index
     //self.quadtree.clear();
     self.quadtree = new Quadtree({
@@ -6807,11 +6823,12 @@ FOUR.MarqueeSelectionController = (function () {
     matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
     // traverse the scene and add all entities within the frustum to the index
-    self.viewport.getScene().getModelObjects().forEach(function (child) {
+    objs = self.viewport.getScene().getModelObjects();
+    objs.forEach(function (child) {
       if (child.matrixWorldNeedsUpdate) {
         child.updateMatrixWorld();
       }
-      if (self.frustum.intersectsObject(child)) {
+      if (child.geometry && self.frustum.intersectsObject(child)) {
         // switch indexing strategy depending on the type of scene object
         if (child instanceof THREE.Points) {
           total += self.indexPointsVertices(child, self.quadtree);
@@ -6827,6 +6844,7 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.disable = function () {
     var self = this;
     self.enabled = false;
+    self.hideMarquee();
     Object.keys(self.listeners).forEach(function (key) {
       var listener = self.listeners[key];
       listener.element.removeEventListener(listener.event, listener.fn);
