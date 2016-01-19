@@ -6915,13 +6915,15 @@ FOUR.MarqueeSelectionController = (function () {
 
   MarqueeSelectionController.prototype.indexPointsVertices = function (obj, index) {
     var i, p, self = this, total = 0, vertex;
-    for (i = 0; i < obj.geometry.vertices.length; i++) {
-      total += 1;
-      vertex = obj.geometry.vertices[i];
-      p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-      if (p.x >= 0 && p.y >= 0) {
-        index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
-        console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
+    if (obj.geometry.vertices) {
+      for (i = 0; i < obj.geometry.vertices.length; i++) {
+        total += 1;
+        vertex = obj.geometry.vertices[i];
+        p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+        if (p.x >= 0 && p.y >= 0) {
+          index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
+          console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
+        }
       }
     }
     return total;
