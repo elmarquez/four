@@ -4,6 +4,7 @@
 *.zip
 
 .idea
+NOTES.md
 docs
 node_modules
 vendor

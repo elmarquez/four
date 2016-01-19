@@ -6,8 +6,9 @@ x tour controller
 x simulated annealing path planner
 x camera tests
 x marquee selection
+x overlay/popup
 
-
+- snap to point
 - decouple selection and path _navigation_
 - arrow controls for all navigation modes
 - !!! need to check both mouse down and which mouse button was pressed
@@ -24,11 +25,10 @@ x marquee selection
 - command palette, hotbox
 - transform controller
 - make web site for library
-- selection overlay/popup
 - construction plane
 - lidar editing
 - documentation
-
+- improve smoothness of camera controllers
 
 - solid modelling
 - packaging into an Electron application
