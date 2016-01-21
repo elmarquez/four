@@ -6,7 +6,7 @@ module.exports = {
     separator: ';\n\n'
   },
   dist: {
-    src: ['lib/**/*.js'],
+    src: ['lib/**/*.js','!lib/workers/**/*.js'],
     dest: 'dist/four.js'
   }
 };

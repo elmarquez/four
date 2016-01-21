@@ -12,6 +12,7 @@
     <!-- lib -->
     <script src="../../fonts/helvetiker_regular.typeface.js"></script>
     <script src="../../dist/four.js"></script>
+    <script src="../../dist/workers/SimulatedAnnealer.js"></script>
     <style>
         body {
             background-color: #303030;
@@ -40,16 +41,21 @@
     <div id="controls">
         <button onclick="randomPoints();">Generate Random Points</button>
         <button onclick="update();">Update Plan</button>
+        <button onclick="updateInWebWorker();">Update Plan in Worker</button>
         <button onclick="clearPath();">Clear Path</button>
-        <button onclick="clear();">Clear All</button>
     </div>
 
 <script type="text/javascript">
     var canvas = document.getElementById('map');
+
+    // remember to specify the absolute path to the folder where the workers
+    // are kept
+    var planner = new FOUR.PathPlanner({workersPath:'/dist/workers/'});
+
     fitToContainer(canvas);
 
     var ctx = canvas.getContext('2d');
-    var count = 20;
+    var count = 100;
 
     var items = [
         [60, 200],[180, 200],[80, 180],[140, 180],[20, 160],
@@ -57,8 +63,7 @@
         [180, 100],[60, 80],[120, 80],[180, 60],[20, 40],
         [100, 40],[200, 40],[20, 20],[60, 20],[160, 20]
     ];
-
-    var sa = new SimulatedAnnealer();
+    var itinerary = [];
 
     function clear () {
         ctx.fillStyle = '#303030';
@@ -82,26 +87,46 @@
     function update () {
         clear();
         drawPoints(items);
-        sa.reset();
 
         // Add points to itinerary.
-        items.forEach(function (p) {
-            sa.addPoint({x: p[0], y:p[1]});
-        });
+        itinerary = items.reduce(function (list, p) {
+            list.push({uuid: 'TEST', position: {x: p[0], y:p[1], z:0}});
+            return list;
+        }, []);
 
-        // Initialize
-        sa.init();
-        console.info("Initial fitness:", sa.getDistance());
+        // Evolve solution
+        var params = {array:itinerary, initialTemperature:5000, coolingRate:0.00001};
+        var solution = SimulatedAnnealer(params);
+        console.info(
+                'Duration', solution.iterations,
+                'Iterations', solution.iterations,
+                'Initial distance', solution.initialDistance,
+                'Final distance', solution.finalDistance);
+        drawRoute(solution.route);
+    }
+
+    function updateInWebWorker () {
+        clear();
+        drawPoints(items);
+
+        // Add points to itinerary.
+        itinerary = items.reduce(function (list, p) {
+            list.push({uuid: 'TEST', position: {x: p[0], y:p[1], z:0}});
+            return list;
+        }, []);
 
         // Evolve population
-        sa.evolve(1500);
-
-        // Print final results
-        console.info("Final distance:", sa.getDistance());
-
-        var solution = sa.getSolution();
-//        console.info('Solution', solution);
-        drawRoute(solution);
+        var params = {array:itinerary, initialTemperature:5000, coolingRate:0.00001};
+        planner.generateTourSequence(itinerary).then(function (e) {
+            console.info('Duration', e.duration,
+                    'Iterations', e.iterations,
+                    'Initial distance', e.initialDistance,
+                    'Final distance', e.finalDistance);
+//            console.info('tour', e.route);
+            drawRoute(e.route);
+        }).catch(function (err) {
+            console.error(err);
+        });
     }
 
     function drawPoints(points) {
@@ -112,13 +137,13 @@
         });
     }
 
-    function drawRoute(route) {
+    function drawRoute (route) {
         var i;
         ctx.beginPath();
         ctx.lineWidth = 0.5;
         ctx.strokeStyle = 'orange';
         ctx.moveTo(route[0].x, route[0].y);
-        for (i = 1; i< route.length; i++) {
+        for (i = 1; i < route.length; i++) {
             ctx.lineTo(route[i].x, route[i].y);
         }
         ctx.stroke();
@@ -135,6 +160,9 @@
         }
         drawPoints(items);
     }
+
+    // generate an initial set of points
+    randomPoints();
 </script>
 </body>
 </html>

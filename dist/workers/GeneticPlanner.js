@@ -5,7 +5,7 @@
  * Travelling salesman path planner.
  * Based on http://www.theprojectspot.com/tutorial-post/applying-a-genetic-algorithm-to-the-travelling-salesman-problem/5
  */
-var TravellingSalesman = (function () {
+var GeneticPlanner = (function () {
 
     /**
      * A proposed solution.
@@ -172,15 +172,16 @@ var TravellingSalesman = (function () {
 
 
     /**
-     * Travelling salesman.
+     * Genetic solver for the travelling salesman problem.
+     * @param {Number} size Candidate solution population size
      * @constructor
      */
-    function TravellingSalesman() {
+    function GeneticPlanner(size) {
         this.elitism = true;
         this.itinerary = [];
         this.mutationRate = 0.015;
         this.population = null;
-        this.populationSize = 50;
+        this.populationSize = size || 50;
         this.tournamentSize = 5;
     }
 
@@ -189,12 +190,12 @@ var TravellingSalesman = (function () {
      * at minimum.
      * @param {Object} obj Object with x and y coordinate properties
      */
-    TravellingSalesman.prototype.addPoint = function (obj) {
+    GeneticPlanner.prototype.addPoint = function (obj) {
         this.itinerary.push(obj);
         this.checkForDuplicatePoints();
     };
 
-    TravellingSalesman.prototype.checkForDuplicatePoints = function () {
+    GeneticPlanner.prototype.checkForDuplicatePoints = function () {
         var i, p, px, py, x = [], y = [];
         // build an index of points
         for (i = 0; i < this.itinerary.length; i++) {
@@ -212,7 +213,7 @@ var TravellingSalesman = (function () {
         }
     };
 
-    TravellingSalesman.prototype.crossTours = function (parent1, parent2, start, end) {
+    GeneticPlanner.prototype.crossTours = function (parent1, parent2, start, end) {
         var child = new Tour(parent1.tourSize()), i, ii;
         // Loop and add the sub tour from parent1 to child
         for (i = 0; i < parent1.tourSize(); i++) {
@@ -257,7 +258,7 @@ var TravellingSalesman = (function () {
      * @param {Tour} parent2 Tour
      * @returns {Tour}
      */
-    TravellingSalesman.prototype.crossover = function (parent1, parent2) {
+    GeneticPlanner.prototype.crossover = function (parent1, parent2) {
         // Get start and end sub tour positions for parent1's tour
         var start = Math.floor(Math.random() * parent1.tourSize());
         var end = Math.floor(Math.random() * parent1.tourSize());
@@ -267,14 +268,14 @@ var TravellingSalesman = (function () {
         return child;
     };
 
-    TravellingSalesman.prototype.evolve = function (generations) {
+    GeneticPlanner.prototype.evolve = function (generations) {
         this.population = this.evolvePopulation(this.population);
         for (var i = 0; i < generations; i++) {
             this.population = this.evolvePopulation(this.population);
         }
     };
 
-    TravellingSalesman.prototype.evolvePopulation = function (pop) {
+    GeneticPlanner.prototype.evolvePopulation = function (pop) {
         var i;
         var newPopulation = new Population(this.itinerary, pop.getPopulationSize(), false);
         // Keep our best individual if elitism is enabled
@@ -302,22 +303,22 @@ var TravellingSalesman = (function () {
         return newPopulation;
     };
 
-    TravellingSalesman.prototype.getPopulation = function () {
+    GeneticPlanner.prototype.getPopulation = function () {
         return this.population;
     };
 
-    TravellingSalesman.prototype.getSolution = function () {
+    GeneticPlanner.prototype.getSolution = function () {
         return this.population.getFittest().tour;
     };
 
     /**
      * Create an initial population of candidate solutions.
      */
-    TravellingSalesman.prototype.init = function () {
+    GeneticPlanner.prototype.init = function () {
         this.population = new Population(this.itinerary, this.populationSize, true);
     };
 
-    TravellingSalesman.prototype.mutate = function (tour) {
+    GeneticPlanner.prototype.mutate = function (tour) {
         // Loop through tour cities
         for (var tourPos1 = 0; tourPos1 < tour.tourSize(); tourPos1++) {
             // Apply mutation rate
@@ -334,19 +335,19 @@ var TravellingSalesman = (function () {
         }
     };
 
-    TravellingSalesman.prototype.reset = function () {
+    GeneticPlanner.prototype.reset = function () {
         this.itinerary = [];
     };
 
-    TravellingSalesman.prototype.setPopulationSize = function (size) {
+    GeneticPlanner.prototype.setPopulationSize = function (size) {
         this.populationSize = size;
     };
 
-    TravellingSalesman.prototype.tour = function () {
+    GeneticPlanner.prototype.tour = function () {
         return new Tour();
     };
 
-    TravellingSalesman.prototype.tournamentSelection = function (pop) {
+    GeneticPlanner.prototype.tournamentSelection = function (pop) {
         // Create a tournament population
         var tournament = new Population(this.itinerary, this.tournamentSize, false);
         // For each place in the tournament get a random candidate tour and
@@ -359,6 +360,6 @@ var TravellingSalesman = (function () {
         return tournament.getFittest();
     };
 
-    return TravellingSalesman;
+    return GeneticPlanner;
 
 }());
