@@ -11,5 +11,11 @@ module.exports = {
     src: [ '**/*' ],
     dest: 'dist/fonts',
     expand: true
+  },
+  workers: {
+    cwd: 'lib/workers',
+    src: [ '**/*' ],
+    dest: 'dist/workers/',
+    expand: true
   }
 };

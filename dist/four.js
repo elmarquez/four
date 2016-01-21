@@ -231,6 +231,98 @@ FOUR.KeyInputController = (function () {
 }());
 ;
 
+/**
+ * Camera path navigation utilities.
+ * @constructor
+ */
+FOUR.PathPlanner = (function () {
+
+    /**
+     * Get the distance from P1 to P2.
+     * @param {THREE.Vector3} p1 Point 1
+     * @param {THREE.Vector3} p2 Point 2
+     * @returns {Number} Distance
+     */
+    function distance (p1, p2) {
+        var dx = Math.pow(p2.x - p1.x, 2);
+        var dy = Math.pow(p2.y - p1.y, 2);
+        var dz = Math.pow(p2.z - p1.z, 2);
+        return Math.sqrt(dx + dy + dz);
+    }
+
+    /**
+     * @param {Object} config Configuration
+     * @constructor
+     */
+    function PathPlanner (config) {
+        var self = this;
+        self.PLANNING_STRATEGY = {
+            GENETIC: 0,
+            SIMULATED_ANNEALING: 1
+        };
+        this.strategy = self.PLANNING_STRATEGY.SIMULATED_ANNEALING;
+        this.workersPath = '/';
+        Object.keys(config).forEach(function (key) {
+            self[key] = config[key];
+        });
+    }
+
+    /**
+     * Generate tour sequence for a collection of features.
+     * @param {Array} features Features
+     * @returns {Promise}
+     */
+    PathPlanner.prototype.generateTourSequence = function (features) {
+        var self = this;
+        // transform
+        var points = features.map(function (obj) {
+            return {
+                id: obj.uuid.toString(),
+                x: Number(obj.position.x),
+                y: Number(obj.position.y),
+                z: Number(obj.position.z)
+            };
+        });
+        if (this.strategy === this.PLANNING_STRATEGY.GENETIC) {
+            return new Promise(function (resolve, reject) {
+                try {
+                    var worker = new Worker(self.workersPath + 'GeneticPlanner.js');
+                    worker.onmessage = function (e) {
+                        resolve(e.data);
+                    };
+                    worker.postMessage({cmd:'run', array:points, iterations:10000, populationSize:50});
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        } else if (this.strategy === this.PLANNING_STRATEGY.SIMULATED_ANNEALING) {
+            return new Promise(function (resolve, reject) {
+                try {
+                    var worker = new Worker(self.workersPath + 'SimulatedAnnealer.js');
+                    worker.onmessage = function (e) {
+                        resolve(e.data);
+                    };
+                    worker.postMessage({cmd:'run', array:points, initialTemperature:10000, coolingRate:0.00001});
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+    };
+
+    /**
+     * Set the planning strategy.
+     * @param strategy
+     */
+    PathPlanner.prototype.setStragegy = function (strategy) {
+        this.strategy = strategy;
+    };
+
+    return PathPlanner;
+
+}());
+;
+
 FOUR.Scene = (function () {
 
     /**
@@ -1858,7 +1950,7 @@ FOUR.ViewIndex = (function () {
    * Get all entities within the rectangle defined by P1 and P2.
    * @param {THREE.Vector2} p1 Screen position
    * @param {THREE.Vector2} p2 Screen position
-   * @param
+   * @param {FOUR.ViewIndex.SELECTION_STRATEGY} strategy
    */
   ViewIndex.prototype.get = function (p1, p2, strategy) {
     throw new Error('not implemented');
@@ -5336,698 +5428,6 @@ FOUR.ZoomController = (function () {
 }());
 ;
 
-/**
- * Camera path navigation utilities.
- * @constructor
- */
-FOUR.PathPlanner = (function () {
-
-    /**
-     * Get the distance from P1 to P2.
-     * @param {THREE.Vector3} p1 Point 1
-     * @param {THREE.Vector3} p2 Point 2
-     * @returns {Number} Distance
-     */
-    function distance (p1, p2) {
-        var dx = Math.pow(p2.x - p1.x, 2);
-        var dy = Math.pow(p2.y - p1.y, 2);
-        var dz = Math.pow(p2.z - p1.z, 2);
-        return Math.sqrt(dx + dy + dz);
-    }
-
-    function PathPlanner () {
-        var self = this;
-        self.PLANNING_STRATEGY = {
-            GENETIC: 0,
-            SIMULATED_ANNEALING: 1
-        };
-        this.strategy = self.PLANNING_STRATEGY.GENETIC;
-    }
-
-    /**
-     * Generate tour sequence for a collection of features.
-     * @param {Array} features Features
-     * @param {*} strategy Planning strategy ID
-     * @returns {Promise}
-     */
-    PathPlanner.prototype.generateTourSequence = function (features) {
-        // TODO execute computation in a worker
-        return new Promise(function (resolve, reject) {
-            var path = [];
-            if (features.length > 0) {
-                var ts = new TravellingSalesman();
-                ts.setPopulationSize(50);
-                // Add points to itinerary
-                features.forEach(function (obj) {
-                    ts.addPoint({
-                        focus: 0,
-                        obj: obj,
-                        radius: obj.geometry.boundingSphere.radius,
-                        x: obj.position.x,
-                        y: obj.position.y,
-                        z: obj.position.z
-                    });
-                });
-                // Initialize the population
-                ts.init();
-                console.info('Initial distance: ' + ts.getPopulation().getFittest().getDistance());
-                // Evolve the population
-                try {
-                    ts.evolve(100);
-                    console.info('Final distance: ' + ts.getPopulation().getFittest().getDistance());
-                    path = ts.getSolution();
-                } catch (e) {
-                    reject(e);
-                }
-            }
-            resolve(path);
-        });
-    };
-
-    PathPlanner.prototype.setPlanningStragegy = function (strategy) {
-        this.strategy = strategy;
-    };
-
-    return PathPlanner;
-
-}());
-;
-
-/**
- * Simulated annealing path planner.
- * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
- */
-var SimulatedAnnealer = (function () {
-
-    /**
-     * A proposed solution.
-     * @constructor
-     * @param {Number} size Itinerary size
-     */
-    function Tour(size) {
-        this.distance = 0;
-        this.fitness = 0;
-        this.tour = [];
-        if (size) {
-            for (var i = 0; i < size; i++) {
-                this.tour.push(null);
-            }
-        }
-    }
-
-    Tour.prototype.checkForDuplicateValues = function () {
-        var i;
-        for (i = 0; i < this.tour.length; i++) {
-            var p = this.tour[i];
-            if (this.tour.lastIndexOf(p) !== i) {
-                throw new Error('Tour contains a duplicate element');
-            }
-        }
-    };
-
-    Tour.prototype.checkForNullValues = function () {
-        var i;
-        for (i = 0; i < this.tour.length; i++) {
-            if (this.tour[i] === null) {
-                throw new Error('Tour contains a null entry');
-            }
-        }
-    };
-
-    Tour.prototype.containsPoint = function (p) {
-        var result = false;
-        this.tour.forEach(function (point) {
-            if (point !== null && point.x === p.x && point.y === p.y) {
-                result = true;
-            }
-        });
-        return result;
-    };
-
-    Tour.prototype.copy = function (tour) {
-        this.tour = tour.slice();
-        this.getFitness();
-    };
-
-    Tour.prototype.distanceBetween = function (p1, p2) {
-        var dx = Math.abs(p2.x - p1.x);
-        var dy = Math.abs(p2.y - p1.y);
-        return Math.sqrt((dx * dx) + (dy * dy));
-    };
-
-    Tour.prototype.generateIndividual = function (itinerary) {
-        this.tour = itinerary.slice();
-        this.shuffle();
-        this.getFitness();
-    };
-
-    Tour.prototype.getPoint = function (i) {
-        return this.tour[i];
-    };
-
-    Tour.prototype.getFitness = function () {
-        if (this.fitness === 0) {
-            this.fitness = 1 / this.getDistance();
-        }
-        return this.fitness;
-    };
-
-    Tour.prototype.getDistance = function () {
-        if (this.distance === 0) {
-            var i, p1, p2, totalDistance = 0;
-            // Loop through our tour's cities
-            for (i = 0; i < this.tour.length; i++) {
-                // point we're travelling from
-                p1 = this.getPoint(i);
-                // Check we're not on our tour's last point, if we are set our
-                // tour's final destination point to our starting point
-                if (i + 1 < this.tour.length) {
-                    p2 = this.tour[i + 1];
-                }
-                else {
-                    p2 = this.tour[0];
-                }
-                // Get the distance between the two cities
-                totalDistance += this.distanceBetween(p1, p2);
-            }
-            this.distance = totalDistance;
-        }
-        return this.distance;
-    };
-
-    Tour.prototype.setPoint = function (i, point) {
-        this.tour[i] = point;
-        this.fitness = 0;
-        this.distance = 0;
-    };
-
-    Tour.prototype.shuffle = function () {
-        var currentIndex = this.tour.length, temporaryValue, randomIndex;
-        // While there remain elements to shuffle...
-        while (0 !== currentIndex) {
-            // Pick a remaining element...
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex -= 1;
-            // And swap it with the current element.
-            temporaryValue = this.tour[currentIndex];
-            this.tour[currentIndex] = this.tour[randomIndex];
-            this.tour[randomIndex] = temporaryValue;
-        }
-    };
-
-    Tour.prototype.tourSize = function () {
-        return this.tour.length;
-    };
-
-    Tour.prototype.updateFitness = function () {
-        this.fitness = 1 / this.getDistance();
-    };
-
-    function SimulatedAnnealer() {
-        this.best = null; // best solution
-        this.coolingRate = 0.003;
-        this.itinerary = [];
-        this.temp = 0;
-    }
-
-    SimulatedAnnealer.prototype.acceptanceProbability = function (energy, newEnergy, temperature) {
-        // If the new solution is better, accept it
-        if (newEnergy < energy) {
-            return 1.0;
-        }
-        // If the new solution is worse, calculate an acceptance probability
-        return Math.exp((energy - newEnergy) / temperature);
-    };
-
-    /**
-     * Add point to itinerary.
-     * @param {Object} p Point
-     */
-    SimulatedAnnealer.prototype.addPoint = function (p) {
-        this.itinerary.push(p);
-        this.checkForDuplicatePoints();
-    };
-
-    /**
-     * Check for duplicate points in the itinerary. Throw an error when a
-     * duplicate is found.
-     */
-    SimulatedAnnealer.prototype.checkForDuplicatePoints = function () {
-        var i, p, px, py, x = [], y = [];
-        // build an index of points
-        for (i = 0; i < this.itinerary.length; i++) {
-            x.push(this.itinerary[i].x);
-            y.push(this.itinerary[i].y);
-        }
-        // check for duplicates
-        for (i = 0; i < this.itinerary.length; i++) {
-            p = this.itinerary[i];
-            px = x.lastIndexOf(p.x);
-            py = y.lastIndexOf(p.y);
-            if (px === py && px !== i) {
-                throw new Error('Tour contains a duplicate element');
-            }
-        }
-    };
-
-    SimulatedAnnealer.prototype.evolve = function (temperature) {
-        var newSolution, pointSwap1, pointSwap2, currentEnergy, neighbourEnergy, tourPos1, tourPos2;
-
-        this.temp = temperature;
-
-        // Set as current best
-        this.best = new Tour(0);
-        this.best.copy(this.currentSolution.tour);
-
-        // Loop until system has cooled
-        while (this.temp > 1) {
-            // Create new neighbour tour
-            newSolution = new Tour(0);
-            newSolution.copy(this.currentSolution.tour);
-
-            // Get a random positions in the tour
-            tourPos1 = Math.floor(newSolution.tourSize() * Math.random());
-            tourPos2 = Math.floor(newSolution.tourSize() * Math.random());
-
-            // Get the cities at selected positions in the tour
-            pointSwap1 = newSolution.getPoint(tourPos1);
-            pointSwap2 = newSolution.getPoint(tourPos2);
-
-            // Swap them
-            newSolution.setPoint(tourPos2, pointSwap1);
-            newSolution.setPoint(tourPos1, pointSwap2);
-
-            // Get energy of solutions
-            currentEnergy = this.currentSolution.getDistance();
-            neighbourEnergy = newSolution.getDistance();
-
-            // Decide if we should accept the neighbour
-            if (this.acceptanceProbability(currentEnergy, neighbourEnergy, this.temp) > Math.random()) {
-                this.currentSolution = new Tour(0);
-                this.currentSolution.copy(newSolution.tour);
-            }
-
-            // Keep track of the best solution found
-            if (this.currentSolution.getDistance() < this.best.getDistance()) {
-                this.best = new Tour(0);
-                this.best.copy(this.currentSolution.tour);
-            }
-
-            // Cool system
-            this.temp *= 1 - this.coolingRate;
-        }
-    };
-
-    SimulatedAnnealer.prototype.getDistance = function () {
-        return this.best.getDistance();
-    };
-
-    SimulatedAnnealer.prototype.getSolution = function () {
-        return this.best.tour;
-    };
-
-    SimulatedAnnealer.prototype.init = function () {
-        this.currentSolution = new Tour(0);
-        this.currentSolution.generateIndividual(this.itinerary);
-        this.best = this.currentSolution;
-    };
-
-    SimulatedAnnealer.prototype.reset = function () {
-        this.itinerary = [];
-        this.best = null;
-    };
-
-    return SimulatedAnnealer;
-
-}());
-;
-
-/* jshint unused:false */
-'use strict';
-
-/**
- * Travelling salesman path planner.
- * Based on http://www.theprojectspot.com/tutorial-post/applying-a-genetic-algorithm-to-the-travelling-salesman-problem/5
- */
-var TravellingSalesman = (function () {
-
-    /**
-     * A proposed solution.
-     * @constructor
-     * @param {Number} size Itinerary size
-     */
-    function Tour (size) {
-        this.distance = 0;
-        this.fitness = 0;
-        this.tour = [];
-        if (size) {
-            for (var i=0;i<size;i++) {
-                this.tour.push(null);
-            }
-        }
-    }
-
-    Tour.prototype.checkForDuplicateValues = function () {
-        var i;
-        for (i = 0; i < this.tour.length; i++) {
-            var p = this.tour[i];
-            if (this.tour.lastIndexOf(p) !== i) {
-                throw new Error('Tour contains a duplicate element');
-            }
-        }
-    };
-
-    Tour.prototype.checkForNullValues = function () {
-        var i;
-        for (i = 0; i < this.tour.length; i++) {
-            if (this.tour[i] === null) {
-                throw new Error('Tour contains a null entry');
-            }
-        }
-    };
-
-    Tour.prototype.containsPoint = function (p) {
-        var result = false;
-        this.tour.forEach(function (point) {
-            if (point !== null && point.x === p.x && point.y === p.y) {
-                result = true;
-            }
-        });
-        return result;
-    };
-
-    Tour.prototype.distanceBetween = function (p1, p2) {
-        var dx = Math.abs(p2.x - p1.x);
-        var dy = Math.abs(p2.y - p1.y);
-        return Math.sqrt((dx * dx) + (dy * dy));
-    };
-
-    Tour.prototype.generateRandomRoute = function (itinerary) {
-        this.tour = itinerary.slice();
-        this.shuffle();
-    };
-
-    Tour.prototype.getPoint = function (i) {
-        return this.tour[i];
-    };
-
-    Tour.prototype.getFitness = function () {
-        if (this.fitness === 0) {
-            this.fitness = 1 / this.getDistance();
-        }
-        return this.fitness;
-    };
-
-    Tour.prototype.getDistance = function () {
-        if (this.distance === 0) {
-            var i, p1, p2, totalDistance = 0;
-            // Loop through our tour's cities
-            for (i = 0; i < this.tour.length; i++) {
-                // point we're travelling from
-                p1 = this.getPoint(i);
-                // Check we're not on our tour's last point, if we are set our
-                // tour's final destination point to our starting point
-                if (i + 1 < this.tour.length) {
-                    p2 = this.tour[i + 1];
-                }
-                else {
-                    p2 = this.tour[0];
-                }
-                // Get the distance between the two cities
-                totalDistance += this.distanceBetween(p1, p2);
-            }
-            this.distance = totalDistance;
-        }
-        return this.distance;
-    };
-
-    Tour.prototype.setPoint = function (i, point) {
-        this.tour[i] = point;
-        this.fitness = 0;
-        this.distance = 0;
-    };
-
-    Tour.prototype.shuffle = function () {
-        var currentIndex = this.tour.length, temporaryValue, randomIndex;
-        // While there remain elements to shuffle...
-        while (0 !== currentIndex) {
-            // Pick a remaining element...
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex -= 1;
-            // And swap it with the current element.
-            temporaryValue = this.tour[currentIndex];
-            this.tour[currentIndex] = this.tour[randomIndex];
-            this.tour[randomIndex] = temporaryValue;
-        }
-    };
-
-    Tour.prototype.tourSize = function () {
-        return this.tour.length;
-    };
-
-    Tour.prototype.updateFitness = function () {
-        this.fitness = 1 / this.getDistance();
-    };
-
-    /**
-     * A collection of potential tour solutions.
-     * @param {Array} itinerary Itinerary
-     * @param {Number} populationSize The number of solutions in the population
-     * @param {Boolean} initialise Initialize the population with random solutions
-     * @constructor
-     */
-    function Population(itinerary, populationSize, initialise) {
-        var i, tour;
-        this.populationSize = populationSize;
-        this.tours = [];
-        for (i = 0; i < this.populationSize; i++) {
-            this.tours.push(null);
-        }
-        if (initialise) {
-            for (i = 0; i < this.populationSize; i++) {
-                tour = new Tour();
-                tour.generateRandomRoute(itinerary);
-                this.tours[i] = tour;
-            }
-        }
-    }
-
-    Population.prototype.getFittest = function () {
-        var fittest = this.tours[0], i;
-        for (i = 1; i < this.tours.length; i++) {
-            if (fittest.getFitness() <= this.tours[i].getFitness()) {
-                fittest = this.tours[i];
-            }
-        }
-        return fittest;
-    };
-
-    Population.prototype.getPopulationSize = function () {
-        return this.populationSize;
-    };
-
-    Population.prototype.getTour = function (i) {
-        return this.tours[i];
-    };
-
-    Population.prototype.saveTour = function (i, tour) {
-        this.tours[i] = tour;
-    };
-
-
-    /**
-     * Travelling salesman.
-     * @constructor
-     */
-    function TravellingSalesman() {
-        this.elitism = true;
-        this.itinerary = [];
-        this.mutationRate = 0.015;
-        this.population = null;
-        this.populationSize = 50;
-        this.tournamentSize = 5;
-    }
-
-    /**
-     * Add an object to the tour list. The object must contain properties x and y
-     * at minimum.
-     * @param {Object} obj Object with x and y coordinate properties
-     */
-    TravellingSalesman.prototype.addPoint = function (obj) {
-        this.itinerary.push(obj);
-        this.checkForDuplicatePoints();
-    };
-
-    TravellingSalesman.prototype.checkForDuplicatePoints = function () {
-        var i, p, px, py, x = [], y = [];
-        // build an index of points
-        for (i = 0; i < this.itinerary.length; i++) {
-            x.push(this.itinerary[i].x);
-            y.push(this.itinerary[i].y);
-        }
-        // check for duplicates
-        for (i = 0; i < this.itinerary.length; i++) {
-            p = this.itinerary[i];
-            px = x.lastIndexOf(p.x);
-            py = y.lastIndexOf(p.y);
-            if (px === py && px !== i) {
-                throw new Error('Tour contains a duplicate element');
-            }
-        }
-    };
-
-    TravellingSalesman.prototype.crossTours = function (parent1, parent2, start, end) {
-        var child = new Tour(parent1.tourSize()), i, ii;
-        // Loop and add the sub tour from parent1 to child
-        for (i = 0; i < parent1.tourSize(); i++) {
-            // If our start position is less than the end position
-            if (start < end && i > start && i < end) {
-                child.setPoint(i, parent1.getPoint(i));
-            }
-            // If our start position is larger
-            else if (start > end) {
-                if (!(i < start && i > end)) {
-                    child.setPoint(i, parent1.getPoint(i));
-                }
-            } else {
-                // mark the element so that we know we need to insert an element
-                // from parent2
-                child.setPoint(i, null);
-            }
-        }
-        // Loop through parent2's point tour
-        for (i = 0; i < parent2.tourSize(); i++) {
-            // If child doesn't have the point add it
-            if (!child.containsPoint(parent2.getPoint(i))) {
-                // Loop to find a spare position in the child's tour
-                for (ii = 0; ii < child.tourSize(); ii++) {
-                    // Spare position found, add point
-                    if (child.getPoint(ii) === null) {
-                        child.setPoint(ii, parent2.getPoint(i));
-                        break;
-                    }
-                }
-            }
-        }
-        // force fitness value to update
-        child.updateFitness();
-        return child;
-    };
-
-    /**
-     * Crossover mutation creates a new tour comprising a subsegment of parent1
-     * combined with a subsegment of parent2.
-     * @param {Tour} parent1 Tour
-     * @param {Tour} parent2 Tour
-     * @returns {Tour}
-     */
-    TravellingSalesman.prototype.crossover = function (parent1, parent2) {
-        // Get start and end sub tour positions for parent1's tour
-        var start = Math.floor(Math.random() * parent1.tourSize());
-        var end = Math.floor(Math.random() * parent1.tourSize());
-        var child = this.crossTours(parent1, parent2, start, end);
-        child.checkForNullValues();
-        child.checkForDuplicateValues();
-        return child;
-    };
-
-    TravellingSalesman.prototype.evolve = function (generations) {
-        this.population = this.evolvePopulation(this.population);
-        for (var i = 0; i < generations; i++) {
-            this.population = this.evolvePopulation(this.population);
-        }
-    };
-
-    TravellingSalesman.prototype.evolvePopulation = function (pop) {
-        var i;
-        var newPopulation = new Population(this.itinerary, pop.getPopulationSize(), false);
-        // Keep our best individual if elitism is enabled
-        var elitismOffset = 0;
-        if (this.elitism) {
-            newPopulation.saveTour(0, pop.getFittest());
-            elitismOffset = 1;
-        }
-        // Crossover population
-        // Loop over the new population's size and create individuals from
-        // Current population
-        for (i = elitismOffset; i < newPopulation.getPopulationSize(); i++) {
-            // Select parents
-            var parent1 = this.tournamentSelection(pop);
-            var parent2 = this.tournamentSelection(pop);
-            // Crossover parents
-            var childTour = this.crossover(parent1, parent2);
-            // Add child to new population
-            newPopulation.saveTour(i, childTour);
-        }
-        // Mutate the new population a bit to add some new genetic material
-        for (i = elitismOffset; i < newPopulation.getPopulationSize(); i++) {
-            this.mutate(newPopulation.getTour(i));
-        }
-        return newPopulation;
-    };
-
-    TravellingSalesman.prototype.getPopulation = function () {
-        return this.population;
-    };
-
-    TravellingSalesman.prototype.getSolution = function () {
-        return this.population.getFittest().tour;
-    };
-
-    /**
-     * Create an initial population of candidate solutions.
-     */
-    TravellingSalesman.prototype.init = function () {
-        this.population = new Population(this.itinerary, this.populationSize, true);
-    };
-
-    TravellingSalesman.prototype.mutate = function (tour) {
-        // Loop through tour cities
-        for (var tourPos1 = 0; tourPos1 < tour.tourSize(); tourPos1++) {
-            // Apply mutation rate
-            if (Math.random() < this.mutationRate) {
-                // Get a second random position in the tour
-                var tourPos2 = Math.floor(tour.tourSize() * Math.random());
-                // Get the cities at target position in tour
-                var point1 = tour.getPoint(tourPos1);
-                var point2 = tour.getPoint(tourPos2);
-                // Swap them around
-                tour.setPoint(tourPos2, point1);
-                tour.setPoint(tourPos1, point2);
-            }
-        }
-    };
-
-    TravellingSalesman.prototype.reset = function () {
-        this.itinerary = [];
-    };
-
-    TravellingSalesman.prototype.setPopulationSize = function (size) {
-        this.populationSize = size;
-    };
-
-    TravellingSalesman.prototype.tour = function () {
-        return new Tour();
-    };
-
-    TravellingSalesman.prototype.tournamentSelection = function (pop) {
-        // Create a tournament population
-        var tournament = new Population(this.itinerary, this.tournamentSize, false);
-        // For each place in the tournament get a random candidate tour and
-        // add it
-        for (var i = 0; i < this.tournamentSize; i++) {
-            var randomId = Math.floor(Math.random() * pop.getPopulationSize());
-            tournament.saveTour(i, pop.getTour(randomId));
-        }
-        // Get the fittest tour
-        return tournament.getFittest();
-    };
-
-    return TravellingSalesman;
-
-}());
-;
-
 FOUR.BoundingBox = (function () {
 
   /**
@@ -6171,12 +5571,21 @@ FOUR.ClickSelectionController = (function () {
     config = config || {};
     var self = this;
 
+    // single clicking can be interpreted in one of two ways: as indicating that
+    // the clicked entity and only that entity should be selected, or as
+    // indicating that we should toggle the selection state of the clicked object.
+    self.SINGLE_CLICK_ACTION = {
+      SELECT: 0,
+      TOGGLE: 1
+    };
+
     // the maximum number of pixels that the mouse can move before we interpret
     // the mouse event as not being a click action
     self.EPS = 2;
     self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
+    self.click = self.SINGLE_CLICK_ACTION.SELECT;
     self.domElement = config.viewport.domElement;
     self.enabled = false;
     self.filter = function () { return true; };
@@ -6318,22 +5727,19 @@ FOUR.ClickSelectionController = (function () {
   };
 
   ClickSelectionController.prototype.onSingleClick = function () {
-    var selected = this.getSelected();
-    if (selected) {
-      // add objects
-      if (this.modifiers[this.KEY.SHIFT] === true) {
-        this.dispatchEvent({type:'add', selection: [selected.object]});
-      }
-      // remove objects
-      else if (this.modifiers[this.KEY.ALT] === true) {
-        this.dispatchEvent({type:'remove', selection: [selected.object]});
-      }
-      // toggle selection state
-      else {
-        this.dispatchEvent({type:'toggle', selection: [selected.object]});
-      }
-    } else {
-      this.dispatchEvent({type:'select', selection: []});
+    // TODO rename selection field to match what is returned by marquee (selected?)
+    var selection = this.getSelected().map(function (item) {
+      return item.object;
+    });
+    // TODO we need to check for exclusive SHIFT, ALT, etc. keydown
+    if (this.modifiers[this.KEY.SHIFT] === true) {
+      this.dispatchEvent({type:'add', selection: selection});
+    } else if (this.modifiers[this.KEY.ALT] === true) {
+      this.dispatchEvent({type:'remove', selection: selection});
+    } else if (this.click === this.SINGLE_CLICK_ACTION.SELECT) {
+      this.dispatchEvent({type:'select', selection: selection});
+    } else if (this.click === this.SINGLE_CLICK_ACTION.TOGGLE) {
+      this.dispatchEvent({type: 'toggle', selection: selection});
     }
   };
 

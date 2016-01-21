@@ -1,3 +1,4 @@
+/* globals params, rtn, self */
 /**
  * Simulated annealing path planner.
  * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
@@ -9,7 +10,7 @@ var SimulatedAnnealer = (function () {
      * @constructor
      * @param {Number} size Itinerary size
      */
-    function Tour(size) {
+    function Tour (size) {
         this.distance = 0;
         this.fitness = 0;
         this.tour = [];
@@ -128,120 +129,137 @@ var SimulatedAnnealer = (function () {
         this.fitness = 1 / this.getDistance();
     };
 
-    function SimulatedAnnealer() {
-        this.best = null; // best solution
-        this.coolingRate = 0.003;
-        this.itinerary = [];
-        this.temp = 0;
-    }
-
-    SimulatedAnnealer.prototype.acceptanceProbability = function (energy, newEnergy, temperature) {
+    function acceptanceProbability (energy, newEnergy, temperature) {
         // If the new solution is better, accept it
         if (newEnergy < energy) {
             return 1.0;
         }
         // If the new solution is worse, calculate an acceptance probability
         return Math.exp((energy - newEnergy) / temperature);
-    };
+    }
 
     /**
-     * Add point to itinerary.
-     * @param {Object} p Point
+     * Check for duplicate points in the itinerary.
+     * @param {Array} itinerary Itinerary
      */
-    SimulatedAnnealer.prototype.addPoint = function (p) {
-        this.itinerary.push(p);
-        this.checkForDuplicatePoints();
-    };
-
-    /**
-     * Check for duplicate points in the itinerary. Throw an error when a
-     * duplicate is found.
-     */
-    SimulatedAnnealer.prototype.checkForDuplicatePoints = function () {
+    function itineraryHasDuplicatePoint (itinerary) {
         var i, p, px, py, x = [], y = [];
+        // TODO hash the x, y values together instead of doing this dumb ass search
         // build an index of points
-        for (i = 0; i < this.itinerary.length; i++) {
-            x.push(this.itinerary[i].x);
-            y.push(this.itinerary[i].y);
+        for (i = 0; i < itinerary.length; i++) {
+            x.push(itinerary[i].x);
+            y.push(itinerary[i].y);
         }
         // check for duplicates
-        for (i = 0; i < this.itinerary.length; i++) {
-            p = this.itinerary[i];
+        for (i = 0; i < itinerary.length; i++) {
+            p = itinerary[i];
             px = x.lastIndexOf(p.x);
             py = y.lastIndexOf(p.y);
             if (px === py && px !== i) {
-                throw new Error('Tour contains a duplicate element');
+                return true;
             }
         }
-    };
+        return false;
+    }
 
-    SimulatedAnnealer.prototype.evolve = function (temperature) {
-        var newSolution, pointSwap1, pointSwap2, currentEnergy, neighbourEnergy, tourPos1, tourPos2;
+    /**
+     * Simulated annealing path planner.
+     * @param {Object} config
+     * @returns {Object} Solution and basic statistics
+     */
+    function SimulatedAnnealer (config) {
+        var best, currentSolution, initialDistance, iterations = 0, newSolution, pointSwap1, pointSwap2,
+            currentEnergy, neighbourEnergy,
+            startTime = new Date(),
+            tourPos1, tourPos2;
 
-        this.temp = temperature;
+        // reset planner state
+        var coolingRate = config.coolingRate;
+        var itinerary = [];
+        var temp = config.initialTemperature;
 
-        // Set as current best
-        this.best = new Tour(0);
-        this.best.copy(this.currentSolution.tour);
+        // create itinerary from list of points
+        config.array.forEach(function (point) {
+            itinerary.push(point);
+        });
 
-        // Loop until system has cooled
-        while (this.temp > 1) {
-            // Create new neighbour tour
-            newSolution = new Tour(0);
-            newSolution.copy(this.currentSolution.tour);
-
-            // Get a random positions in the tour
-            tourPos1 = Math.floor(newSolution.tourSize() * Math.random());
-            tourPos2 = Math.floor(newSolution.tourSize() * Math.random());
-
-            // Get the cities at selected positions in the tour
-            pointSwap1 = newSolution.getPoint(tourPos1);
-            pointSwap2 = newSolution.getPoint(tourPos2);
-
-            // Swap them
-            newSolution.setPoint(tourPos2, pointSwap1);
-            newSolution.setPoint(tourPos1, pointSwap2);
-
-            // Get energy of solutions
-            currentEnergy = this.currentSolution.getDistance();
-            neighbourEnergy = newSolution.getDistance();
-
-            // Decide if we should accept the neighbour
-            if (this.acceptanceProbability(currentEnergy, neighbourEnergy, this.temp) > Math.random()) {
-                this.currentSolution = new Tour(0);
-                this.currentSolution.copy(newSolution.tour);
+        try {
+            // Check for duplicate itinerary points
+            if (itineraryHasDuplicatePoint(itinerary)) {
+                throw new Error('Duplicate itinerary points');
             }
 
-            // Keep track of the best solution found
-            if (this.currentSolution.getDistance() < this.best.getDistance()) {
-                this.best = new Tour(0);
-                this.best.copy(this.currentSolution.tour);
+            // Set the initial best solution
+            currentSolution = new Tour(0);
+            currentSolution.generateIndividual(itinerary);
+            best = currentSolution;
+            initialDistance = best.getDistance();
+
+            // Loop until system has cooled
+            while (temp > 1) {
+                // Create new neighbour tour
+                newSolution = new Tour(0);
+                newSolution.copy(currentSolution.tour);
+
+                // Get a random positions in the tour
+                tourPos1 = Math.floor(newSolution.tourSize() * Math.random());
+                tourPos2 = Math.floor(newSolution.tourSize() * Math.random());
+
+                // Get the cities at selected positions in the tour
+                pointSwap1 = newSolution.getPoint(tourPos1);
+                pointSwap2 = newSolution.getPoint(tourPos2);
+
+                // Swap them
+                newSolution.setPoint(tourPos2, pointSwap1);
+                newSolution.setPoint(tourPos1, pointSwap2);
+
+                // Get energy of solutions
+                currentEnergy = currentSolution.getDistance();
+                neighbourEnergy = newSolution.getDistance();
+
+                // Decide if we should accept the neighbour
+                if (acceptanceProbability(currentEnergy, neighbourEnergy, temp) > Math.random()) {
+                    currentSolution = new Tour(0);
+                    currentSolution.copy(newSolution.tour);
+                }
+
+                // Keep track of the best solution found
+                if (currentSolution.getDistance() < best.getDistance()) {
+                    best = new Tour(0);
+                    best.copy(currentSolution.tour);
+                }
+
+                // Cool system
+                temp *= 1 - coolingRate;
+                iterations++;
             }
 
-            // Cool system
-            this.temp *= 1 - this.coolingRate;
+            return {
+                duration: new Date() - startTime,
+                finalDistance: best.getDistance(),
+                initialDistance: initialDistance,
+                iterations: iterations,
+                route: best.tour
+            };
+
+        } catch (e) {
+            return e;
         }
-    };
-
-    SimulatedAnnealer.prototype.getDistance = function () {
-        return this.best.getDistance();
-    };
-
-    SimulatedAnnealer.prototype.getSolution = function () {
-        return this.best.tour;
-    };
-
-    SimulatedAnnealer.prototype.init = function () {
-        this.currentSolution = new Tour(0);
-        this.currentSolution.generateIndividual(this.itinerary);
-        this.best = this.currentSolution;
-    };
-
-    SimulatedAnnealer.prototype.reset = function () {
-        this.itinerary = [];
-        this.best = null;
-    };
+    }
 
     return SimulatedAnnealer;
 
 }());
+
+self.onmessage = function (e) {
+    switch (e.data.cmd) {
+        case 'run':
+            var solution = new SimulatedAnnealer(e.data);
+            self.postMessage(solution);
+            break;
+        case 'quit':
+            console.warn('Terminating simulated annealing path planner worker');
+            self.close();
+            break;
+    }
+};

@@ -7,6 +7,10 @@ x simulated annealing path planner
 x camera tests
 x marquee selection
 x overlay/popup
+- execute path planning in a worker
+    - build worker versions of the SA, GA functions
+    - split the planner functions off into a separate package
+- execute view indexing in a worker
 
 - snap to point
 - decouple selection and path _navigation_
