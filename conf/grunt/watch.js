@@ -9,8 +9,4 @@ module.exports = {
         files: ['conf/**/*','demo/**/*','lib/**/*','test/**/*'],
         tasks: ['compile','test']
     }
-    //,test: {
-    //    files: ['test/**/*.js'],
-    //    tasks: ['test']
-    //}
 };

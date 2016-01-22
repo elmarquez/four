@@ -90,13 +90,13 @@
 
         // Add points to itinerary.
         itinerary = items.reduce(function (list, p) {
-            list.push({uuid: 'TEST', position: {x: p[0], y:p[1], z:0}});
+            list.push({uuid: Date.now(), x: p[0], y:p[1], z:0});
             return list;
         }, []);
 
         // Evolve solution
         var params = {array:itinerary, initialTemperature:5000, coolingRate:0.00001};
-        var solution = SimulatedAnnealer(params);
+        var solution = new SimulatedAnnealer(params);
         console.info(
                 'Duration', solution.iterations,
                 'Iterations', solution.iterations,
@@ -111,22 +111,23 @@
 
         // Add points to itinerary.
         itinerary = items.reduce(function (list, p) {
-            list.push({uuid: 'TEST', position: {x: p[0], y:p[1], z:0}});
+            list.push({uuid: Date.now(), x: p[0], y:p[1], z:0});
             return list;
         }, []);
 
         // Evolve population
-        var params = {array:itinerary, initialTemperature:5000, coolingRate:0.00001};
-        planner.generateTourSequence(itinerary).then(function (e) {
-            console.info('Duration', e.duration,
-                    'Iterations', e.iterations,
-                    'Initial distance', e.initialDistance,
-                    'Final distance', e.finalDistance);
-//            console.info('tour', e.route);
-            drawRoute(e.route);
-        }).catch(function (err) {
-            console.error(err);
-        });
+        planner
+            .generateTourSequence(itinerary)
+            .then(function (e) {
+                console.info('Duration', e.duration,
+                        'Iterations', e.iterations,
+                        'Initial distance', e.initialDistance,
+                        'Final distance', e.finalDistance);
+                drawRoute(e.route);
+            })
+            .catch(function (err) {
+                console.error(err);
+            });
     }
 
     function drawPoints(points) {
