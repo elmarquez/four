@@ -460,9 +460,6 @@ FOUR.TargetCamera = (function () {
         self.position.set(0,-1,0);
         self.target = new THREE.Vector3(0, 0, 0);
 
-        // camera motion planner
-        self.planner = new FOUR.PathPlanner();
-
         // set defaults
         self.lookAt(self.target);
     }
@@ -524,7 +521,7 @@ FOUR.TargetCamera = (function () {
         var self = this, up = new THREE.Vector3(0,0,1);
         animate = animate || false;
         if (animate) {
-            return self.planner.tweenToOrientation(self, up, progress || self.emit.bind(self));
+            return self.tweenToOrientation(self, up, progress || self.emit.bind(self));
         } else {
             return self.setUp(up);
         }
@@ -1896,6 +1893,7 @@ FOUR.ViewIndex = (function () {
    * Clear the index.
    */
   ViewIndex.prototype.clear = function (controller, name) {
+
   };
 
   ViewIndex.prototype.disable = function () {
@@ -1988,6 +1986,7 @@ FOUR.ViewIndex = (function () {
       }
     });
     console.info('Added %s objects to the view index', total);
+    self.dispatchEvent({type:'update'});
   };
 
   /**
@@ -2036,6 +2035,14 @@ FOUR.ViewIndex = (function () {
     }
     return total;
   };
+
+  ViewIndex.prototype.selectAll = function () {};
+
+  ViewIndex.prototype.selectNearest = function () {};
+
+  ViewIndex.prototype.selectObjects = function () {};
+
+  ViewIndex.prototype.selectPoints = function () {};
 
   return ViewIndex;
 
@@ -5706,9 +5713,7 @@ FOUR.ClickSelectionController = (function () {
 
   ClickSelectionController.prototype.onSingleClick = function () {
     // TODO rename selection field to match what is returned by marquee (selected?)
-    var selection = this.getSelected().map(function (item) {
-      return item.object;
-    });
+    var selection = this.getSelected();
     // TODO we need to check for exclusive SHIFT, ALT, etc. keydown
     if (this.modifiers[this.KEY.SHIFT] === true) {
       this.dispatchEvent({type:'add', selection: selection});
@@ -5815,14 +5820,21 @@ FOUR.MarqueeSelectionController = (function () {
       if (child.matrixWorldNeedsUpdate) {
         child.updateMatrixWorld();
       }
-      if (child.geometry && self.frustum.intersectsObject(child)) {
-        // switch indexing strategy depending on the type of scene object
-        if (child instanceof THREE.Points) {
-          total += self.indexPointsVertices(child, self.quadtree);
-        } else if (child instanceof THREE.Object3D) {
-          self.indexObject3DVertices(child, self.quadtree);
-          total += 1;
+      // objects without geometry will cause the frustrum intersection check to
+      // fail
+      try {
+        if (child.geometry && self.frustum.intersectsObject(child)) {
+          // switch indexing strategy depending on the type of scene object
+          if (child instanceof THREE.Points) {
+            total += self.indexPointsVertices(child, self.quadtree);
+          } else if (child instanceof THREE.Object3D) {
+            self.indexObject3DVertices(child, self.quadtree);
+            total += 1;
+          }
         }
+      } catch (err) {
+        // no need to do anything here
+        //console.error(err);
       }
     });
     console.info('Added %s objects to the view index', total);
