@@ -12,6 +12,7 @@
     <!-- lib -->
     <script src="../../fonts/helvetiker_regular.typeface.js"></script>
     <script src="../../dist/four.js"></script>
+    <script src="../../dist/workers/GeneticPlanner.js"></script>
     <style>
         body {
             background-color: #303030;
@@ -40,8 +41,8 @@
     <div id="controls">
         <button onclick="randomPoints();">Generate Random Points</button>
         <button onclick="update();">Update Plan</button>
+        <button onclick="updateInWebWorker();">Update Plan in Worker</button>
         <button onclick="clearPath();">Clear Path</button>
-        <button onclick="clear();">Clear All</button>
     </div>
 
 <script type="text/javascript">
@@ -49,7 +50,7 @@
     fitToContainer(canvas);
 
     var ctx = canvas.getContext('2d');
-    var count = 20;
+    var count = 100;
 
     var items = [
         [60, 200],[180, 200],[80, 180],[140, 180],[20, 160],
@@ -58,8 +59,10 @@
         [100, 40],[200, 40],[20, 20],[60, 20],[160, 20]
     ];
 
-    var ts = new TravellingSalesman();
-    ts.setPopulationSize(50);
+    // remember to specify the absolute path to the folder where the workers
+    // are kept
+    var planner = new FOUR.PathPlanner({workersPath:'/dist/workers/'});
+    planner.setStrategy(planner.PLANNING_STRATEGY.GENETIC);
 
     function clear () {
         ctx.fillStyle = '#303030';
@@ -83,27 +86,43 @@
     function update () {
         clear();
         drawPoints(items);
-        ts.reset();
 
         // Add points to itinerary.
-        items.forEach(function (p) {
-            ts.addPoint({x: p[0], y:p[1]});
-        });
+        itinerary = items.reduce(function (list, p) {
+            list.push({uuid: Date.now(), x: p[0], y:p[1], z:0});
+            return list;
+        }, []);
+        // generate a solution
+        var gp = new GeneticPlanner({populationSize: 50, itinerary:itinerary});
+        var solution = gp.solve();
+        console.info('Duration', solution.duration,
+                'Iterations', solution.iterations,
+                'Initial distance', solution.initialDistance,
+                'Final distance', solution.finalDistance);
+        drawRoute(solution.route);
+    }
 
-        // Initialize population
-        ts.init();
-        console.log("Initial distance: " + ts.getPopulation().getFittest().getDistance());
-
+    function updateInWebWorker () {
+        clear();
+        drawPoints(items);
+        // Add points to itinerary.
+        itinerary = items.reduce(function (list, p) {
+            list.push({uuid: Date.now(), x: p[0], y:p[1], z:0});
+            return list;
+        }, []);
         // Evolve population
-        ts.evolve(500);
-
-        // Print final results
-        console.log("Finished");
-        console.log("Final distance: " + ts.getPopulation().getFittest().getDistance());
-
-        var solution = ts.getSolution();
-        console.info('Solution', solution);
-        drawRoute(solution);
+        planner
+                .generateTourSequence(itinerary)
+                .then(function (e) {
+                    console.info('Duration', e.duration,
+                            'Iterations', e.iterations,
+                            'Initial distance', e.initialDistance,
+                            'Final distance', e.finalDistance);
+                    drawRoute(e.route);
+                })
+                .catch(function (err) {
+                    console.error(err);
+                });
     }
 
     function drawPoints(points) {
@@ -137,6 +156,10 @@
         }
         drawPoints(items);
     }
+
+    // generate an initial set of points
+    randomPoints();
+
 </script>
 </body>
 </html>
