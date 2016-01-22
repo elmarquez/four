@@ -143,23 +143,31 @@ var SimulatedAnnealer = (function () {
      * @param {Array} itinerary Itinerary
      */
     function itineraryHasDuplicatePoint (itinerary) {
-        var i, p, px, py, x = [], y = [];
-        // TODO hash the x, y values together instead of doing this dumb ass search
-        // build an index of points
+        var i, key, points = {};
         for (i = 0; i < itinerary.length; i++) {
-            x.push(itinerary[i].x);
-            y.push(itinerary[i].y);
-        }
-        // check for duplicates
-        for (i = 0; i < itinerary.length; i++) {
-            p = itinerary[i];
-            px = x.lastIndexOf(p.x);
-            py = y.lastIndexOf(p.y);
-            if (px === py && px !== i) {
+            key = String(itinerary[i].x) + String(itinerary[i].y + String(itinerary[i].z));
+            if (points.hasOwnProperty(key)) {
                 return true;
             }
         }
         return false;
+
+        //// TODO hash the x, y values together instead of doing this dumb ass search
+        //// build an index of points
+        //for (i = 0; i < itinerary.length; i++) {
+        //    x.push(itinerary[i].position.x);
+        //    y.push(itinerary[i].position.y);
+        //}
+        //// check for duplicates
+        //for (i = 0; i < itinerary.length; i++) {
+        //    p = itinerary[i];
+        //    px = x.lastIndexOf(p.x);
+        //    py = y.lastIndexOf(p.y);
+        //    if (px === py && px !== i) {
+        //        return true;
+        //    }
+        //}
+        //return false;
     }
 
     /**
@@ -183,68 +191,63 @@ var SimulatedAnnealer = (function () {
             itinerary.push(point);
         });
 
-        try {
-            // Check for duplicate itinerary points
-            if (itineraryHasDuplicatePoint(itinerary)) {
-                throw new Error('Duplicate itinerary points');
-            }
-
-            // Set the initial best solution
-            currentSolution = new Tour(0);
-            currentSolution.generateIndividual(itinerary);
-            best = currentSolution;
-            initialDistance = best.getDistance();
-
-            // Loop until system has cooled
-            while (temp > 1) {
-                // Create new neighbour tour
-                newSolution = new Tour(0);
-                newSolution.copy(currentSolution.tour);
-
-                // Get a random positions in the tour
-                tourPos1 = Math.floor(newSolution.tourSize() * Math.random());
-                tourPos2 = Math.floor(newSolution.tourSize() * Math.random());
-
-                // Get the cities at selected positions in the tour
-                pointSwap1 = newSolution.getPoint(tourPos1);
-                pointSwap2 = newSolution.getPoint(tourPos2);
-
-                // Swap them
-                newSolution.setPoint(tourPos2, pointSwap1);
-                newSolution.setPoint(tourPos1, pointSwap2);
-
-                // Get energy of solutions
-                currentEnergy = currentSolution.getDistance();
-                neighbourEnergy = newSolution.getDistance();
-
-                // Decide if we should accept the neighbour
-                if (acceptanceProbability(currentEnergy, neighbourEnergy, temp) > Math.random()) {
-                    currentSolution = new Tour(0);
-                    currentSolution.copy(newSolution.tour);
-                }
-
-                // Keep track of the best solution found
-                if (currentSolution.getDistance() < best.getDistance()) {
-                    best = new Tour(0);
-                    best.copy(currentSolution.tour);
-                }
-
-                // Cool system
-                temp *= 1 - coolingRate;
-                iterations++;
-            }
-
-            return {
-                duration: new Date() - startTime,
-                finalDistance: best.getDistance(),
-                initialDistance: initialDistance,
-                iterations: iterations,
-                route: best.tour
-            };
-
-        } catch (e) {
-            return e;
+        // Check for duplicate itinerary points
+        if (itineraryHasDuplicatePoint(itinerary)) {
+            throw new Error('Duplicate itinerary points');
         }
+
+        // Set the initial best solution
+        currentSolution = new Tour(0);
+        currentSolution.generateIndividual(itinerary);
+        best = currentSolution;
+        initialDistance = best.getDistance();
+
+        // Loop until system has cooled
+        while (temp > 1) {
+            // Create new neighbour tour
+            newSolution = new Tour(0);
+            newSolution.copy(currentSolution.tour);
+
+            // Get a random positions in the tour
+            tourPos1 = Math.floor(newSolution.tourSize() * Math.random());
+            tourPos2 = Math.floor(newSolution.tourSize() * Math.random());
+
+            // Get the cities at selected positions in the tour
+            pointSwap1 = newSolution.getPoint(tourPos1);
+            pointSwap2 = newSolution.getPoint(tourPos2);
+
+            // Swap them
+            newSolution.setPoint(tourPos2, pointSwap1);
+            newSolution.setPoint(tourPos1, pointSwap2);
+
+            // Get energy of solutions
+            currentEnergy = currentSolution.getDistance();
+            neighbourEnergy = newSolution.getDistance();
+
+            // Decide if we should accept the neighbour
+            if (acceptanceProbability(currentEnergy, neighbourEnergy, temp) > Math.random()) {
+                currentSolution = new Tour(0);
+                currentSolution.copy(newSolution.tour);
+            }
+
+            // Keep track of the best solution found
+            if (currentSolution.getDistance() < best.getDistance()) {
+                best = new Tour(0);
+                best.copy(currentSolution.tour);
+            }
+
+            // Cool system
+            temp *= 1 - coolingRate;
+            iterations++;
+        }
+
+        return {
+            duration: new Date() - startTime,
+            finalDistance: best.getDistance(),
+            initialDistance: initialDistance,
+            iterations: iterations,
+            route: best.tour
+        };
     }
 
     return SimulatedAnnealer;
