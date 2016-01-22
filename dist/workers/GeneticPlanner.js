@@ -1,4 +1,5 @@
 /* jshint unused:false */
+/* globals self */
 'use strict';
 
 /**
@@ -173,27 +174,18 @@ var GeneticPlanner = (function () {
 
     /**
      * Genetic solver for the travelling salesman problem.
-     * @param {Number} size Candidate solution population size
+     * @param {Object} config Configuration
      * @constructor
      */
-    function GeneticPlanner(size) {
-        this.elitism = true;
-        this.itinerary = [];
-        this.mutationRate = 0.015;
+    function GeneticPlanner(config) {
+        this.elitism = config.elitism || true;
+        this.generations = config.generations || 500;
+        this.itinerary = config.itinerary || [];
+        this.mutationRate = config.mutationRate || 0.015;
         this.population = null;
-        this.populationSize = size || 50;
-        this.tournamentSize = 5;
+        this.populationSize = config.populationSize || 50;
+        this.tournamentSize = config.tournamentSize || 5;
     }
-
-    /**
-     * Add an object to the tour list. The object must contain properties x and y
-     * at minimum.
-     * @param {Object} obj Object with x and y coordinate properties
-     */
-    GeneticPlanner.prototype.addPoint = function (obj) {
-        this.itinerary.push(obj);
-        this.checkForDuplicatePoints();
-    };
 
     GeneticPlanner.prototype.checkForDuplicatePoints = function () {
         var i, p, px, py, x = [], y = [];
@@ -268,9 +260,9 @@ var GeneticPlanner = (function () {
         return child;
     };
 
-    GeneticPlanner.prototype.evolve = function (generations) {
+    GeneticPlanner.prototype.evolve = function () {
         this.population = this.evolvePopulation(this.population);
-        for (var i = 0; i < generations; i++) {
+        for (var i = 0; i < this.generations; i++) {
             this.population = this.evolvePopulation(this.population);
         }
     };
@@ -308,7 +300,7 @@ var GeneticPlanner = (function () {
     };
 
     GeneticPlanner.prototype.getSolution = function () {
-        return this.population.getFittest().tour;
+        return this.population.getFittest();
     };
 
     /**
@@ -343,6 +335,27 @@ var GeneticPlanner = (function () {
         this.populationSize = size;
     };
 
+    /**
+     * Generate a solution for the itinerary.
+     */
+    GeneticPlanner.prototype.solve = function () {
+        var startTime = new Date();
+        // create an initial solution
+        this.init();
+        var initialSolution = this.getSolution();
+        var initialDistance = initialSolution.getDistance();
+        // evolve a new solution
+        this.evolve();
+        var finalSolution = this.getSolution();
+        return {
+            duration: new Date() - startTime,
+            finalDistance: finalSolution.getDistance(),
+            initialDistance: initialDistance,
+            iterations: this.generations,
+            route: finalSolution.tour
+        };
+    };
+
     GeneticPlanner.prototype.tour = function () {
         return new Tour();
     };
@@ -363,3 +376,18 @@ var GeneticPlanner = (function () {
     return GeneticPlanner;
 
 }());
+
+self.onmessage = function (e) {
+    switch (e.data.cmd) {
+        case 'run':
+            var config = e.data || {};
+            var gp = new GeneticPlanner(config);
+            var solution = gp.solve();
+            self.postMessage(solution);
+            break;
+        case 'quit':
+            console.warn('Terminating simulated annealing path planner worker');
+            self.close();
+            break;
+    }
+};
