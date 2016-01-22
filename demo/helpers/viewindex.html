@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>FOUR - View Index</title>
+  <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
+
+  <!-- vendor -->
+  <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../../vendor/jquery/dist/jquery.js"></script>
+  <script src="../../vendor/mousetrap/mousetrap.js"></script>
+  <script src="../../vendor/three.js/three.js"></script>
+  <script src="../../vendor/tween.js/src/Tween.js"></script>
+
+  <!-- lib -->
+  <script src="../../dist/four.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    #controls {
+      background: whitesmoke;
+      bottom: 0;
+      display: inline;
+      position: absolute;
+      right: 0;
+      vertical-align: middle;
+      z-index: 999;
+    }
+
+    #webgl {
+      bottom: 0;
+      left: 0;
+      overflow: hidden;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 0;
+    }
+
+    #webgl:focus {
+      outline: none;
+    }
+
+    .btn {
+      display: inline;
+      font-size: 12px;
+      height: 30px;
+      margin: 10px;
+      min-width: 80px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+<div id="overlay"></div>
+<div id="webgl"></div>
+<div id="controls">
+  <button type="button" class="btn" onclick="updateIndex()">Update Index</button>
+  <input type="checkbox" name="vertex" onclick="toggleVertex()">Vertex</input>
+  <input type="checkbox" name="vertex" onclick="toggleEdge()">Edge</input>
+  <input type="checkbox" name="vertex" onclick="toggleFace()">Face</input>
+  <input type="checkbox" name="vertex" onclick="toggleObject()">Object</input>
+</div>
+
+<script>
+  var camera, controller, domElement, geometry, helper, i, light, material, mesh, multi, overlayElement, rotate, overlay, scene, viewport;
+
+  $(document).ready(function () {
+    // scene
+    scene = new FOUR.Scene();
+
+    // camera
+    camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.y = -100;
+    scene.cameras.add(camera);
+
+    // lights
+    light = new THREE.DirectionalLight(0xffffff);
+    light.position.set(1, 1, 1);
+    scene.lights.add(light);
+
+    light = new THREE.DirectionalLight(0x002288);
+    light.position.set(-1, -1, -1);
+    scene.lights.add(light);
+
+    light = new THREE.AmbientLight(0x222222);
+    scene.lights.add(light);
+
+    helper = new THREE.AxisHelper(10);
+    scene.helpers.add(helper);
+
+    // viewport
+    domElement = document.getElementById('webgl');
+    viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
+
+    window.addEventListener('mousemove', viewport.render.bind(viewport));
+
+    // controls
+    overlayElement = document.getElementById('overlay');
+    overlay = new FOUR.Overlay({viewport: viewport, domElement: overlayElement});
+
+    multi = new FOUR.MultiController({viewport: viewport});
+    rotate = new FOUR.RotateController({viewport: viewport});
+
+    multi.addController(rotate, 'rotate');
+//    multi.addController(overlay, 'overlay');
+    viewport.addController(multi, 'multi');
+    viewport.setActiveController('multi');
+
+    // world
+    geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+    material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
+    for (i = 0; i < 500; i++) {
+      mesh = new THREE.Mesh(geometry, material);
+      mesh.position.x = (Math.random() - 0.5) * 1000;
+      mesh.position.y = (Math.random() - 0.5) * 1000;
+      mesh.position.z = (Math.random() - 0.5) * 1000;
+      mesh.updateMatrix();
+      mesh.matrixAutoUpdate = false;
+      scene.model.add(mesh);
+    }
+
+    camera.addEventListener('update', overlay.update.bind(overlay));
+
+    viewport.render();
+    viewport.update();
+  });
+
+  function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    render();
+  }
+
+  function render() {
+    renderer.render(scene, camera);
+  }
+
+  function addLabel () {
+    function getChildren (obj) {
+      var items = [obj];
+      obj.children.forEach(function (item) {
+        getChildren(item).forEach(function (child) {
+          items.push(child);
+        });
+      });
+      return items;
+    }
+    // get the list of scene entities
+    var objs = getChildren(scene.model);
+
+    // pick a random entity
+    var i = Math.floor(Math.random() * objs.length);
+    var obj = objs[i];
+    var colors = [
+      'label blue',
+      'label darkgray',
+      'label firebrick',
+      'label lightgray',
+      'label orange',
+      'label yellow'
+    ];
+
+    // create a label
+    if (Math.random() >= 0.9) {
+      // fixed label
+      overlay.add({
+        className: 'label fixed',
+        innerHTML: '<div class="title">Fixed Label</div>',
+        position: overlay.POSITION.FIXED,
+        left: Math.floor(Math.random() * window.innerWidth),
+        top: Math.floor(Math.random() * window.innerHeight)
+      });
+    } else {
+      var r = Math.floor(Math.random() * colors.length);
+      // tracking label
+      overlay.add({
+        className: colors[r],
+        innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
+        position: overlay.POSITION.CENTER,
+        target: obj.uuid,
+        offset: 0
+      });
+    }
+  }
+
+  function clearLabels () {
+    overlay.clear();
+  }
+
+  function updateIndex () {}
+  function toggleVertex () {}
+  function toggleEdge () {}
+  function toggleFace () {}
+  function toggleObject () {}
+
+</script>
+</body>
+</html>
