@@ -231,17 +231,15 @@ FOUR.KeyInputController = (function () {
 }());
 ;
 
-/**
- * Camera path navigation utilities.
- * @constructor
- */
 FOUR.PathPlanner = (function () {
 
     /**
+     * Camera path navigation utilities.
      * @param {Object} config Configuration
      * @constructor
      */
     function PathPlanner (config) {
+        config = config || {};
         var self = this;
         self.PLANNING_STRATEGY = {
             GENETIC: 0,
@@ -4511,7 +4509,8 @@ FOUR.RotateController = (function () {
             END: {type:'end'},
             START: {type:'start'}
         };
-        self.KEY = {ALT: 18, LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
+        self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
+        //self.KEY = {ALT: 18, LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
         self.STATE = {NONE: -1, ROTATE: 0};
 
         self.camera = config.camera || config.viewport.camera;
@@ -4521,6 +4520,7 @@ FOUR.RotateController = (function () {
         self.enableKeys = true;
         self.enableRotate = true;
         self.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
+        self.modifiers = {};
         self.listeners = {};
         self.rotateDelta = new THREE.Vector2();
         self.rotateEnd = new THREE.Vector2();
@@ -4561,21 +4561,36 @@ FOUR.RotateController = (function () {
         self.enabled = true;
     };
 
-    RotateController.prototype.onKeyDown = function (event) {
-        if (event.keyCode === this.KEY.ALT) {
-            this.keydown = true;
+    RotateController.prototype.isActivated = function (event) {
+        if (event.button === THREE.MOUSE.MIDDLE) {
+            return true;
+        } else if (this.modifiers[this.KEY.ALT] && this.modifiers[this.KEY.CTRL]) {
+            return true;
         }
+        return false;
+    };
+
+    RotateController.prototype.onKeyDown = function (event) {
+        var self = this;
+        Object.keys(self.KEY).forEach(function (key) {
+            if (event.keyCode === self.KEY[key]) {
+                self.modifiers[event.keyCode] = true;
+            }
+        });
     };
 
     RotateController.prototype.onKeyUp = function (event) {
-        if (event.keyCode === this.KEY.ALT) {
-            this.keydown = false;
-            this.state = this.STATE.NONE;
-        }
+        var self = this;
+        Object.keys(self.KEY).forEach(function (key) {
+            if (event.keyCode === self.KEY[key]) {
+                self.modifiers[event.keyCode] = false;
+            }
+        });
     };
 
     RotateController.prototype.onMouseDown = function (event) {
-        if (event.button === THREE.MOUSE.MIDDLE) {
+        if (this.isActivated(event)) {
+            console.info('rotate control active');
             this.state = this.STATE.ROTATE;
             this.domElement.style.cursor = this.CURSOR.ROTATE;
             this.rotateStart.set(event.clientX, event.clientY);
@@ -4585,7 +4600,7 @@ FOUR.RotateController = (function () {
     };
 
     RotateController.prototype.onMouseMove = function (event) {
-        if (this.state === this.STATE.ROTATE) {
+        if (this.isActivated(event) && this.state === this.STATE.ROTATE) {
             this.rotateEnd.set(event.clientX, event.clientY);
             this.rotateDelta.subVectors(this.rotateEnd, this.rotateStart);
             // rotating across whole screen goes 360 degrees around
@@ -5539,11 +5554,13 @@ FOUR.ClickSelectionController = (function () {
    * selection events:
    *
    * add    - add one or more objects to the selection set
+   * clear  - clear the selection set
    * hover  - mouse over one or more objects
    * remove - remove one or more objects from the selection set
+   * select - select only the identified items
    * toggle - toggle the selection state for one or more objects
    *
-   * The controller emits the following camera realted events:
+   * The controller emits the following camera related events:
    *
    * lookat    - look at the specified point
    * settarget - move the camera target to the specified point
@@ -5712,17 +5729,20 @@ FOUR.ClickSelectionController = (function () {
   };
 
   ClickSelectionController.prototype.onSingleClick = function () {
-    // TODO rename selection field to match what is returned by marquee (selected?)
     var selection = this.getSelected();
-    // TODO we need to check for exclusive SHIFT, ALT, etc. keydown
-    if (this.modifiers[this.KEY.SHIFT] === true) {
-      this.dispatchEvent({type:'add', selection: selection});
-    } else if (this.modifiers[this.KEY.ALT] === true) {
-      this.dispatchEvent({type:'remove', selection: selection});
-    } else if (this.click === this.SINGLE_CLICK_ACTION.SELECT) {
-      this.dispatchEvent({type:'select', selection: selection});
-    } else if (this.click === this.SINGLE_CLICK_ACTION.TOGGLE) {
-      this.dispatchEvent({type: 'toggle', selection: selection});
+    if (selection) {
+      // TODO we need to check for exclusive SHIFT, ALT, etc. keydown
+      if (this.modifiers[this.KEY.SHIFT] === true) {
+        this.dispatchEvent({type:'add', selection: selection});
+      } else if (this.modifiers[this.KEY.ALT] === true) {
+        this.dispatchEvent({type:'remove', selection: selection});
+      } else if (this.click === this.SINGLE_CLICK_ACTION.SELECT) {
+        this.dispatchEvent({type:'select', selection: selection});
+      } else if (this.click === this.SINGLE_CLICK_ACTION.TOGGLE) {
+        this.dispatchEvent({type: 'toggle', selection: selection});
+      }
+    } else {
+      this.dispatchEvent({type:'clear'});
     }
   };
 
@@ -5861,7 +5881,6 @@ FOUR.MarqueeSelectionController = (function () {
       };
       element.addEventListener(event, self.listeners[event].fn, false);
     }
-
     addListener(self.camera, 'update', self.onCameraUpdate);
     addListener(self.viewport, 'camera-change', self.onCameraChange);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
@@ -6060,6 +6079,21 @@ FOUR.MarqueeSelectionController = (function () {
       r2.p2.y = selection.y + selection.height;
       return FOUR.utils.isContained(r1, r2);
     });
+    // transform index record into a format similar to the one returned by the
+    // THREE.Raycaster
+    this.selection = this.selection.map(function (item) {
+      // index format: height, index, type, uuid, width, x, y
+      // raycaster face intersect: distance, face, faceIndex, object, point, uv
+      // raycaster point intersect: distance, distanceToRay, face, index, object, point
+      return {
+        distance: null,
+        face: null,
+        index: item.index,
+        object: null,
+        type: item.type,
+        uuid: item.uuid
+      };
+    });
     // dispatch selection event
     if (this.selectAction === this.SELECT_ACTIONS.ADD) {
       this.dispatchEvent({type: 'add', selection: this.selection});
@@ -6140,13 +6174,19 @@ FOUR.SelectionSet = (function () {
 
   /**
    * Add object to the selection set.
-   * @param {Object3D} obj Scene object
+   * @param {Object} obj THREE.Raycaster intersection record or FOUR.MarqueeSelectionController selection record
    * @param {Boolean} update Rebuild index and emit update event
    */
   SelectionSet.prototype.add = function (obj, update) {
     update = typeof update === 'undefined' ? true : update;
     // add the object if it is not already present in the selection set
     if (!this.contains(obj)) {
+      // normalize selection record format
+      if (!obj.uuid) {
+        obj.index = obj.index || -1;
+        obj.type = obj.type || this.getType(obj);
+        obj.uuid = obj.object.uuid;
+      }
       this.items.push(obj);
     }
     if (update) {
@@ -6201,7 +6241,35 @@ FOUR.SelectionSet = (function () {
    * @returns {string} Index identifier
    */
   SelectionSet.prototype.getObjectIndexId = function (obj) {
-    return obj.uuid + ',' + (typeof obj.index !== 'undefined' ? obj.index : '-1');
+    var uuid = obj.uuid ? obj.uuid : obj.object.uuid;
+    return uuid + ',' + (typeof obj.index !== 'undefined' ? obj.index : '-1');
+  };
+
+  /**
+   * Get type of object.
+   * @param {Object} obj Object
+   * @returns {String} Type
+   */
+  SelectionSet.prototype.getType = function (obj) {
+    // this is very hackish but unfortunately necessary since the THREE types
+    // can't be easily resolved
+    var type = 'undefined';
+    var types = {
+      'THREE.Face3':THREE.Face3,
+      'THREE.Line':THREE.Line,
+      'THREE.LineSegments':THREE.LineSegments,
+      'THREE.Mesh':THREE.Mesh,
+      'THREE.Points':THREE.Points
+    };
+    try {
+      Object.keys(types).forEach(function (key) {
+        if (obj.object instanceof types[key]) {
+          type = key;
+        }
+      });
+    } finally {
+      return type;
+    }
   };
 
   /**
