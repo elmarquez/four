@@ -7,14 +7,16 @@ x simulated annealing path planner
 x camera tests
 x marquee selection
 x overlay/popup
-- execute path planning in a worker
-    - build worker versions of the SA, GA functions
+x execute path planning in a worker
+    x build worker versions of the SA, GA functions
     - split the planner functions off into a separate package
 - execute view indexing in a worker
+- arrow controls for all navigation modes
+
+
 
 - snap to point
 - decouple selection and path _navigation_
-- arrow controls for all navigation modes
 - !!! need to check both mouse down and which mouse button was pressed
 
 - implement a new orbit controller from the individual pan, etc parts
