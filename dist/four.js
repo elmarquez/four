@@ -4969,11 +4969,14 @@ FOUR.TourController = (function () {
 
     /**
      * Tour controller provides automated navigation between selected features.
+     * The configuration should include a workersPath value as part of the
+     * config.planner object.
      * @param {Object} config Configuration
      */
     function TourController (config) {
         THREE.EventDispatcher.call(this);
         config = config || {};
+        config.planner = config.planner || {};
 
         var self = this;
         self.EVENTS = {
@@ -5001,7 +5004,7 @@ FOUR.TourController = (function () {
         self.listeners = {};
         self.offset = 100; // distance between camera and feature when visiting
         self.path = [];
-        self.planner = new FOUR.PathPlanner();
+        self.planner = new FOUR.PathPlanner(config.planner);
         self.planningStrategy = self.PLANNING_STRATEGY.GENETIC_EVOLUTION;
         self.viewport = config.viewport;
     }
@@ -5141,16 +5144,17 @@ FOUR.TourController = (function () {
 
     /**
      * Generate a tour plan.
+     * @params {Array} features Features to visit. Features must be objects of the form {id:,x:,y:,z:}
      * @returns {Promise}
      */
-    TourController.prototype.plan = function (objs) {
+    TourController.prototype.plan = function (features) {
         var self = this;
         // reset the current feature index
         self.current = -1;
         self.path = [];
         // generate the tour path
         return self.planner
-          .generateTourSequence(objs)
+          .generateTourSequence(features)
           .then(function (path) {
               self.path = path;
           }, function (err) {
@@ -5187,7 +5191,7 @@ FOUR.TourController = (function () {
     /**
      * Update the controller state.
      */
-    TourController.prototype.update = function () {};
+    TourController.prototype.update = function () {}; // noop
 
     return TourController;
 
@@ -5846,8 +5850,10 @@ FOUR.ClickSelectionController = (function () {
     self.click = self.SINGLE_CLICK_ACTION.SELECT;
     self.domElement = config.viewport.domElement;
     self.enabled = false;
-    self.filter = function () { return true; };
-    self.filters = {};
+    self.filter = null;
+    self.filters = {
+      DEFAULT: function () { return true; }
+    };
     self.intersects = [];
     self.listeners = {};
     self.modifiers = {};
@@ -5860,12 +5866,21 @@ FOUR.ClickSelectionController = (function () {
     self.timeout = null;
     self.viewport = config.viewport;
 
+    self.filter = self.filters.DEFAULT;
+
     Object.keys(self.KEY).forEach(function (key) {
       self.modifiers[self.KEY[key]] = false;
     });
   }
 
   ClickSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  /**
+   * Remove the current selection filter.
+   */
+  ClickSelectionController.prototype.clearFilter = function () {
+    this.filter = function () { return true; };
+  };
 
   ClickSelectionController.prototype.contextMenu = function (event) {
     event.preventDefault();
@@ -5901,13 +5916,22 @@ FOUR.ClickSelectionController = (function () {
     self.enabled = true;
   };
 
+  /**
+   * Get the selected scene object.
+   * @returns {THREE.Object3D|null} Selected scene object
+   */
   ClickSelectionController.prototype.getSelected = function () {
     // update the picking ray with the camera and mouse position
     this.raycaster.setFromCamera(this.mouse.end, this.viewport.camera);
     // calculate objects intersecting the picking ray
     this.intersects = this.raycaster.intersectObjects(this.viewport.scene.model.children, true); // TODO this is FOUR specific use of children
-    // update the selection set using only the nearest selected object
-    return this.intersects && this.intersects.length > 0 ? this.intersects[0] : null;
+    if (this.intersects && this.intersects.length > 0) {
+      // filter the intersect list
+      this.intersects = this.intersects.filter(this.filter);
+      return this.intersects.length > 0 ? this.intersects[0] : null;
+    } else {
+      return null;
+    }
   };
 
   ClickSelectionController.prototype.onContextMenu = function () {};
@@ -6004,13 +6028,20 @@ FOUR.ClickSelectionController = (function () {
     }
   };
 
-  ClickSelectionController.prototype.setFilter = function () {};
+  /**
+   * Set the current filter.
+   * @param {String} key Filter ID
+   */
+  ClickSelectionController.prototype.setFilter = function (key) {
+    this.filter = this.filters[key];
+  };
 
   ClickSelectionController.prototype.update = function () {}; // do nothing
 
   return ClickSelectionController;
 
-}());;
+}());
+;
 
 FOUR.MarqueeSelectionController = (function () {
 
@@ -6060,8 +6091,8 @@ FOUR.MarqueeSelectionController = (function () {
       state: self.MOUSE_STATE.UP
     };
     self.quadtree = new Quadtree({
-      //x: 0,
-      //y: 0,
+      x: 0,
+      y: 0,
       height: config.viewport.domElement.clientHeight,
       width: config.viewport.domElement.clientWidth
     });
@@ -6069,12 +6100,24 @@ FOUR.MarqueeSelectionController = (function () {
     self.selection = [];
     self.viewport = config.viewport;
 
+    // select everything by default
+    self.filter = self.filters.all;
+
     Object.keys(self.KEY).forEach(function (key) {
       self.modifiers[self.KEY[key]] = false;
     });
   }
 
   MarqueeSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  /**
+   * Add selection filter.
+   * @param {String} key Key
+   * @param {Function} fn Filter function
+   */
+  MarqueeSelectionController.prototype.addFilter = function (key, fn) {
+    this.filters[key] = fn;
+  };
 
   /**
    * Build a quadtree index from the set of objects that are contained within
@@ -6118,6 +6161,8 @@ FOUR.MarqueeSelectionController = (function () {
     });
     console.info('Added %s objects to the view index', total);
   };
+
+  MarqueeSelectionController.prototype.clearFilter = function () {};
 
   MarqueeSelectionController.prototype.disable = function () {
     var self = this;
@@ -6377,6 +6422,8 @@ FOUR.MarqueeSelectionController = (function () {
         uuid: item.uuid
       };
     });
+    // filter the selection results
+    this.selection = this.selection.filter(this.filter);
     // dispatch selection event
     if (this.selectAction === this.SELECT_ACTIONS.ADD) {
       this.dispatchEvent({type: 'add', selection: this.selection});

@@ -55,7 +55,7 @@
     fitToContainer(canvas);
 
     var ctx = canvas.getContext('2d');
-    var count = 100;
+    var count = 300;
 
     var items = [
         [60, 200],[180, 200],[80, 180],[140, 180],[20, 160],
@@ -98,7 +98,7 @@
         var params = {array:itinerary, initialTemperature:5000, coolingRate:0.00001};
         var solution = new SimulatedAnnealer(params);
         console.info(
-                'Duration', solution.iterations,
+                'Duration', solution.duration,
                 'Iterations', solution.iterations,
                 'Initial distance', solution.initialDistance,
                 'Final distance', solution.finalDistance);
