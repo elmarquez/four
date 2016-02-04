@@ -2110,6 +2110,24 @@ FOUR.Viewport3D = (function () {
   };
 
   /**
+   * Disable interactions with the viewport.
+   */
+  Viewport3D.prototype.disable = function () {
+    if (this.controller) {
+      this.controller.disable();
+    }
+  };
+
+  /**
+   * Enable interactions with the viewport.
+   */
+  Viewport3D.prototype.enable = function () {
+    if (this.controller) {
+      this.controller.enable();
+    }
+  };
+
+  /**
    * Get the viewport camera.
    * @returns {THREE.Camera}
    */
@@ -6074,7 +6092,7 @@ FOUR.MarqueeSelectionController = (function () {
     self.domElement = config.viewport.domElement;
     self.enabled = false;
     self.filter = null;
-    self.filters = {
+    self.filters = { // FIXME move into the view index
       all: self.selectAll,
       nearest: self.selectNearest,
       objects: self.selectObjects,
@@ -6099,9 +6117,6 @@ FOUR.MarqueeSelectionController = (function () {
     self.selectAction = self.SELECT_ACTIONS.SELECT;
     self.selection = [];
     self.viewport = config.viewport;
-
-    // select everything by default
-    self.filter = self.filters.all;
 
     Object.keys(self.KEY).forEach(function (key) {
       self.modifiers[self.KEY[key]] = false;
@@ -6422,8 +6437,9 @@ FOUR.MarqueeSelectionController = (function () {
         uuid: item.uuid
       };
     });
+    // TODO filtering should happen in the view index. this is disabled for now since its causing problems
     // filter the selection results
-    this.selection = this.selection.filter(this.filter);
+    //this.selection = this.selection.filter(this.filter);
     // dispatch selection event
     if (this.selectAction === this.SELECT_ACTIONS.ADD) {
       this.dispatchEvent({type: 'add', selection: this.selection});
@@ -6432,6 +6448,10 @@ FOUR.MarqueeSelectionController = (function () {
     } else if (this.selectAction === this.SELECT_ACTIONS.SELECT) {
       this.dispatchEvent({type: 'select', selection: this.selection});
     }
+  };
+
+  MarqueeSelectionController.prototype.selectAll = function () {
+
   };
 
   /**
