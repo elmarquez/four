@@ -3471,6 +3471,7 @@ FOUR.ArrowController = (function () {
         Object.keys(self.listeners).forEach(function (key) {
             var listener = self.listeners[key];
             listener.element.removeEventListener(listener.event, listener.fn);
+            delete self.listeners[key];
         });
     };
 
@@ -3719,6 +3720,7 @@ FOUR.LookController = (function () {
 		Object.keys(self.listeners).forEach(function (key) {
 			var listener = self.listeners[key];
 			listener.element.removeEventListener(listener.event, listener.fn);
+			delete self.listeners[key];
 		});
 	};
 
@@ -4162,6 +4164,7 @@ FOUR.OrbitController = (function () {
 		Object.keys(self.listeners).forEach(function (key) {
 			var listener = self.listeners[key];
 			listener.element.removeEventListener(listener.event, listener.fn);
+			delete self.listeners[key];
 		});
 	};
 
@@ -4530,6 +4533,7 @@ FOUR.PanController = (function () {
         Object.keys(self.listeners).forEach(function (key) {
             var listener = self.listeners[key];
             listener.element.removeEventListener(listener.event, listener.fn);
+            delete self.listeners[key];
         });
     };
 
@@ -4806,6 +4810,7 @@ FOUR.RotateController = (function () {
         Object.keys(self.listeners).forEach(function (key) {
             var listener = self.listeners[key];
             listener.element.removeEventListener(listener.event, listener.fn);
+            delete self.listeners[key];
         });
     };
 
@@ -5040,6 +5045,7 @@ FOUR.TourController = (function () {
         Object.keys(self.listeners).forEach(function (key) {
             var listener = self.listeners[key];
             listener.element.removeEventListener(listener.event, listener.fn);
+            delete self.listeners[key];
         });
     };
 
@@ -5308,6 +5314,7 @@ FOUR.WalkController = (function () {
         Object.keys(self.listeners).forEach(function (key) {
             var listener = self.listeners[key];
             listener.element.removeEventListener(listener.event, listener.fn);
+            delete self.listeners[key];
         });
     };
 
@@ -5574,6 +5581,7 @@ FOUR.ZoomController = (function () {
         Object.keys(self.listeners).forEach(function (key) {
             var listener = self.listeners[key];
             listener.element.removeEventListener(listener.event, listener.fn);
+            delete self.listeners[key];
         });
     };
 
@@ -5910,6 +5918,7 @@ FOUR.ClickSelectionController = (function () {
     Object.keys(self.listeners).forEach(function (key) {
       var listener = self.listeners[key];
       listener.element.removeEventListener(listener.event, listener.fn);
+      delete self.listeners[key];
     });
   };
 
@@ -6451,7 +6460,19 @@ FOUR.MarqueeSelectionController = (function () {
   };
 
   MarqueeSelectionController.prototype.selectAll = function () {
+    return true;
+  };
 
+  MarqueeSelectionController.prototype.selectNearest = function () {
+    return true;
+  };
+
+  MarqueeSelectionController.prototype.selectObjects = function () {
+    return true;
+  };
+
+  MarqueeSelectionController.prototype.selectPoints = function () {
+    return true;
   };
 
   /**
