@@ -395,7 +395,7 @@ FOUR.Scene = (function () {
         return this.getLayerObjects('lights');
     };
 
-        Scene.prototype.getModelLayerObject = function (name) {
+    Scene.prototype.getModelLayerObject = function (name) {
         return this.getLayerObject('model', name);
     };
 
@@ -718,11 +718,12 @@ FOUR.TargetCamera = (function () {
             var start = { x: self.up.x, y: self.up.y, z: self.up.z };
             var finish = { x: orientation.x, y: orientation.y, z: orientation.z };
             var tween = new TWEEN.Tween(start).to(finish, 1000);
+            var taskId = THREE.Math.generateUUID();
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
                 self.up.set(this.x, this.y, this.z);
                 self.dispatchEvent({type:'update'});
-                self.dispatchEvent({type:'continuous-update-end'});
+                self.dispatchEvent({type:'continuous-update-end', id:taskId, task:'tween-to-orientation'});
                 resolve();
             });
             tween.onUpdate(function () {
@@ -730,7 +731,7 @@ FOUR.TargetCamera = (function () {
                 self.dispatchEvent({type:'update'});
             });
             tween.start();
-            self.dispatchEvent({type:'continuous-update-start'});
+            self.dispatchEvent({type:'continuous-update-start', id:taskId, task:'tween-to-orientation'});
         });
     };
 
@@ -765,6 +766,7 @@ FOUR.TargetCamera = (function () {
             var targetDistance = new THREE.Vector3().subVectors(self.target, target).length();
             var distance = cameraDistance > targetDistance ? cameraDistance : targetDistance;
             // execute animation
+            var taskId = THREE.Math.generateUUID();
             var tween = new TWEEN.Tween(start).to(finish, 1500);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
@@ -777,8 +779,8 @@ FOUR.TargetCamera = (function () {
                     self.lookAt(self.target);
                 }
                 self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
-                self.dispatchEvent({type:'update'});
-                self.dispatchEvent({type:'continuous-update-end'});
+                self.dispatchEvent({type:'update', id:taskId});
+                self.dispatchEvent({type:'continuous-update-end', id:taskId, task:'tween-to-position'});
                 resolve();
             });
             tween.onUpdate(function () {
@@ -794,7 +796,7 @@ FOUR.TargetCamera = (function () {
                 self.dispatchEvent({type:'update'});
             });
             tween.start();
-            self.dispatchEvent({type:'continuous-update-start'});
+            self.dispatchEvent({type:'continuous-update-start', id:taskId, task:'tween-to-position'});
         });
     };
 
@@ -2074,7 +2076,6 @@ FOUR.Viewport3D = (function () {
     self.backgroundColor = config.backgroundColor || new THREE.Color(0x000, 1.0);
     self.camera = config.camera;
     self.clock = new THREE.Clock();
-    self.continuousUpdate = false;
     self.controller = null; // the active controller
     self.controllers = {};
     self.delta = 0;
@@ -2085,6 +2086,8 @@ FOUR.Viewport3D = (function () {
     self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
     self.renderer.shadowMap.enabled = true;
     self.scene = config.scene;
+    self.tasks = [];
+
     // add the viewport to the DOM
     self.domElement.appendChild(self.renderer.domElement);
     // listen for events
@@ -2107,6 +2110,12 @@ FOUR.Viewport3D = (function () {
    */
   Viewport3D.prototype.addController = function (controller, name) {
     this.controllers[name] = controller;
+  };
+
+  Viewport3D.prototype.addRenderTask = function (id, task) {
+    this.tasks[id] = task || {task:'undefined'};
+    //console.info('Viewport render task count', Object.keys(this.tasks).length);
+    this.update(true);
   };
 
   /**
@@ -2170,6 +2179,11 @@ FOUR.Viewport3D = (function () {
     self.render();
   };
 
+  Viewport3D.prototype.removeRenderTask = function (id) {
+    delete this.tasks[id];
+    //console.info('Viewport render task count', Object.keys(this.tasks).length);
+  };
+
   /**
    * Render the viewport once.
    */
@@ -2225,7 +2239,7 @@ FOUR.Viewport3D = (function () {
    */
   Viewport3D.prototype.update = function (force) {
     var self = this;
-    if (self.continuousUpdate || (typeof force === 'boolean' && force)) {
+    if (Object.keys(self.tasks).length > 0 || (typeof force === 'boolean' && force)) {
       self.updateOnce();
       requestAnimationFrame(self.update.bind(self));
     }
@@ -6272,7 +6286,7 @@ FOUR.MarqueeSelectionController = (function () {
     x = minX >= 0 ? minX : 0;
     y = minY >= 0 ? minY : 0;
     // add the object screen bounding box to the index
-    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D'});
+    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D', object: obj});
     //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
     return 1;
   };
@@ -6441,7 +6455,7 @@ FOUR.MarqueeSelectionController = (function () {
         distance: null,
         face: null,
         index: item.index,
-        object: null,
+        object: item.object || null,
         type: item.type,
         uuid: item.uuid
       };

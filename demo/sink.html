@@ -110,6 +110,14 @@
         viewport.update();
 
         // events
+        camera.addEventListener('continuous-update-end', function (e) {
+            console.info('Remove render task', e);
+            viewport.removeRenderTask(e.id);
+        });
+        camera.addEventListener('continuous-update-start', function (e) {
+            console.info('Add render task', e);
+            viewport.addRenderTask(e.id, e.task);
+        });
         camera.addEventListener('update', viewport.render.bind(viewport), false);
 
         var pathObj = new THREE.Object3D();
