@@ -37,7 +37,8 @@
     "mousetrap": "~1.5.x",
     "ol3": "openlayers3-dist#~3.10.1",
     "qtip2": "~2.2.1",
-    "slickgrid": "~2.1.0"
+    "slickgrid": "~2.1.0",
+    "animate.css": "^3.5.1"
   },
   "keywords": [
     "3D",
