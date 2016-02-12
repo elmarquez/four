@@ -115,12 +115,14 @@
     hover.addEventListener('hover', function (event) {
       console.info('hover', event.selection);
       overlay.clear();
-      overlay.add({
-        className: 'label blue fw animated fadeIn',
-        innerHTML: event.selection.object.name || event.selection.object.uuid,
-        position: overlay.POSITION.CENTER,
-        target: event.selection.object.position
-      });
+      if (event.selection) {
+        overlay.add({
+          className: 'label blue fw animated fadeIn',
+          innerHTML: event.selection.object.name || event.selection.object.uuid,
+          position: overlay.POSITION.CENTER,
+          target: event.selection.object.position
+        });
+      }
     });
 
     // start rendering
