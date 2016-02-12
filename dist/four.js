@@ -149,14 +149,21 @@ FOUR.utils.isContained = function (r1, r2) {
 FOUR.KeyInputController = (function () {
 
   /**
-   * Key input controller. Maintains the state of some key combinations and
-   * otherwise dispatches key events to listeners.
+   * Key input controller. The controller allows you to define key command sets
+   * that can be activated and deactivated as required. A key command set
+   * called the 'default' set is always active.
    * @constructor
    */
   function KeyInputController (config) {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
+    self.KEY_ALIAS = {
+      'alt': 0,
+      'ctrl': 0,
+      'meta': 0,
+      'shift': 0
+    };
     self.KEYS = {
       ALT: 'alt',
       CTRL: 'ctrl',
@@ -169,60 +176,98 @@ FOUR.KeyInputController = (function () {
       SHIFT: 'shift',
       UP: 'up'
     };
+    self.active = null; // the active command set
     self.enabled = config.enabled || false;
-    self.modifiers = {}; // map of currently pressed keys
+    self.listeners = {};
+    self.pressed = []; // list of keys that are currently pressed
+    self.sets = {};
 
     Object.keys(self.KEYS).forEach(function (key) {
       self.modifiers[self.KEYS[key]] = false;
     });
-
-    // modifier keys
-    Mousetrap.bind('alt', function (evt) { self.keydown(self.KEYS.ALT, evt); }, 'keydown');
-    Mousetrap.bind('alt', function (evt) { self.keyup(self.KEYS.ALT, evt); }, 'keyup');
-    Mousetrap.bind('ctrl', function (evt) { self.keydown(self.KEYS.CTRL, evt); }, 'keydown');
-    Mousetrap.bind('ctrl', function (evt) { self.keyup(self.KEYS.CTRL, evt); }, 'keyup');
-    Mousetrap.bind('shift', function (evt) { self.keydown(self.KEYS.SHIFT, evt); }, 'keydown');
-    Mousetrap.bind('shift', function (evt) { self.keyup(self.KEYS.SHIFT, evt); }, 'keyup');
-
-    // selection
-    Mousetrap.bind('ctrl+a', function (evt) { self.keyup(self.KEYS.CTRL_A, evt); });
-    Mousetrap.bind('ctrl+n', function (evt) { self.keyup(self.KEYS.CTRL_N, evt); });
-
-    // arrow keys
-    Mousetrap.bind('i', function (evt) { self.keydown(self.KEYS.UP, evt); }, 'keydown');
-    Mousetrap.bind('i', function (evt) { self.keyup(self.KEYS.UP, evt); }, 'keyup');
-    Mousetrap.bind('k', function (evt) { self.keydown(self.KEYS.DOWN, evt); }, 'keydown');
-    Mousetrap.bind('k', function (evt) { self.keyup(self.KEYS.DOWN, evt); }, 'keyup');
-    Mousetrap.bind('j', function (evt) { self.keydown(self.KEYS.LEFT, evt); }, 'keydown');
-    Mousetrap.bind('j', function (evt) { self.keyup(self.KEYS.LEFT, evt); }, 'keyup');
-    Mousetrap.bind('l', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
-    Mousetrap.bind('l', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
-    Mousetrap.bind('u', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
-    Mousetrap.bind('u', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
-    Mousetrap.bind('o', function (evt) { self.keydown(self.KEYS.RIGHT, evt); }, 'keydown');
-    Mousetrap.bind('o', function (evt) { self.keyup(self.KEYS.RIGHT, evt); }, 'keyup');
   }
 
   KeyInputController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
   KeyInputController.prototype.constructor = KeyInputController;
 
-  KeyInputController.prototype.keydown = function (key, evt) {
-    this.modifiers[key] = true;
-    this.dispatchEvent({'type': 'keydown', key: key, keyCode: evt ? evt.keyCode : null});
+  KeyInputController.prototype.disable = function () {
+    var self = this;
+    self.enabled = false;
+    Object.keys(self.listeners).forEach(function (key) {
+      var listener = self.listeners[key];
+      listener.element.removeEventListener(listener.event, listener.fn);
+      delete self.listeners[key];
+    });
   };
 
-  KeyInputController.prototype.keyup = function (key, evt) {
-    this.modifiers[key] = false;
-    this.dispatchEvent({'type': 'keyup', key: key, keyCode: evt ? evt.keyCode : null});
+  KeyInputController.prototype.enable = function () {
+    var self = this;
+    // clear all listeners to ensure that we can never add multiple listeners
+    // for the same events
+    self.disable();
+    function addListener(element, event, fn) {
+      if (!self.listeners[event]) {
+        self.listeners[event] = {
+          element: element,
+          event: event,
+          fn: fn.bind(self)
+        };
+        element.addEventListener(event, self.listeners[event].fn, false);
+      }
+    }
+    addListener(window, 'keydown', self.onKeyDown);
+    addListener(window, 'keyup', self.onKeyUp);
+    self.enabled = true;
+  };
+
+  /**
+   * @see http://api.jquery.com/event.which/
+   * @param evt
+   */
+  KeyInputController.prototype.keydown = function (evt) {
+    var me = this;
+    me.pressed.indexOf(evt.keyCode);
+    // check the default command set
+    Object.keys(me.sets.default).forEach(function (command) {
+      var active = command.keys.reduce(function (last, key) {
+        if (me.pressed.indexOf(key) > -1) {
+          last = last === null ? true : last;
+        }
+        return last;
+      }, null);
+      console.info('check default command');
+    });
+    // check the current command set
+    Object.keys(me.sets[me.current]).forEach(function (command) {
+      console.info('check command');
+    });
+    me.dispatchEvent({'type': 'keyup', keyCode: evt.keyCode});
+  };
+
+  KeyInputController.prototype.keyup = function (evt) {
+    var i = this.pressed.indexOf(evt.keyCode);
+    if (i > -1) {
+      this.pressed.slice(i, i+1);
+    }
+    this.dispatchEvent({'type': 'keyup', keyCode: evt.keyCode});
   };
 
   /**
    * Register key event callback.
    * @param {String} command Key command
    * @param {Function} callback Callback
+   * @param {String} commandSet Name of command set. Defaults to 'default'
    */
-  KeyInputController.prototype.register = function (command, callback) {
+  KeyInputController.prototype.register = function (command, callback, commandSet) {
+    commandSet = commandSet || 'default';
+    // create the set if it doesn't already exist
+    if (!this.sets.hasOwnProperty(commandSet)) {
+      this.sets[commandSet] = [];
+    }
+    // TODO transform English key descriptions into keycodes
+    var keycodes = [];
+    this.sets[commandSet].push({keys: keycodes, fn: callback});
     throw new Error('not implemented');
   };
 
@@ -708,7 +753,12 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Tween camera up orientation.
+     * Tween camera up orientation. This function will emit a continuous-update
+     * event that is intended to signal the viewport to both continuously
+     * render the camera view and tween the camera position. You must create an
+     * event handler that listens for this event from the camera and then adds
+     * and removes a render task from the viewport. The render task is
+     * identified by the event id.
      * @param {THREE.Euler} orientation
      * @returns {Promise}
      */
@@ -736,7 +786,12 @@ FOUR.TargetCamera = (function () {
     };
 
     /**
-     * Tween the camera to the specified position.
+     * Tween the camera to the specified position.  This function will emit a
+     * continuous-update event that is intended to signal the viewport to both
+     * continuously render the camera view and tween the camera position. You
+     * must create an event handler that listens for this event from the camera
+     * and then adds and removes a render task from the viewport. The render
+     * task is identified by the event id.
      * @param {THREE.Vector3} position Camera position
      * @param {THREE.Vector3} target Target position
      * @param {THREE.Quaternion} rotation Camera rotation
@@ -3493,6 +3548,9 @@ FOUR.ArrowController = (function () {
 
     ArrowController.prototype.enable = function () {
         var self = this;
+        // clear all listeners to ensure that we can never add multiple listeners
+        // for the same events
+        self.disable();
         function addListener(element, event, fn) {
             if (!self.listeners[event]) {
                 self.listeners[event] = {
@@ -3742,6 +3800,9 @@ FOUR.LookController = (function () {
 
 	LookController.prototype.enable = function () {
 		var self = this;
+		// clear all listeners to ensure that we can never add multiple listeners
+		// for the same events
+		self.disable();
 		function addListener(element, event, fn) {
 			if (!self.listeners[event]) {
 				self.listeners[event] = {
@@ -4186,6 +4247,9 @@ FOUR.OrbitController = (function () {
 
 	OrbitController.prototype.enable = function () {
 		var self = this;
+		// clear all listeners to ensure that we can never add multiple listeners
+		// for the same events
+		self.disable();
 		function addListener(element, event, fn) {
 			if (!self.listeners[event]) {
 				self.listeners[event] = {
@@ -4555,6 +4619,9 @@ FOUR.PanController = (function () {
 
     PanController.prototype.enable = function () {
         var self = this;
+        // clear all listeners to ensure that we can never add multiple listeners
+        // for the same events
+        self.disable();
         function addListener(element, event, fn) {
             if (!self.listeners[event]) {
                 self.listeners[event] = {
@@ -4832,6 +4899,9 @@ FOUR.RotateController = (function () {
 
     RotateController.prototype.enable = function () {
         var self = this;
+        // clear all listeners to ensure that we can never add multiple listeners
+        // for the same events
+        self.disable();
         function addListener(element, event, fn) {
             if (!self.listeners[event]) {
                 self.listeners[event] = {
@@ -5083,6 +5153,9 @@ FOUR.TourController = (function () {
      */
     TourController.prototype.enable = function () {
         var self = this;
+        // clear all listeners to ensure that we can never add multiple listeners
+        // for the same events
+        self.disable();
         function addListener(element, event, fn) {
             if (!self.listeners[event]) {
                 self.listeners[event] = {
@@ -5340,6 +5413,9 @@ FOUR.WalkController = (function () {
 
     WalkController.prototype.enable = function () {
         var self = this;
+        // clear all listeners to ensure that we can never add multiple listeners
+        // for the same events
+        self.disable();
         function addListener(element, event, fn) {
             if (!self.listeners[event]) {
                 self.listeners[event] = {
@@ -5603,6 +5679,9 @@ FOUR.ZoomController = (function () {
 
     ZoomController.prototype.enable = function () {
         var self = this;
+        // clear all listeners to ensure that we can never add multiple listeners
+        // for the same events
+        self.disable();
         function addListener(element, event, fn) {
             if (!self.listeners[event]) {
                 self.listeners[event] = {
@@ -5940,6 +6019,9 @@ FOUR.ClickSelectionController = (function () {
 
   ClickSelectionController.prototype.enable = function () {
     var self = this;
+    // clear all listeners to ensure that we can never add multiple listeners
+    // for the same events
+    self.disable();
     function addListener(element, event, fn) {
       if (!self.listeners[event]) {
         self.listeners[event] = {
@@ -6217,7 +6299,11 @@ FOUR.MarqueeSelectionController = (function () {
 
   MarqueeSelectionController.prototype.enable = function () {
     var self = this;
+    // clear all listeners to ensure that we can never add multiple listeners
+    // for the same events
+    self.disable();
     self.camera = self.viewport.getCamera();
+    // add listeners
     function addListener(element, event, fn) {
       if (!self.listeners[event]) {
         self.listeners[event] = {
@@ -6236,9 +6322,9 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
     addListener(window, 'resize', self.onWindowResize);
-    self.enabled = true;
     // FIXME the first time the index runs it appears to get every scene object
     self.buildIndex();
+    self.enabled = true;
   };
 
   /**
