@@ -24,6 +24,19 @@ FOUR.DEFAULT = {
   }
 };
 
+FOUR.EVENT = {
+  CAMERA_CHANGE: 'camera-change',
+  CONTINUOUS_UPDATE_END: 'continuous-update-end',
+  CONTINUOUS_UPDATE_START: 'continuous-update-start',
+  KEY_DOWN: 'keydown',
+  KEY_UP: 'keyup',
+  MOUSE_DOWN: 'mousedown',
+  MOUSE_MOVE: 'mousemove',
+  MOUSE_UP: 'mouseup',
+  RESIZE: 'resize',
+  UPDATE: 'update'
+};
+
 FOUR.KEY = {};
 
 FOUR.MOUSE_STATE = {
@@ -468,6 +481,213 @@ FOUR.Scene = (function () {
 
 }());;
 
+/**
+ * Camera view object and object element index. The index supports search for
+ * object and object element selection. The indexer can accept a function to
+ * enable indexing of arbitrary element properties.
+ */
+FOUR.SceneIndex = (function () {
+
+  /**
+   * SceneIndex constructor.
+   * @param {Object} config Configuration
+   * @constructor
+   */
+  function SceneIndex(config) {
+    THREE.EventDispatcher.call(this);
+    config = config || {};
+    var self = this;
+
+    self.SELECTION_STRATEGY = {
+      CONTAINED: 0,
+      CROSSING: 1
+    };
+
+    self.filter = null;
+    self.filters = {
+      all: self.selectAll,
+      nearest: self.selectNearest,
+      objects: self.selectObjects,
+      points: self.selectPoints
+    };
+    self.frustum = new THREE.Frustum();
+    self.quadtree = new Quadtree({
+      //x: 0,
+      //y: 0,
+      height: config.viewport.domElement.clientHeight,
+      width: config.viewport.domElement.clientWidth
+    });
+    self.viewport = config.viewport;
+
+    Object.keys(config).forEach(function (key) {
+      self[key] = config[key];
+    });
+  }
+
+  SceneIndex.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  SceneIndex.prototype.constructor = SceneIndex;
+
+  /**
+   * Clear the index.
+   */
+  SceneIndex.prototype.clear = function (controller, name) {
+
+  };
+
+  SceneIndex.prototype.disable = function () {
+    var self = this;
+    self.enabled = false;
+    self.hideMarquee();
+    Object.keys(self.listeners).forEach(function (key) {
+      var listener = self.listeners[key];
+      listener.element.removeEventListener(listener.event, listener.fn);
+    });
+  };
+
+  SceneIndex.prototype.enable = function () {
+    var self = this;
+    self.camera = self.viewport.getCamera();
+    function addListener(element, event, fn) {
+      self.listeners[event] = {
+        element: element,
+        event: event,
+        fn: fn.bind(self)
+      };
+      element.addEventListener(event, self.listeners[event].fn, false);
+    }
+
+    addListener(window, 'resize', self.onWindowResize);
+    self.buildIndex();
+  };
+
+  /**
+   * Get all entities within the rectangle defined by P1 and P2.
+   * @param {THREE.Vector2} p1 Screen position
+   * @param {THREE.Vector2} p2 Screen position
+   * @param {FOUR.SceneIndex.SELECTION_STRATEGY} strategy
+   */
+  SceneIndex.prototype.get = function (p1, p2, strategy) {
+    throw new Error('not implemented');
+  };
+
+  /**
+   * Get screen entities within a specified radius from the screen position.
+   * @param {Object} pos Screen position
+   * @param {Number} radius Radius from point
+   * @returns {Array} List of scene objects.
+   */
+  SceneIndex.prototype.getNear = function (pos, radius) {
+    throw new Error('not implemented');
+  };
+
+  /**
+   * Get the entity nearest to the screen position.
+   * @param {Object} pos Screen position
+   * @returns {Object}
+   */
+  SceneIndex.prototype.getNearest = function (pos, radius) {
+    throw new Error('not implemented');
+  };
+
+  /**
+   * Build a quadtree index from the set of objects that are contained within
+   * the camera frustum. Index each object by its projected screen coordinates.
+   * @param {FOUR.Viewport3D} viewport Viewport
+   * @param {THREE.Camera} camera Camera
+   * @param {Array} objs Scene objects
+   */
+  SceneIndex.prototype.index = function (viewport, camera, objs) {
+    // TODO perform indexing in a worker if possible
+    var matrix, self = this, total = 0;
+    // clear the current index
+    //self.quadtree.clear();
+    self.quadtree = new Quadtree({
+      height: viewport.domElement.clientHeight,
+      width: viewport.domElement.clientWidth
+    });
+    // build a frustum for the current camera view
+    matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    self.frustum.setFromMatrix(matrix);
+    // traverse the scene and add all entities within the frustum to the index
+    objs.forEach(function (child) {
+      if (child.matrixWorldNeedsUpdate) {
+        child.updateMatrixWorld();
+      }
+      if (child.geometry && self.frustum.intersectsObject(child)) {
+        // switch indexing strategy depending on the type of scene object
+        if (child instanceof THREE.Points) {
+          total += self.indexPointsVertices(child, self.quadtree);
+        } else if (child instanceof THREE.Object3D) {
+          self.indexObject3DVertices(child, self.quadtree);
+          total += 1;
+        }
+      }
+    });
+    console.info('Added %s objects to the view index', total);
+    self.dispatchEvent({type:FOUR.EVENT.UPDATE});
+  };
+
+  /**
+   * Index the THREE.Object3D by its vertices.
+   * @param {THREE.Object3D} obj Scene object
+   * @param {Object} index Spatial index
+   */
+  SceneIndex.prototype.indexObject3DVertices = function (obj, index) {
+    var height, maxX = 0, maxY = 0,
+        minX = this.viewport.domElement.clientWidth,
+        minY = this.viewport.domElement.clientHeight,
+        p, self = this, width, x, y;
+    if (obj.matrixWorldNeedsUpdate) {
+      obj.updateMatrixWorld();
+    }
+    // project the object vertices into the screen space, then find the screen
+    // space bounding box for the scene object
+    obj.geometry.vertices.forEach(function (vertex) {
+      p = vertex.clone();
+      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
+      p = FOUR.utils.getVertexScreenCoordinates(p, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+      maxX = p.x > maxX ? p.x : maxX;
+      maxY = p.y > maxY ? p.y : maxY;
+      minX = p.x < minX ? p.x : minX;
+      minY = p.y < minY ? p.y : minY;
+    });
+    height = (maxY - minY) > 0 ? maxY - minY : 0;
+    width = (maxX - minX) > 0 ? maxX - minX : 0;
+    x = minX >= 0 ? minX : 0;
+    y = minY >= 0 ? minY : 0;
+    // add the object screen bounding box to the index
+    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D'});
+    //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
+  };
+
+  SceneIndex.prototype.indexPointsVertices = function (obj, index) {
+    var i, p, self = this, total = 0, vertex;
+    for (i = 0; i < obj.geometry.vertices.length; i++) {
+      total += 1;
+      vertex = obj.geometry.vertices[i];
+      p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
+      if (p.x >= 0 && p.y >= 0) {
+        index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
+        console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
+      }
+    }
+    return total;
+  };
+
+  SceneIndex.prototype.selectAll = function () {};
+
+  SceneIndex.prototype.selectNearest = function () {};
+
+  SceneIndex.prototype.selectObjects = function () {};
+
+  SceneIndex.prototype.selectPoints = function () {};
+
+  return SceneIndex;
+
+}());
+;
+
 FOUR.TargetCamera = (function () {
 
     /**
@@ -589,7 +809,7 @@ FOUR.TargetCamera = (function () {
             return self.tweenToPosition(position, self.target);
         } else {
             self.position.copy(position);
-            self.dispatchEvent({type:'update'});
+            self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             return Promise.resolve();
         }
     };
@@ -634,7 +854,7 @@ FOUR.TargetCamera = (function () {
         } else {
             self.position.copy(position);
             self.target.copy(target);
-            self.dispatchEvent({type:'update'});
+            self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             return Promise.resolve();
         }
     };
@@ -667,7 +887,7 @@ FOUR.TargetCamera = (function () {
         } else {
             self.position.copy(position);
             self.target.copy(target);
-            self.dispatchEvent({type:'update'});
+            self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             return Promise.resolve();
         }
     };
@@ -680,11 +900,11 @@ FOUR.TargetCamera = (function () {
         var self = this;
         animate = animate || false;
         self.up = vec;
-        self.dispatchEvent({type:'update'});
+        self.dispatchEvent({type:FOUR.EVENT.UPDATE});
         if (animate) {
             return Promise.resolve();
         } else {
-            self.dispatchEvent({type:'update'});
+            self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             return Promise.resolve();
         }
     };
@@ -747,7 +967,7 @@ FOUR.TargetCamera = (function () {
             self.target.copy(target);
             self.lookAt(self.target);
             self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
-            self.dispatchEvent({type:'update'});
+            self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             return Promise.resolve();
         }
     };
@@ -772,16 +992,16 @@ FOUR.TargetCamera = (function () {
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
                 self.up.set(this.x, this.y, this.z);
-                self.dispatchEvent({type:'update'});
-                self.dispatchEvent({type:'continuous-update-end', id:taskId, task:'tween-to-orientation'});
+                self.dispatchEvent({type:FOUR.EVENT.UPDATE});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END, id:taskId, task:'tween-to-orientation'});
                 resolve();
             });
             tween.onUpdate(function () {
                 self.up.set(this.x, this.y, this.z);
-                self.dispatchEvent({type:'update'});
+                self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             });
             tween.start();
-            self.dispatchEvent({type:'continuous-update-start', id:taskId, task:'tween-to-orientation'});
+            self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START, id:taskId, task:'tween-to-orientation'});
         });
     };
 
@@ -834,8 +1054,8 @@ FOUR.TargetCamera = (function () {
                     self.lookAt(self.target);
                 }
                 self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
-                self.dispatchEvent({type:'update', id:taskId});
-                self.dispatchEvent({type:'continuous-update-end', id:taskId, task:'tween-to-position'});
+                self.dispatchEvent({type:FOUR.EVENT.UPDATE, id:taskId});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END, id:taskId, task:'tween-to-position'});
                 resolve();
             });
             tween.onUpdate(function () {
@@ -848,10 +1068,10 @@ FOUR.TargetCamera = (function () {
                     self.lookAt(self.target);
                 }
                 self.distance = new THREE.Vector3().subVectors(self.position, self.target).length();
-                self.dispatchEvent({type:'update'});
+                self.dispatchEvent({type:FOUR.EVENT.UPDATE});
             });
             tween.start();
-            self.dispatchEvent({type:'continuous-update-start', id:taskId, task:'tween-to-position'});
+            self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START, id:taskId, task:'tween-to-position'});
         });
     };
 
@@ -1898,213 +2118,6 @@ FOUR.TransformController = (function () {
 ;
 
 /**
- * Camera view object and object element index. The index supports search for
- * object and object element selection. The indexer can accept a function to
- * enable indexing of arbitrary element properties.
- */
-FOUR.ViewIndex = (function () {
-
-  /**
-   * ViewIndex constructor.
-   * @param {Object} config Configuration
-   * @constructor
-   */
-  function ViewIndex(config) {
-    THREE.EventDispatcher.call(this);
-    config = config || {};
-    var self = this;
-
-    self.SELECTION_STRATEGY = {
-      CONTAINED: 0,
-      CROSSING: 1
-    };
-
-    self.filter = null;
-    self.filters = {
-      all: self.selectAll,
-      nearest: self.selectNearest,
-      objects: self.selectObjects,
-      points: self.selectPoints
-    };
-    self.frustum = new THREE.Frustum();
-    self.quadtree = new Quadtree({
-      //x: 0,
-      //y: 0,
-      height: config.viewport.domElement.clientHeight,
-      width: config.viewport.domElement.clientWidth
-    });
-    self.viewport = config.viewport;
-
-    Object.keys(config).forEach(function (key) {
-      self[key] = config[key];
-    });
-  }
-
-  ViewIndex.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-  ViewIndex.prototype.constructor = ViewIndex;
-
-  /**
-   * Clear the index.
-   */
-  ViewIndex.prototype.clear = function (controller, name) {
-
-  };
-
-  ViewIndex.prototype.disable = function () {
-    var self = this;
-    self.enabled = false;
-    self.hideMarquee();
-    Object.keys(self.listeners).forEach(function (key) {
-      var listener = self.listeners[key];
-      listener.element.removeEventListener(listener.event, listener.fn);
-    });
-  };
-
-  ViewIndex.prototype.enable = function () {
-    var self = this;
-    self.camera = self.viewport.getCamera();
-    function addListener(element, event, fn) {
-      self.listeners[event] = {
-        element: element,
-        event: event,
-        fn: fn.bind(self)
-      };
-      element.addEventListener(event, self.listeners[event].fn, false);
-    }
-
-    addListener(window, 'resize', self.onWindowResize);
-    self.buildIndex();
-  };
-
-  /**
-   * Get all entities within the rectangle defined by P1 and P2.
-   * @param {THREE.Vector2} p1 Screen position
-   * @param {THREE.Vector2} p2 Screen position
-   * @param {FOUR.ViewIndex.SELECTION_STRATEGY} strategy
-   */
-  ViewIndex.prototype.get = function (p1, p2, strategy) {
-    throw new Error('not implemented');
-  };
-
-  /**
-   * Get screen entities within a specified radius from the screen position.
-   * @param {Object} pos Screen position
-   * @param {Number} radius Radius from point
-   * @returns {Array} List of scene objects.
-   */
-  ViewIndex.prototype.getNear = function (pos, radius) {
-    throw new Error('not implemented');
-  };
-
-  /**
-   * Get the entity nearest to the screen position.
-   * @param {Object} pos Screen position
-   * @returns {Object}
-   */
-  ViewIndex.prototype.getNearest = function (pos, radius) {
-    throw new Error('not implemented');
-  };
-
-  /**
-   * Build a quadtree index from the set of objects that are contained within
-   * the camera frustum. Index each object by its projected screen coordinates.
-   * @param {FOUR.Viewport3D} viewport Viewport
-   * @param {THREE.Camera} camera Camera
-   * @param {Array} objs Scene objects
-   */
-  ViewIndex.prototype.index = function (viewport, camera, objs) {
-    // TODO perform indexing in a worker if possible
-    var matrix, self = this, total = 0;
-    // clear the current index
-    //self.quadtree.clear();
-    self.quadtree = new Quadtree({
-      height: viewport.domElement.clientHeight,
-      width: viewport.domElement.clientWidth
-    });
-    // build a frustum for the current camera view
-    matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    self.frustum.setFromMatrix(matrix);
-    // traverse the scene and add all entities within the frustum to the index
-    objs.forEach(function (child) {
-      if (child.matrixWorldNeedsUpdate) {
-        child.updateMatrixWorld();
-      }
-      if (child.geometry && self.frustum.intersectsObject(child)) {
-        // switch indexing strategy depending on the type of scene object
-        if (child instanceof THREE.Points) {
-          total += self.indexPointsVertices(child, self.quadtree);
-        } else if (child instanceof THREE.Object3D) {
-          self.indexObject3DVertices(child, self.quadtree);
-          total += 1;
-        }
-      }
-    });
-    console.info('Added %s objects to the view index', total);
-    self.dispatchEvent({type:'update'});
-  };
-
-  /**
-   * Index the THREE.Object3D by its vertices.
-   * @param {THREE.Object3D} obj Scene object
-   * @param {Object} index Spatial index
-   */
-  ViewIndex.prototype.indexObject3DVertices = function (obj, index) {
-    var height, maxX = 0, maxY = 0,
-        minX = this.viewport.domElement.clientWidth,
-        minY = this.viewport.domElement.clientHeight,
-        p, self = this, width, x, y;
-    if (obj.matrixWorldNeedsUpdate) {
-      obj.updateMatrixWorld();
-    }
-    // project the object vertices into the screen space, then find the screen
-    // space bounding box for the scene object
-    obj.geometry.vertices.forEach(function (vertex) {
-      p = vertex.clone();
-      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
-      p = FOUR.utils.getVertexScreenCoordinates(p, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-      maxX = p.x > maxX ? p.x : maxX;
-      maxY = p.y > maxY ? p.y : maxY;
-      minX = p.x < minX ? p.x : minX;
-      minY = p.y < minY ? p.y : minY;
-    });
-    height = (maxY - minY) > 0 ? maxY - minY : 0;
-    width = (maxX - minX) > 0 ? maxX - minX : 0;
-    x = minX >= 0 ? minX : 0;
-    y = minY >= 0 ? minY : 0;
-    // add the object screen bounding box to the index
-    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D'});
-    //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
-  };
-
-  ViewIndex.prototype.indexPointsVertices = function (obj, index) {
-    var i, p, self = this, total = 0, vertex;
-    for (i = 0; i < obj.geometry.vertices.length; i++) {
-      total += 1;
-      vertex = obj.geometry.vertices[i];
-      p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-      if (p.x >= 0 && p.y >= 0) {
-        index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
-        console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
-      }
-    }
-    return total;
-  };
-
-  ViewIndex.prototype.selectAll = function () {};
-
-  ViewIndex.prototype.selectNearest = function () {};
-
-  ViewIndex.prototype.selectObjects = function () {};
-
-  ViewIndex.prototype.selectPoints = function () {};
-
-  return ViewIndex;
-
-}());
-;
-
-/**
  * Renders the view from a scene camera to a canvas element in the DOM. Emits
  * the following change events:
  *
@@ -2147,7 +2160,7 @@ FOUR.Viewport3D = (function () {
     self.domElement.appendChild(self.renderer.domElement);
     // listen for events
     self.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self));
-    self.scene.addEventListener('update', self.render.bind(self), false);
+    self.scene.addEventListener(FOUR.EVENT.UPDATE, self.render.bind(self), false);
     window.addEventListener('resize', self.onWindowResize.bind(self), false);
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
@@ -2258,7 +2271,7 @@ FOUR.Viewport3D = (function () {
     }
     console.info('Set active viewport controller to', name);
     self.controller = self.controllers[name];
-    self.controller.addEventListener('update', self.render.bind(self), false);
+    self.controller.addEventListener(FOUR.EVENT.UPDATE, self.render.bind(self), false);
     self.controller.enable();
     self.dispatchEvent(self.EVENT.CONTROLLER_CHANGE);
   };
@@ -2717,7 +2730,6 @@ FOUR.ViewAxis = (function () {
 
     ViewAxis.prototype.update = function () {
         var self = this;
-        //console.info('update');
         Object.keys(self.label).forEach(function (key) {
             self.label[key].lookAt(self.camera.position);
         });
@@ -3290,7 +3302,7 @@ FOUR.Viewcube = (function () {
         switch (view) {
             case self.FACES.BACK:
                 self.tweenViewRotation(Math.PI / 2, Math.PI, 0);
-                self.dispatchEvent({type:'update', view:view, direction:new THREE.Euler(Math.PI / 2, Math.PI, 0)});
+                self.dispatchEvent({type:FOUR.EVENT.UPDATE, view:view, direction:new THREE.Euler(Math.PI / 2, Math.PI, 0)});
                 break;
             case self.FACES.BACK_LEFT_EDGE:
                 self.tweenViewRotation(Math.PI / 2, Math.PI * 1.25, 0);
@@ -3490,11 +3502,6 @@ FOUR.ArrowController = (function () {
         config = config || {};
         var self = this;
 
-        self.EVENT = {
-            UPDATE: {type:'update'},
-            UPDATE_END: {type:'continuous-update-end'},
-            UPDATE_START: {type:'continuous-update-start'}
-        };
         self.KEY = {
             ALT: 18,
             CTRL: 17,
@@ -3580,31 +3587,31 @@ FOUR.ArrowController = (function () {
                 break;
             case this.KEY.MOVE_TO_EYE_HEIGHT:
                 this.setWalkHeight();
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case this.KEY.MOVE_FORWARD:
                 this.move.forward = true;
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case this.KEY.MOVE_BACK:
                 this.move.backward = true;
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case this.KEY.MOVE_LEFT:
                 this.move.left = true;
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case this.KEY.MOVE_RIGHT:
                 this.move.right = true;
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case this.KEY.MOVE_UP:
                 this.move.up = true;
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case this.KEY.MOVE_DOWN:
                 this.move.down = true;
-                this.dispatchEvent(this.EVENT.UPDATE_START);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
         }
     };
@@ -3620,34 +3627,34 @@ FOUR.ArrowController = (function () {
                 break;
             case this.KEY.MOVE_FORWARD:
                 this.move.forward = false;
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case this.KEY.MOVE_BACK:
                 this.move.backward = false;
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case this.KEY.MOVE_LEFT:
                 this.move.left = false;
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case this.KEY.MOVE_RIGHT:
                 this.move.right = false;
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case this.KEY.MOVE_UP:
                 this.move.up = false;
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case this.KEY.MOVE_DOWN:
                 this.move.down = false;
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case this.KEY.CANCEL:
                 var self = this;
                 Object.keys(this.move).forEach(function (key) {
                     self.move[key] = false;
                 });
-                this.dispatchEvent(this.EVENT.UPDATE_END);
+                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
         }
     };
@@ -3716,7 +3723,7 @@ FOUR.ArrowController = (function () {
         }
 
         if (this.temp.change) {
-            this.dispatchEvent(this.EVENT.UPDATE);
+            this.dispatchEvent({type:FOUR.EVENT.UPDATE});
             this.temp.change = false;
         }
     };
@@ -3752,9 +3759,6 @@ FOUR.LookController = (function () {
 			LOOK: 'crosshair'
 		};
 		self.EPS = 0.000001;
-		self.EVENT = {
-			UPDATE: {type: 'update'}
-		};
 		self.KEY = {
 			TILDE: 192
 		};
@@ -3823,7 +3827,7 @@ FOUR.LookController = (function () {
 	LookController.prototype.onKeyUp = function (event) {
 		if (event.keyCode === this.KEY.TILDE) {
 			this.camera.lookAt(this.camera.target);
-			this.dispatchEvent(this.EVENT.UPDATE);
+			this.dispatchEvent({type:FOUR.EVENT.UPDATE});
 		}
 	};
 
@@ -3875,7 +3879,7 @@ FOUR.LookController = (function () {
 					//console.log('set THREE.PerspectiveCamera');
 				}
 				//this.look.end.copy(this.look.start); // consume the change
-				this.dispatchEvent(this.EVENT.UPDATE);
+				this.dispatchEvent({type:FOUR.EVENT.UPDATE});
 			}
 		}
 	};
@@ -3920,7 +3924,11 @@ FOUR.MultiController = (function () {
             }
         }
         this.controllers[name] = controller;
-        var events = ['continuous-update-end','continuous-update-start','update'];
+        var events = [
+            FOUR.EVENT.CONTINUOUS_UPDATE_END,
+            FOUR.EVENT.CONTINUOUS_UPDATE_START,
+            FOUR.EVENT.UPDATE
+        ];
         events.forEach(function (event) {
             addListener(name + '-' + event, controller, event, function () {
                 self.dispatchEvent({type:event});
@@ -4187,11 +4195,6 @@ FOUR.OrbitController = (function () {
 
 		var self = this;
 
-		self.EVENT = {
-			UPDATE: {type:'update'},
-			END: {type:'end'},
-			START: {type:'start'}
-		};
 		self.KEYS = {LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40};
 		self.STATE = { NONE : - 1, ROTATE : 0, DOLLY : 1, PAN : 2, TOUCH_ROTATE : 3, TOUCH_DOLLY : 4, TOUCH_PAN : 5 };
 
@@ -4325,7 +4328,7 @@ FOUR.OrbitController = (function () {
 		}
 
 		if (self.state !== self.STATE.NONE) {
-			self.dispatchEvent(self.EVENT.START);
+			self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
 		}
 	};
 
@@ -4378,7 +4381,7 @@ FOUR.OrbitController = (function () {
 		if (self.enabled === false) {
 			return;
 		}
-		self.dispatchEvent(self.EVENT.END);
+		self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
 		self.state = self.STATE.NONE;
 	};
 
@@ -4403,8 +4406,8 @@ FOUR.OrbitController = (function () {
 			self.constraint.dollyIn(self.getZoomScale());
 		}
 		self.update();
-		self.dispatchEvent(self.EVENT.START);
-		self.dispatchEvent(self.EVENT.END);
+		self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+		self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
 	};
 
 	OrbitController.prototype.onWindowResize = function () {
@@ -4428,7 +4431,7 @@ FOUR.OrbitController = (function () {
 			self.constraint.rotateLeft(self.getAutoRotationAngle());
 		}
 		if (self.constraint.update() === true) {
-			self.dispatchEvent(self.EVENT.UPDATE);
+			self.dispatchEvent({type:FOUR.EVENT.UPDATE});
 		}
 	};
 
@@ -4568,11 +4571,6 @@ FOUR.PanController = (function () {
             PAN: 'all-scroll'
         };
         self.EPS = 0.000001;
-        self.EVENT = {
-            END: {type: 'end'},
-            START: {type: 'start'},
-            UPDATE: {type: 'update'}
-        };
         self.KEY = {
             CTRL: 17
         };
@@ -4670,7 +4668,7 @@ FOUR.PanController = (function () {
             var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
             this.pan.start.copy(ndc);
             this.pan.end.copy(ndc);
-            this.dispatchEvent(this.EVENT.START);
+            this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
             event.preventDefault();
         }
     };
@@ -4689,7 +4687,7 @@ FOUR.PanController = (function () {
             this.domElement.style.cursor = this.CURSOR.DEFAULT;
             this.mode = this.MODES.NONE;
             this.pan.delta.set(0,0);
-            this.dispatchEvent(this.EVENT.END);
+            this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
             event.preventDefault();
         }
     };
@@ -4711,7 +4709,7 @@ FOUR.PanController = (function () {
                 camera.setPosition(position, false);
                 // consume the change
                 this.pan.start.copy(this.pan.end);
-                this.dispatchEvent(this.EVENT.UPDATE);
+                this.dispatchEvent({type:FOUR.EVENT.UPDATE});
             }
         }
     };
@@ -4859,11 +4857,6 @@ FOUR.RotateController = (function () {
             DEFAULT: 'default',
             ROTATE: 'crosshair'
         };
-        self.EVENT = {
-            UPDATE: {type:'update'},
-            END: {type:'end'},
-            START: {type:'start'}
-        };
         self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
         self.STATE = {NONE: -1, ROTATE: 0};
 
@@ -4953,7 +4946,7 @@ FOUR.RotateController = (function () {
             this.state = this.STATE.ROTATE;
             this.domElement.style.cursor = this.CURSOR.ROTATE;
             this.rotateStart.set(event.clientX, event.clientY);
-            this.dispatchEvent(this.EVENT.START);
+            this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
             event.preventDefault();
         }
     };
@@ -4976,7 +4969,7 @@ FOUR.RotateController = (function () {
         if (this.state === this.STATE.ROTATE) {
             this.domElement.style.cursor = this.CURSOR.DEFAULT;
             this.state = this.STATE.NONE;
-            this.dispatchEvent(this.EVENT.END);
+            this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
             event.preventDefault();
         }
     };
@@ -4988,8 +4981,8 @@ FOUR.RotateController = (function () {
     RotateController.prototype.update = function () {
         if (this.state === this.STATE.ROTATE) {
             if (this.constraint.update() === true) {
-                this.dispatchEvent(this.EVENT.UPDATE);
-                this.viewport.getCamera().dispatchEvent({type:'update'});
+                this.dispatchEvent({type:FOUR.EVENT.UPDATE});
+                this.viewport.getCamera().dispatchEvent({type:FOUR.EVENT.UPDATE});
             }
         }
     };
@@ -5088,11 +5081,6 @@ FOUR.TourController = (function () {
         config.planner = config.planner || {};
 
         var self = this;
-        self.EVENTS = {
-            UPDATE: { type: 'update' },
-            END: { type: 'end' },
-            START: { type: 'start' }
-        };
         self.KEY = {
             CANCEL: 27,     // esc
             NEXT: 190,      // .
@@ -5323,9 +5311,6 @@ FOUR.WalkController = (function () {
         config = config || {};
         var self = this;
 
-        self.EVENT = {
-            UPDATE: {type:'update'}
-        };
         self.KEY = {
             CANCEL: 27,
             CTRL: 17,
@@ -5408,7 +5393,7 @@ FOUR.WalkController = (function () {
     };
 
     WalkController.prototype.emit = function (event) {
-        this.dispatchEvent({type: event || 'update'});
+        this.dispatchEvent({type: event || FOUR.EVENT.UPDATE});
     };
 
     WalkController.prototype.enable = function () {
@@ -5452,31 +5437,31 @@ FOUR.WalkController = (function () {
                 break;
             case self.KEY.MOVE_TO_EYE_HEIGHT:
                 self.setWalkHeight();
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = true;
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_BACK:
                 self.move.backward = true;
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_LEFT:
                 self.move.left = true;
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_RIGHT:
                 self.move.right = true;
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_UP:
                 self.move.up = true;
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_DOWN:
                 self.move.down = true;
-                self.emit({type:'continuous-update-start'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
         }
     };
@@ -5489,34 +5474,34 @@ FOUR.WalkController = (function () {
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_BACK:
                 self.move.backward = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_LEFT:
                 self.move.left = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_RIGHT:
                 self.move.right = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_UP:
                 self.move.up = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_DOWN:
                 self.move.down = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.CANCEL:
                 Object.keys(self.move).forEach(function (key) {
                     self.move[key] = false;
                 });
                 self.lookChange = false;
-                self.emit({type:'continuous-update-end'});
+                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
         }
     };
@@ -5536,7 +5521,7 @@ FOUR.WalkController = (function () {
         return self.camera
           .resetOrientation(self.emit.bind(self))
           .then(function () {
-            self.camera.setPositionAndTarget(pos, target);
+            return self.camera.setPositionAndTarget(pos, target);
         });
     };
 
@@ -5604,7 +5589,7 @@ FOUR.WalkController = (function () {
         }
 
         if (change) {
-            self.dispatchEvent(self.EVENT.UPDATE);
+            self.dispatchEvent({type:self.EVENT.UPDATE});
         }
     };
 
@@ -5631,9 +5616,6 @@ FOUR.ZoomController = (function () {
             ZOOM: 'ns-resize'
         };
         self.EPS = 0.000001;
-        self.EVENT = {
-            UPDATE: {type: 'update'}
-        };
         self.KEY = {
             ZOOM: 16
         };
@@ -5775,7 +5757,7 @@ FOUR.ZoomController = (function () {
                 self.timeout = null;
             }, 250);
         }
-        self.dispatchEvent(self.EVENT.UPDATE);
+        self.dispatchEvent({type:FOUR.EVENT.UPDATE});
     };
 
     ZoomController.prototype.update = function () {
@@ -5789,7 +5771,7 @@ FOUR.ZoomController = (function () {
                 distance = distance < self.minDistance ? self.minDistance : distance;
                 if (Math.abs(distance) > self.EPS) {
                     self.camera.setDistance(distance);
-                    self.dispatchEvent(self.EVENT.UPDATE);
+                    self.dispatchEvent({type:FOUR.EVENT.UPDATE});
                 }
             } else if (self.camera instanceof THREE.PerspectiveCamera) {
                 lookAt = new THREE.Vector3(0, 0, -1).applyQuaternion(self.camera.quaternion);
@@ -5797,7 +5779,7 @@ FOUR.ZoomController = (function () {
                 if (Math.abs(distance) > self.EPS) {
                     lookAt.setLength(distance);
                     self.camera.position.add(lookAt);
-                    self.dispatchEvent(self.EVENT.UPDATE);
+                    self.dispatchEvent({type:FOUR.EVENT.UPDATE});
                 }
             }
             self.zoom.delta = 0; // consume the change
@@ -6310,7 +6292,7 @@ FOUR.MarqueeSelectionController = (function () {
     var self = this;
 
     // the number of pixels that the mouse must move before we interpret the
-    // mouse action as marquee selection
+    // mouse movement as marquee selection
     self.EPS = 2;
 
     // wait for the timeout to expire before indexing the scene
@@ -6346,8 +6328,10 @@ FOUR.MarqueeSelectionController = (function () {
       height: config.viewport.domElement.clientHeight,
       width: config.viewport.domElement.clientWidth
     });
+    self.sceneIndex = new SpatialHash();
     self.selectAction = self.SELECT_ACTIONS.SELECT;
     self.selection = [];
+    self.viewIndex = new SpatialHash();
     self.viewport = config.viewport;
 
     Object.keys(self.KEY).forEach(function (key) {
@@ -6374,7 +6358,6 @@ FOUR.MarqueeSelectionController = (function () {
     // TODO perform indexing in a worker if possible
     var matrix, objs, self = this, total = 0;
     // clear the current index
-    //self.quadtree.clear();
     self.quadtree = new Quadtree({
       height: self.viewport.domElement.clientHeight,
       width: self.viewport.domElement.clientWidth
@@ -6440,8 +6423,8 @@ FOUR.MarqueeSelectionController = (function () {
         element.addEventListener(event, self.listeners[event].fn, false);
       }
     }
-    addListener(self.camera, 'update', self.onCameraUpdate);
-    addListener(self.viewport, 'camera-change', self.onCameraChange);
+    addListener(self.camera, FOUR.EVENT.UPDATE, self.onCameraUpdate);
+    addListener(self.viewport, FOUR.EVENT.CAMERA_CHANGE, self.onCameraChange);
     addListener(self.viewport.domElement, 'mousedown', self.onMouseDown);
     addListener(self.viewport.domElement, 'mousemove', self.onMouseMove);
     addListener(self.viewport.domElement, 'mouseup', self.onMouseUp);
@@ -6459,16 +6442,6 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.hideMarquee = function () {
     this.marquee.setAttribute('style', 'display:none;');
   };
-
-  ///**
-  // * Index the THREE.BufferGeometry by its vertices.
-  // * @param {THREE.BufferGeometry} obj Scene object
-  // * @param {Quadtree} index Spatial index
-  // * @returns {number} Count of indexed entities
-  // */
-  //MarqueeSelectionController.prototype.indexBufferGeometryVertices = function (obj, index) {
-  //
-  //};
 
   /**
    * Index the THREE.Object3D by its vertices.
@@ -6524,7 +6497,7 @@ FOUR.MarqueeSelectionController = (function () {
         }
       }
     } else if (obj.geometry.attributes.position) {
-      console.warn('Indexing buffer geometry verticies will have a significant performance impact');
+      console.warn('Indexing buffer geometry vertices will have a significant performance impact');
     }
     return total;
   };
@@ -6792,7 +6765,7 @@ FOUR.SelectionSet = (function () {
     }
     if (update) {
       this.updateIndex();
-      this.dispatchEvent({type:'update', added:[obj], removed:[], selected:this.items});
+      this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:[obj], removed:[], selected:this.items});
     }
   };
 
@@ -6809,7 +6782,7 @@ FOUR.SelectionSet = (function () {
     });
     if (update) {
       self.updateIndex();
-      self.dispatchEvent({type:'update', added:objects, removed:[], selected:self.items});
+      self.dispatchEvent({type:FOUR.EVENT.UPDATE, added:objects, removed:[], selected:self.items});
     }
   };
 
@@ -6890,7 +6863,7 @@ FOUR.SelectionSet = (function () {
     });
     if (update) {
       this.updateIndex();
-      this.dispatchEvent({type:'update', added:[], removed:removed, selected:this.items});
+      this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:[], removed:removed, selected:this.items});
     }
     return removed;
   };
@@ -6922,7 +6895,7 @@ FOUR.SelectionSet = (function () {
     }
     if (update) {
       this.updateIndex();
-      this.dispatchEvent({type:'update', added:[], removed:removed, selected: this.items});
+      this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:[], removed:removed, selected: this.items});
     }
   };
 
@@ -6951,7 +6924,7 @@ FOUR.SelectionSet = (function () {
     // update the selection set
     this.removeAll(removed, false);
     this.addAll(added, false);
-    this.dispatchEvent({type:'update', added:added, removed:removed, selected: this.items});
+    this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:added, removed:removed, selected: this.items});
   };
 
   /**
@@ -6974,7 +6947,7 @@ FOUR.SelectionSet = (function () {
     });
     this.updateIndex();
     if (update) {
-      this.dispatchEvent({type:'update', added:added, removed:removed, selected:this.items});
+      this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:added, removed:removed, selected:this.items});
     }
   };
 

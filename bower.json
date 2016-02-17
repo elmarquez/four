@@ -23,23 +23,19 @@
   "dependencies": {
     "bluebird": "~3.0.6",
     "quadtree-lib": "~0.1.2",
+    "spatialhash": "spatialhash.js#*",
     "three.js": "0.72.0",
-    "tween.js": "tweenjs#~16.3.1",
-    "spatialhash": "spatialhash.js#*"
+    "tween.js": "tweenjs#~16.3.1"
   },
   "devDependencies": {
     "angular": "~1.4.6",
+    "animate.css": "^3.5.1",
     "dexie": "~1.2.0",
     "font-awesome": "fontawesome#~4.4.0",
     "four-angular": "https://github.com/elmarquez/four-angular.git",
-    "jqTree": "jqtree#~1.2.1",
     "jquery": "~2.x.x",
     "jquery.event.dragdrop": "*",
-    "mousetrap": "~1.5.x",
-    "ol3": "openlayers3-dist#~3.10.1",
-    "qtip2": "~2.2.1",
-    "slickgrid": "~2.1.0",
-    "animate.css": "^3.5.1"
+    "slickgrid": "~2.1.0"
   },
   "keywords": [
     "3D",
@@ -47,7 +43,10 @@
     "computer aided design",
     "design",
     "fabrication",
+    "lidar",
     "parametric",
+    "search",
+    "selection",
     "threejs",
     "webgl"
   ]
