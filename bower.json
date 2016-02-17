@@ -24,7 +24,8 @@
     "bluebird": "~3.0.6",
     "quadtree-lib": "~0.1.2",
     "three.js": "0.72.0",
-    "tween.js": "tweenjs#~16.3.1"
+    "tween.js": "tweenjs#~16.3.1",
+    "spatialhash": "spatialhash.js#*"
   },
   "devDependencies": {
     "angular": "~1.4.6",

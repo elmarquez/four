@@ -146,15 +146,15 @@ FOUR.utils.isContained = function (r1, r2) {
 };
 ;
 
-FOUR.KeyInputController = (function () {
+FOUR.KeyCommandController = (function () {
 
   /**
-   * Key input controller. The controller allows you to define key command sets
-   * that can be activated and deactivated as required. A key command set
+   * Key command controller. The controller allows you to define key command
+   * sets that can be activated and deactivated as required. A key command set
    * called the 'default' set is always active.
    * @constructor
    */
-  function KeyInputController (config) {
+  function KeyCommandController (config) {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
@@ -187,11 +187,11 @@ FOUR.KeyInputController = (function () {
     //});
   }
 
-  KeyInputController.prototype = Object.create(THREE.EventDispatcher.prototype);
+  KeyCommandController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-  KeyInputController.prototype.constructor = KeyInputController;
+  KeyCommandController.prototype.constructor = KeyCommandController;
 
-  KeyInputController.prototype.disable = function () {
+  KeyCommandController.prototype.disable = function () {
     var self = this;
     self.enabled = false;
     Object.keys(self.listeners).forEach(function (key) {
@@ -201,7 +201,7 @@ FOUR.KeyInputController = (function () {
     });
   };
 
-  KeyInputController.prototype.enable = function () {
+  KeyCommandController.prototype.enable = function () {
     var self = this;
     // clear all listeners to ensure that we can never add multiple listeners
     // for the same events
@@ -225,7 +225,7 @@ FOUR.KeyInputController = (function () {
    * @see http://api.jquery.com/event.which/
    * @param evt
    */
-  KeyInputController.prototype.keydown = function (evt) {
+  KeyCommandController.prototype.keydown = function (evt) {
     var me = this;
     me.pressed.indexOf(evt.keyCode);
     // check the default command set
@@ -245,7 +245,7 @@ FOUR.KeyInputController = (function () {
     me.dispatchEvent({'type': 'keyup', keyCode: evt.keyCode});
   };
 
-  KeyInputController.prototype.keyup = function (evt) {
+  KeyCommandController.prototype.keyup = function (evt) {
     var i = this.pressed.indexOf(evt.keyCode);
     if (i > -1) {
       this.pressed.slice(i, i+1);
@@ -259,7 +259,7 @@ FOUR.KeyInputController = (function () {
    * @param {Function} callback Callback
    * @param {String} commandSet Name of command set. Defaults to 'default'
    */
-  KeyInputController.prototype.register = function (command, callback, commandSet) {
+  KeyCommandController.prototype.register = function (command, callback, commandSet) {
     commandSet = commandSet || 'default';
     // create the set if it doesn't already exist
     if (!this.sets.hasOwnProperty(commandSet)) {
@@ -271,7 +271,7 @@ FOUR.KeyInputController = (function () {
     throw new Error('not implemented');
   };
 
-  return KeyInputController;
+  return KeyCommandController;
 
 }());
 ;
@@ -6282,6 +6282,7 @@ FOUR.HoverSelectionController = (function () {
    * @param {String} key Filter ID
    */
   HoverSelectionController.prototype.setFilter = function (key) {
+    // TODO implement filtering
     this.filter = this.filters[key];
   };
 
@@ -6392,9 +6393,10 @@ FOUR.MarqueeSelectionController = (function () {
       try {
         if (child.geometry && self.frustum.intersectsObject(child)) {
           // switch indexing strategy depending on the type of scene object
-          if (child instanceof THREE.BufferGeometry) {
-            total += self.indexBufferGeometryVertices(child, self.quadtree);
-          } else if (child instanceof THREE.Points) {
+          //if (child instanceof THREE.BufferGeometry) {
+          //  total += self.indexBufferGeometryVertices(child, self.quadtree);
+          //} else
+          if (child instanceof THREE.Points) {
             total += self.indexPointsVertices(child, self.quadtree);
           } else if (child instanceof THREE.Object3D) {
             self.indexObject3DVertices(child, self.quadtree);
@@ -6458,15 +6460,15 @@ FOUR.MarqueeSelectionController = (function () {
     this.marquee.setAttribute('style', 'display:none;');
   };
 
-  /**
-   * Index the THREE.BufferGeometry by its vertices.
-   * @param {THREE.BufferGeometry} obj Scene object
-   * @param {Quadtree} index Spatial index
-   * @returns {number} Count of indexed entities
-   */
-  MarqueeSelectionController.prototype.indexBufferGeometryVertices = function (obj, index) {
-
-  };
+  ///**
+  // * Index the THREE.BufferGeometry by its vertices.
+  // * @param {THREE.BufferGeometry} obj Scene object
+  // * @param {Quadtree} index Spatial index
+  // * @returns {number} Count of indexed entities
+  // */
+  //MarqueeSelectionController.prototype.indexBufferGeometryVertices = function (obj, index) {
+  //
+  //};
 
   /**
    * Index the THREE.Object3D by its vertices.
@@ -6521,6 +6523,8 @@ FOUR.MarqueeSelectionController = (function () {
           console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
         }
       }
+    } else if (obj.geometry.attributes.position) {
+      console.warn('Indexing buffer geometry verticies will have a significant performance impact');
     }
     return total;
   };
