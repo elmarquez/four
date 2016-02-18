@@ -139,10 +139,12 @@
 //      });
     });
 
-    Mousetrap.bind('esc', function () {
+    var keyCommand = new FOUR.KeyCommandController();
+
+    keyCommand.bind('esc', function () {
       selectionSet.removeAll();
     });
-    Mousetrap.bind('u', function () {
+    keyCommand.bind('u', function () {
       console.info('update selection cache');
       marquee.onCameraUpdate();
     });

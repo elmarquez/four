@@ -24,6 +24,10 @@ FOUR.DEFAULT = {
   }
 };
 
+/**
+ * Common event identifiers.
+ * @type {String}
+ */
 FOUR.EVENT = {
   BACKGROUND_CHANGE: 'background-change',
   CAMERA_CHANGE: 'camera-change',
@@ -54,6 +58,8 @@ FOUR.MOUSE_STATE = {
   MOVE: 1,
   UP: 2
 };
+
+FOUR.POINTER_STATE = {};
 
 FOUR.SINGLE_CLICK_TIMEOUT = 400;
 
@@ -178,41 +184,39 @@ FOUR.KeyCommandController = (function () {
    * @constructor
    */
   function KeyCommandController (config) {
-    THREE.EventDispatcher.call(this);
     config = config || {};
+
     var self = this;
-    self.KEY_ALIAS = {
-      'alt': 0,
-      'ctrl': 0,
-      'meta': 0,
-      'shift': 0
-    };
-    self.KEYS = {
-      ALT: 'alt',
-      CTRL: 'ctrl',
-      CTRL_A: 'ctrl+a',
-      CTRL_N: 'ctrl+n',
-      DOWN: 'down',
-      LEFT: 'left',
-      META: 'meta',
-      RIGHT: 'right',
-      SHIFT: 'shift',
-      UP: 'up'
-    };
     self.active = null; // the active command set
     self.enabled = config.enabled || false;
     self.listeners = {};
     self.pressed = []; // list of keys that are currently pressed
-    self.sets = {};
+    self.sets = {
+      'default': []
+    };
 
-    //Object.keys(self.KEYS).forEach(function (key) {
-    //  self.modifiers[self.KEYS[key]] = false;
-    //});
+    Object.keys(config).forEach(function (key) {
+      self.config[key] = config[key];
+    });
   }
 
-  KeyCommandController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-  KeyCommandController.prototype.constructor = KeyCommandController;
+  /**
+   * Define key command.
+   * @param {String} group Group. Use 'default' for persistent commands.
+   * @param {String} command Key command
+   * @param {Function} fn Function
+   * @param {Element} el DOM element that will listen for events. Defaults to window
+   */
+  KeyCommandController.prototype.bind = function (group, command, fn, el) {
+    el = el || window;
+    if (!this.sets.hasOwnProperty(group)) {
+      this.sets[group] = [];
+    }
+    this.sets[group].push({
+      command: command,
+      fn: fn
+    });
+  };
 
   KeyCommandController.prototype.disable = function () {
     var self = this;
@@ -517,12 +521,9 @@ FOUR.SceneIndex = (function () {
       points: self.selectPoints
     };
     self.frustum = new THREE.Frustum();
-    self.quadtree = new Quadtree({
-      //x: 0,
-      //y: 0,
-      height: config.viewport.domElement.clientHeight,
-      width: config.viewport.domElement.clientWidth
-    });
+    self.scene = config.scene;
+    self.sceneIndex = new SpatialHash();
+    self.viewIndex = new SpatialHash();
     self.viewport = config.viewport;
 
     Object.keys(config).forEach(function (key) {
@@ -537,8 +538,8 @@ FOUR.SceneIndex = (function () {
   /**
    * Clear the index.
    */
-  SceneIndex.prototype.clear = function (controller, name) {
-
+  SceneIndex.prototype.clear = function () {
+    this.index.clear();
   };
 
   SceneIndex.prototype.disable = function () {
@@ -597,21 +598,16 @@ FOUR.SceneIndex = (function () {
   };
 
   /**
-   * Build a quadtree index from the set of objects that are contained within
-   * the camera frustum. Index each object by its projected screen coordinates.
-   * @param {FOUR.Viewport3D} viewport Viewport
+   * Build 3D and 2D indicies for the objects that are contained within the
+   * camera frustum.
    * @param {THREE.Camera} camera Camera
    * @param {Array} objs Scene objects
    */
-  SceneIndex.prototype.index = function (viewport, camera, objs) {
-    // TODO perform indexing in a worker if possible
-    var matrix, self = this, total = 0;
+  SceneIndex.prototype.index = function (camera, objs) {
+    // TODO perform indexing in a worker
+    var matrix, objects = 0, points = 0, self = this;
     // clear the current index
-    //self.quadtree.clear();
-    self.quadtree = new Quadtree({
-      height: viewport.domElement.clientHeight,
-      width: viewport.domElement.clientWidth
-    });
+    self.index.clear();
     // build a frustum for the current camera view
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
@@ -621,29 +617,28 @@ FOUR.SceneIndex = (function () {
         child.updateMatrixWorld();
       }
       if (child.geometry && self.frustum.intersectsObject(child)) {
+        objects += 1;
         // switch indexing strategy depending on the type of scene object
         if (child instanceof THREE.Points) {
-          total += self.indexPointsVertices(child, self.quadtree);
+          points += self.indexPointsVertices(child);
         } else if (child instanceof THREE.Object3D) {
-          self.indexObject3DVertices(child, self.quadtree);
-          total += 1;
+          points += self.indexObject3DVertices(child);
         }
       }
     });
-    console.info('Added %s objects to the view index', total);
+    console.info('Added %s objects, %s points to the view index', objects, points);
     self.dispatchEvent({type:FOUR.EVENT.UPDATE});
   };
 
   /**
    * Index the THREE.Object3D by its vertices.
    * @param {THREE.Object3D} obj Scene object
-   * @param {Object} index Spatial index
    */
-  SceneIndex.prototype.indexObject3DVertices = function (obj, index) {
+  SceneIndex.prototype.indexObject3DScreenCoordinates = function (obj) {
     var height, maxX = 0, maxY = 0,
-        minX = this.viewport.domElement.clientWidth,
-        minY = this.viewport.domElement.clientHeight,
-        p, self = this, width, x, y;
+      minX = this.viewport.domElement.clientWidth,
+      minY = this.viewport.domElement.clientHeight,
+      p, self = this, width, x, y;
     if (obj.matrixWorldNeedsUpdate) {
       obj.updateMatrixWorld();
     }
@@ -663,8 +658,22 @@ FOUR.SceneIndex = (function () {
     x = minX >= 0 ? minX : 0;
     y = minY >= 0 ? minY : 0;
     // add the object screen bounding box to the index
-    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D'});
-    //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
+    self.viewIndex.insert(
+      obj.uuid.slice() + ',-1',
+      new THREE.Box3(new THREE.Vector3(x, y, 0), new THREE.Box3(x + width, y + height, 0))
+    );
+  };
+
+  /**
+   * Insert the object into the scene index.
+   * @param {THREE.Object3D} obj Scene object
+   */
+  SceneIndex.prototype.indexObject3DVertices = function (obj) {
+    if (obj.matrixWorldNeedsUpdate) {
+      obj.updateMatrixWorld();
+    }
+    obj.computeBoundingBox();
+    this.sceneIndex.insert(obj.uuid.slice() + ',-1', obj.geometry.boundingBox);
   };
 
   SceneIndex.prototype.indexPointsVertices = function (obj, index) {
