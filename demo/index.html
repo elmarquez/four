@@ -91,8 +91,8 @@
             <h1 class="brand">FOUR</h1>
             <ul class="submenu">
                 <li class="heading">Navigation</li>
-                <li><a href="navigation/arrow.html" target="vp">Arrow</a></li>
-                <li><a href="navigation/firstperson.html" target="vp">First Person</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/arrow.html');return false;">Arrow</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/firstperson.html');return false;">First Person</a></li>
                 <li><a href="navigation/look.html" target="vp">Look</a></li>
                 <li><a href="navigation/orbit.html" target="vp">Orbit</a></li>
                 <li><a href="navigation/pan.html" target="vp">Pan</a></li>
@@ -102,7 +102,7 @@
 
                 <li class="heading">Path Planning</li>
                 <li><a href="path/genetic.html" target="vp">Genetic</a></li>
-                <li><a href="path/sa.html" target="vp">Simulated Annealing</a></li>
+                <li><a href="#" onclick="$('#viewport').load('path/sa.html');return false;">Simulated Annealing</a></li>
 
                 <li class="heading">Selection</li>
                 <li><a href="selection/click.html" target="vp">Click</a></li>
@@ -128,10 +128,18 @@
             </div>
         </div>
     </div>
-    <div class="viewport">
+    <div id="viewport" class="viewport">
         <iframe name="vp" src="sink.html">
             <p>Your browser does not support iframes.</p>
         </iframe>
     </div>
+
+    <script>
+        $(document).ready( function() {
+            $("#load_home").on("click", function() {
+                $("#content").load("content.html");
+            });
+        });
+    </script>
 </body>
 </html>

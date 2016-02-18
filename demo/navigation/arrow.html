@@ -43,7 +43,6 @@
     scene = new FOUR.Scene();
 
     // camera
-//        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
     camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
     camera.position.y = -100;
     scene.cameras.add(camera);
@@ -65,15 +64,15 @@
 
     // viewport
     domElement = document.getElementById('webgl');
-    viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
+    viewport = new FOUR.Viewport3D({camera: camera, domElement: domElement, scene: scene});
 
     window.addEventListener('mousemove', viewport.render.bind(viewport));
 
     // controls
     controller = new FOUR.ArrowController({viewport: viewport});
 
-    viewport.addController(controller, 'pan');
-    viewport.setActiveController('pan');
+    viewport.addController(controller, 'arrow');
+    viewport.setActiveController('arrow');
 
     // world
     geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);

@@ -25,9 +25,11 @@ FOUR.DEFAULT = {
 };
 
 FOUR.EVENT = {
+  BACKGROUND_CHANGE: 'background-change',
   CAMERA_CHANGE: 'camera-change',
   CONTINUOUS_UPDATE_END: 'continuous-update-end',
   CONTINUOUS_UPDATE_START: 'continuous-update-start',
+  CONTROLLER_CHANGE: 'controller-change',
   KEY_DOWN: 'keydown',
   KEY_UP: 'keyup',
   MOUSE_DOWN: 'mousedown',
@@ -37,7 +39,15 @@ FOUR.EVENT = {
   UPDATE: 'update'
 };
 
-FOUR.KEY = {};
+FOUR.KEY = {
+  ALT: 18,
+  ARROW_DOWN: 40,
+  ARROW_LEFT: 37,
+  ARROW_RIGHT: 39,
+  ARROW_UP: 38,
+  CTRL: 17,
+  SHIFT: 16
+};
 
 FOUR.MOUSE_STATE = {
   DOWN: 0,
@@ -393,10 +403,6 @@ FOUR.Scene = (function () {
 
     Scene.prototype.constructor = Scene;
 
-    Scene.prototype.emit = function (type, value) {
-      this.dispatchEvent({type:type, value: value});
-    };
-
     Scene.prototype.getCamera = function (name) {
         return this.getLayerObject('cameras', name);
     };
@@ -729,7 +735,7 @@ FOUR.TargetCamera = (function () {
 
     TargetCamera.prototype = Object.create(THREE.PerspectiveCamera.prototype);
 
-    TargetCamera.prototype.constructor = TargetCamera;
+    //TargetCamera.prototype.constructor = TargetCamera;
 
     /**
      * Dispatch event.
@@ -777,14 +783,14 @@ FOUR.TargetCamera = (function () {
 
     /**
      * Reset camera orientation so that camera.up aligns with +Z.
-     * @param {Function} progress Progress callback
      * @param {Boolean} animate Animate the change
+     * @returns {Promise}
      */
-    TargetCamera.prototype.resetOrientation = function (progress, animate) {
+    TargetCamera.prototype.resetOrientation = function (animate) {
         var self = this, up = new THREE.Vector3(0,0,1);
         animate = animate || false;
         if (animate) {
-            return self.tweenToOrientation(self, up, progress || self.emit.bind(self));
+            return self.tweenToOrientation(up);
         } else {
             return self.setUp(up);
         }
@@ -2136,11 +2142,7 @@ FOUR.Viewport3D = (function () {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
-    self.EVENT = {
-      BACKGROUND_CHANGE: {type:'background-change'},
-      CAMERA_CHANGE: {type:'camera-change'},
-      CONTROLLER_CHANGE: {type:'controller-change'}
-    };
+
     self.backgroundColor = config.backgroundColor || new THREE.Color(0x000, 1.0);
     self.camera = config.camera;
     self.clock = new THREE.Clock();
@@ -2158,10 +2160,12 @@ FOUR.Viewport3D = (function () {
 
     // add the viewport to the DOM
     self.domElement.appendChild(self.renderer.domElement);
+
     // listen for events
     self.domElement.addEventListener('contextmenu', self.onContextMenu.bind(self));
     self.scene.addEventListener(FOUR.EVENT.UPDATE, self.render.bind(self), false);
     window.addEventListener('resize', self.onWindowResize.bind(self), false);
+
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
     });
@@ -2180,12 +2184,6 @@ FOUR.Viewport3D = (function () {
     this.controllers[name] = controller;
   };
 
-  Viewport3D.prototype.addRenderTask = function (id, task) {
-    this.tasks[id] = task || {task:'undefined'};
-    //console.info('Viewport render task count', Object.keys(this.tasks).length);
-    this.update(true);
-  };
-
   /**
    * Disable interactions with the viewport.
    */
@@ -2193,6 +2191,13 @@ FOUR.Viewport3D = (function () {
     if (this.controller) {
       this.controller.disable();
     }
+  };
+
+  /**
+   * Clear all rendering tasks.
+   */
+  Viewport3D.prototype.clearTasks = function () {
+    this.tasks.length = 0;
   };
 
   /**
@@ -2229,6 +2234,33 @@ FOUR.Viewport3D = (function () {
   };
 
   /**
+   * Remove rendering task.
+   * @param {Object} event
+   */
+  Viewport3D.prototype.onContinuousUpdateEnd = function (event) {
+    console.info('render task end', event);
+    event.id = event.id || 'anonymous';
+    // remove the first task found with a matching id value
+    for (var i = this.tasks.length - 1; i >= 0; i--) {
+      if (this.tasks[i].id === event.id) {
+        this.tasks.splice(i,1);
+        return;
+      }
+    }
+  };
+
+  /**
+   * Create new rendering task, start rendering and updating controller states
+   * continuously. We currently keep track of
+   * @param {Object} event
+   */
+  Viewport3D.prototype.onContinuousUpdateStart = function (event) {
+    console.info('render task start', event);
+    this.tasks.push({id:event.id || 'anonymous', task:event.task||null});
+    this.update();
+  };
+
+  /**
    * Handle window resize event.
    */
   Viewport3D.prototype.onWindowResize = function () {
@@ -2247,11 +2279,6 @@ FOUR.Viewport3D = (function () {
     self.render();
   };
 
-  Viewport3D.prototype.removeRenderTask = function (id) {
-    delete this.tasks[id];
-    //console.info('Viewport render task count', Object.keys(this.tasks).length);
-  };
-
   /**
    * Render the viewport once.
    */
@@ -2264,16 +2291,18 @@ FOUR.Viewport3D = (function () {
    * @param {String} name Controller name
    */
   Viewport3D.prototype.setActiveController = function (name) {
-    var self = this;
-    if (self.controller) {
-      self.controller.disable();
-      self.controller.removeEventListener(self.render);
+    // TODO need to enable/disable the controller event listeners as we do with navigation
+    if (this.controller) {
+      this.controller.disable();
+      this.controller.removeEventListener(this.render);
     }
     console.info('Set active viewport controller to', name);
-    self.controller = self.controllers[name];
-    self.controller.addEventListener(FOUR.EVENT.UPDATE, self.render.bind(self), false);
-    self.controller.enable();
-    self.dispatchEvent(self.EVENT.CONTROLLER_CHANGE);
+    this.controller = this.controllers[name];
+    this.controller.addEventListener(FOUR.EVENT.UPDATE, this.render.bind(this), false);
+    this.controller.addEventListener(FOUR.EVENT.CONTINUOUS_UPDATE_START, this.onContinuousUpdateStart.bind(this), false);
+    this.controller.addEventListener(FOUR.EVENT.CONTINUOUS_UPDATE_END, this.onContinuousUpdateEnd.bind(this), false);
+    this.controller.enable();
+    this.dispatchEvent({type:FOUR.EVENT.CONTROLLER_CHANGE});
   };
 
   /**
@@ -2281,11 +2310,10 @@ FOUR.Viewport3D = (function () {
    * @param {THREE.Color} color Color
    */
   Viewport3D.prototype.setBackgroundColor = function (color) {
-    var self = this;
-    self.background = color;
-    self.renderer.setClearColor(self.backgroundColor);
-    self.dispatchEvent(self.EVENT.BACKGROUND_CHANGE);
-    self.render();
+    this.background = color;
+    this.renderer.setClearColor(this.backgroundColor);
+    this.dispatchEvent({type:FOUR.EVENT.BACKGROUND_CHANGE});
+    this.render();
   };
 
   /**
@@ -2293,12 +2321,11 @@ FOUR.Viewport3D = (function () {
    * @param {THREE.Camera} camera Camera
    */
   Viewport3D.prototype.setCamera = function (camera) {
-    var self = this;
-    self.camera = camera;
-    self.camera.aspect = self.domElement.clientWidth / self.domElement.clientHeight;
-    self.camera.updateProjectionMatrix();
-    self.dispatchEvent(self.EVENT.CAMERA_CHANGE);
-    self.render();
+    this.camera = camera;
+    this.camera.aspect = this.domElement.clientWidth / this.domElement.clientHeight;
+    this.camera.updateProjectionMatrix();
+    this.dispatchEvent({type:FOUR.EVENT.CAMERA_CHANGE});
+    this.render();
   };
 
   /**
@@ -2306,21 +2333,20 @@ FOUR.Viewport3D = (function () {
    * @param {Boolean} force Force update
    */
   Viewport3D.prototype.update = function (force) {
-    var self = this;
-    if (Object.keys(self.tasks).length > 0 || (typeof force === 'boolean' && force)) {
-      self.updateOnce();
-      requestAnimationFrame(self.update.bind(self));
+    if (this.tasks.length > 0 || (typeof force === 'boolean' && force)) {
+      this.updateOnce();
+      requestAnimationFrame(this.update.bind(this));
     }
   };
 
+  /**
+   * Update controller state once.
+   */
   Viewport3D.prototype.updateOnce = function () {
-    var self = this;
-    // update tween state
     TWEEN.update();
-    // update controller state
-    if (self.controller) {
-      self.delta = self.clock.getDelta();
-      self.controller.update(self.delta);
+    if (this.controller) {
+      this.delta = this.clock.getDelta();
+      this.controller.update(this.delta);
     }
   };
 
@@ -3497,238 +3523,265 @@ FOUR.Viewcube = (function () {
  */
 FOUR.ArrowController = (function () {
 
-    function ArrowController (config) {
-        THREE.EventDispatcher.call(this);
-        config = config || {};
-        var self = this;
+  function ArrowController(config) {
+    THREE.EventDispatcher.call(this);
+    config = config || {};
+    var self = this;
 
-        self.KEY = {
-            ALT: 18,
-            CTRL: 17,
-            SHIFT: 16, // FIXME is this one used??
-            MOVE_FORWARD: 38,
-            MOVE_LEFT: 37,
-            MOVE_BACK: 40,
-            MOVE_RIGHT: 39,
-            MOVE_UP: 221,
-            MOVE_DOWN: 219,
-            ROTATE_LEFT: -1,
-            ROTATE_RIGHT: -1
+    self.KEY = {
+      ALT: 18,
+      CTRL: 17,
+      SHIFT: 16, // FIXME is this one used??
+      MOVE_FORWARD: 38,
+      MOVE_LEFT: 37,
+      MOVE_BACK: 40,
+      MOVE_RIGHT: 39,
+      MOVE_UP: 221,
+      MOVE_DOWN: 219,
+      ROTATE_LEFT: -1,
+      ROTATE_RIGHT: -1
+    };
+
+    self.camera = config.camera || config.viewport.camera;
+    self.enabled = false;
+    self.listeners = {};
+    self.modifiers = {};
+    self.move = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false,
+      up: false,
+      down: false
+    };
+    self.movementSpeed = 5.0;
+    self.tasks = {};
+    self.temp = {};
+    self.viewport = config.viewport;
+
+    Object.keys(config).forEach(function (key) {
+      self[key] = config[key];
+    });
+  }
+
+  ArrowController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  ArrowController.prototype.constructor = ArrowController;
+
+  ArrowController.prototype.disable = function () {
+    var self = this;
+    self.enabled = false;
+    Object.keys(self.listeners).forEach(function (key) {
+      var listener = self.listeners[key];
+      listener.element.removeEventListener(listener.event, listener.fn);
+      delete self.listeners[key];
+    });
+  };
+
+  ArrowController.prototype.enable = function () {
+    var self = this;
+    // clear all listeners to ensure that we can never add multiple listeners
+    // for the same events
+    self.disable();
+    function addListener(element, event, fn) {
+      if (!self.listeners[event]) {
+        self.listeners[event] = {
+          element: element,
+          event: event,
+          fn: fn.bind(self)
         };
-
-        self.camera = config.camera || config.viewport.camera;
-        self.domElement = config.domElement || config.viewport.domElement;
-        self.enabled = false;
-        self.listeners = {};
-        self.modifiers = {};
-        self.move = {
-            forward: false,
-            backward: false,
-            left: false,
-            right: false,
-            up: false,
-            down: false
-        };
-        self.movementSpeed = 100.0;
-        self.temp = {};
-        self.timeout = null;
-        self.viewport = config.viewport;
-
-        Object.keys(config).forEach(function (key) {
-            self[key] = config[key];
-        });
+        element.addEventListener(event, self.listeners[event].fn, false);
+      }
     }
 
-    ArrowController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    addListener(window, 'keydown', self.onKeyDown);
+    addListener(window, 'keyup', self.onKeyUp);
+    self.enabled = true;
+  };
 
-    ArrowController.prototype.constructor = ArrowController;
-
-    ArrowController.prototype.disable = function () {
-        var self = this;
-        self.enabled = false;
-        Object.keys(self.listeners).forEach(function (key) {
-            var listener = self.listeners[key];
-            listener.element.removeEventListener(listener.event, listener.fn);
-            delete self.listeners[key];
-        });
-    };
-
-    ArrowController.prototype.enable = function () {
-        var self = this;
-        // clear all listeners to ensure that we can never add multiple listeners
-        // for the same events
-        self.disable();
-        function addListener(element, event, fn) {
-            if (!self.listeners[event]) {
-                self.listeners[event] = {
-                    element: element,
-                    event: event,
-                    fn: fn.bind(self)
-                };
-                element.addEventListener(event, self.listeners[event].fn, false);
-            }
+  /**
+   * Handle key down event.
+   * @param event
+   */
+  ArrowController.prototype.onKeyDown = function (event) {
+    if (!this.enabled) {
+      return;
+    }
+    switch (event.keyCode) {
+      case this.KEY.CTRL:
+        this.modifiers[this.KEY.CTRL] = true;
+        break;
+      case this.KEY.MOVE_TO_EYE_HEIGHT:
+        this.setWalkHeight();
+        this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-to-eye-height'});
+        break;
+      case this.KEY.MOVE_FORWARD:
+        if (!this.move.forward) {
+          this.move.forward = true;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-forward'});
+          return false;
         }
-        addListener(window, 'keydown', self.onKeyDown);
-        addListener(window, 'keyup', self.onKeyUp);
-        self.enabled = true;
-    };
-
-    /**
-     * Handle key down event.
-     * @param event
-     */
-    ArrowController.prototype.onKeyDown = function (event) {
-        if (!this.enabled) {
-            return;
+        break;
+      case this.KEY.MOVE_BACK:
+        if (!this.move.backward) {
+          this.move.backward = true;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-back'});
+          return false;
         }
-        switch(event.keyCode) {
-            case this.KEY.CTRL:
-                this.modifiers[this.KEY.CTRL] = true;
-                break;
-            case this.KEY.MOVE_TO_EYE_HEIGHT:
-                this.setWalkHeight();
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
-            case this.KEY.MOVE_FORWARD:
-                this.move.forward = true;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
-            case this.KEY.MOVE_BACK:
-                this.move.backward = true;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
-            case this.KEY.MOVE_LEFT:
-                this.move.left = true;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
-            case this.KEY.MOVE_RIGHT:
-                this.move.right = true;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
-            case this.KEY.MOVE_UP:
-                this.move.up = true;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
-            case this.KEY.MOVE_DOWN:
-                this.move.down = true;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
-                break;
+        break;
+      case this.KEY.MOVE_LEFT:
+        if (!this.move.left) {
+          this.move.left = true;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-left'});
         }
-    };
-
-    /**
-     * Handle key up event.
-     * @param event
-     */
-    ArrowController.prototype.onKeyUp = function (event) {
-        switch(event.keyCode) {
-            case this.KEY.CTRL:
-                this.modifiers[this.KEY.CTRL] = false;
-                break;
-            case this.KEY.MOVE_FORWARD:
-                this.move.forward = false;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
-            case this.KEY.MOVE_BACK:
-                this.move.backward = false;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
-            case this.KEY.MOVE_LEFT:
-                this.move.left = false;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
-            case this.KEY.MOVE_RIGHT:
-                this.move.right = false;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
-            case this.KEY.MOVE_UP:
-                this.move.up = false;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
-            case this.KEY.MOVE_DOWN:
-                this.move.down = false;
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
-            case this.KEY.CANCEL:
-                var self = this;
-                Object.keys(this.move).forEach(function (key) {
-                    self.move[key] = false;
-                });
-                this.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
-                break;
+        break;
+      case this.KEY.MOVE_RIGHT:
+        if (!this.move.right) {
+          this.move.right = true;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-right'});
         }
-    };
-
-    /**
-     * Update the controller and camera state.
-     * @param delta
-     */
-    ArrowController.prototype.update = function (delta) {
-        if (!this.enabled) {
-            return;
+        break;
+      case this.KEY.MOVE_UP:
+        if (!this.move.up) {
+          this.move.up = true;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-up'});
         }
-        this.temp.distance = delta * this.movementSpeed;
-        this.temp.offset = new THREE.Vector3().subVectors(this.camera.position, this.camera.target);
-        this.temp.offset.setLength(this.temp.distance);
-        this.temp.cross = new THREE.Vector3().crossVectors(this.temp.offset, this.camera.up);
+        break;
+      case this.KEY.MOVE_DOWN:
+        if (!this.move.down) {
+          this.move.down = true;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_START, id:'move', task: 'arrow-move-down'});
+        }
+        break;
+    }
+  };
 
-        // translate the camera
+  /**
+   * Handle key up event.
+   * @param event
+   */
+  ArrowController.prototype.onKeyUp = function (event) {
+    switch (event.keyCode) {
+      case this.KEY.CTRL:
+        this.modifiers[this.KEY.CTRL] = false;
+        break;
+      case this.KEY.MOVE_FORWARD:
         if (this.move.forward) {
-            this.temp.offset.negate();
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
-            this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
-            this.camera.target.copy(this.temp.next);
-            this.temp.change = true;
+          this.move.forward = false;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
+          return false;
         }
+        break;
+      case this.KEY.MOVE_BACK:
         if (this.move.backward) {
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
-            this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
-            this.camera.target.copy(this.temp.next);
-            this.temp.change = true;
+          this.move.backward = false;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
+          return false;
         }
-        if (this.move.right) {
-            this.temp.cross.negate();
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.cross);
-            this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.cross);
-            this.camera.target.copy(this.temp.next);
-            this.temp.change = true;
-        }
+        break;
+      case this.KEY.MOVE_LEFT:
         if (this.move.left) {
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.cross);
-            this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.cross);
-            this.camera.target.copy(this.temp.next);
-            this.temp.change = true;
+          this.move.left = false;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
         }
+        break;
+      case this.KEY.MOVE_RIGHT:
+        if (this.move.right) {
+          this.move.right = false;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
+        }
+        break;
+      case this.KEY.MOVE_UP:
         if (this.move.up) {
-            this.temp.offset = new THREE.Vector3().copy(this.camera.up);
-            this.temp.offset.setLength(this.temp.distance);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
-            this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
-            this.camera.target.copy(this.temp.next);
-            this.temp.change = true;
+          this.move.up = false;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
         }
+        break;
+      case this.KEY.MOVE_DOWN:
         if (this.move.down) {
-            this.temp.offset = new THREE.Vector3().copy(this.camera.up).negate();
-            this.temp.offset.setLength(this.temp.distance);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
-            this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
-            this.camera.target.copy(this.temp.next);
-            this.temp.change = true;
+          this.move.down = false;
+          this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
         }
+        break;
+      case this.KEY.CANCEL:
+        var self = this;
+        Object.keys(this.move).forEach(function (key) {
+          self.move[key] = false;
+        });
+        this.dispatchEvent({type: FOUR.EVENT.CONTINUOUS_UPDATE_END, id:'move'});
+        break;
+    }
+  };
 
-        if (this.temp.change) {
-            this.dispatchEvent({type:FOUR.EVENT.UPDATE});
-            this.temp.change = false;
-        }
-    };
+  /**
+   * Update the controller and camera state.
+   * @param delta
+   */
+  ArrowController.prototype.update = function (delta) {
+    if (!this.enabled) {
+      return;
+    }
+    this.temp.change = false;
+    this.temp.distance = delta * this.movementSpeed;
+    this.temp.offset = new THREE.Vector3().subVectors(this.camera.position, this.camera.target);
+    this.temp.offset.setLength(this.temp.distance);
+    this.temp.cross = new THREE.Vector3().crossVectors(this.temp.offset, this.camera.up);
 
-    return ArrowController;
+    // translate the camera
+    if (this.move.forward) {
+      this.temp.offset.negate();
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+      this.camera.position.copy(this.temp.next);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+      this.camera.target.copy(this.temp.next);
+      this.temp.change = true;
+    }
+    if (this.move.backward) {
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+      this.camera.position.copy(this.temp.next);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+      this.camera.target.copy(this.temp.next);
+      this.temp.change = true;
+    }
+    if (this.move.right) {
+      this.temp.cross.negate();
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.cross);
+      this.camera.position.copy(this.temp.next);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.cross);
+      this.camera.target.copy(this.temp.next);
+      this.temp.change = true;
+    }
+    if (this.move.left) {
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.cross);
+      this.camera.position.copy(this.temp.next);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.cross);
+      this.camera.target.copy(this.temp.next);
+      this.temp.change = true;
+    }
+    if (this.move.up) {
+      this.temp.offset = new THREE.Vector3().copy(this.camera.up);
+      this.temp.offset.setLength(this.temp.distance);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+      this.camera.position.copy(this.temp.next);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+      this.camera.target.copy(this.temp.next);
+      this.temp.change = true;
+    }
+    if (this.move.down) {
+      this.temp.offset = new THREE.Vector3().copy(this.camera.up).negate();
+      this.temp.offset.setLength(this.temp.distance);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+      this.camera.position.copy(this.temp.next);
+      this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+      this.camera.target.copy(this.temp.next);
+      this.temp.change = true;
+    }
+    if (this.temp.change) {
+      this.dispatchEvent({type: FOUR.EVENT.UPDATE});
+    }
+  };
+
+  return ArrowController;
 
 }());
 ;
@@ -5392,10 +5445,6 @@ FOUR.WalkController = (function () {
         });
     };
 
-    WalkController.prototype.emit = function (event) {
-        this.dispatchEvent({type: event || FOUR.EVENT.UPDATE});
-    };
-
     WalkController.prototype.enable = function () {
         var self = this;
         // clear all listeners to ensure that we can never add multiple listeners
@@ -5437,31 +5486,31 @@ FOUR.WalkController = (function () {
                 break;
             case self.KEY.MOVE_TO_EYE_HEIGHT:
                 self.setWalkHeight();
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = true;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_BACK:
                 self.move.backward = true;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_LEFT:
                 self.move.left = true;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_RIGHT:
                 self.move.right = true;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_UP:
                 self.move.up = true;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
             case self.KEY.MOVE_DOWN:
                 self.move.down = true;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_START});
                 break;
         }
     };
@@ -5474,34 +5523,34 @@ FOUR.WalkController = (function () {
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_BACK:
                 self.move.backward = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_LEFT:
                 self.move.left = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_RIGHT:
                 self.move.right = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_UP:
                 self.move.up = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.MOVE_DOWN:
                 self.move.down = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
             case self.KEY.CANCEL:
                 Object.keys(self.move).forEach(function (key) {
                     self.move[key] = false;
                 });
                 self.lookChange = false;
-                self.emit({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
+                self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
         }
     };
@@ -5519,7 +5568,7 @@ FOUR.WalkController = (function () {
           self.WALK_HEIGHT
         );
         return self.camera
-          .resetOrientation(self.emit.bind(self))
+          .resetOrientation(true)
           .then(function () {
             return self.camera.setPositionAndTarget(pos, target);
         });

@@ -11,6 +11,7 @@
     <script src="../vendor/tween.js/src/Tween.js"></script>
 
     <!-- lib -->
+    <script src="../../dist/fonts/helvetiker_regular.typeface.js"></script>
     <script src="../dist/four.js"></script>
 
     <style>
@@ -107,17 +108,6 @@
         viewport.render();
         viewport.update();
 
-        // events
-        camera.addEventListener('continuous-update-end', function (e) {
-            console.info('Remove render task', e);
-            viewport.removeRenderTask(e.id);
-        });
-        camera.addEventListener('continuous-update-start', function (e) {
-            console.info('Add render task', e);
-            viewport.addRenderTask(e.id, e.task);
-        });
-        camera.addEventListener('update', viewport.render.bind(viewport), false);
-
         var pathObj = new THREE.Object3D();
         scene.helpers.add(pathObj);
 
@@ -180,7 +170,6 @@
         // update the bounding box
         boundingBox.update(scene.children);
 
-
         var viewaxisElement = document.getElementById('viewaxis');
         var viewaxis = window.viewaxis = new FOUR.ViewAxis({domElement:viewaxisElement, viewport:viewport});
         viewaxis.render();
@@ -211,101 +200,101 @@
 
         function setupKeyboardBindings() {
             // selection
-            Mousetrap.bind('ctrl+a', function () {
-                console.log('select all');
-                selectionSet.addAll(scene.model.children);
-                viewport.render();
-            });
-            Mousetrap.bind('ctrl+n', function () {
-                console.log('select none');
-                selectionSet.removeAll();
-                viewport.render();
-            });
-
-            // bounding box
-            Mousetrap.bind('b', function () {
-                console.log('toggle bounding box visibility');
-                boundingBox.toggleVisibility();
-                viewport.render();
-            });
-
-            // viewport mode
-            // TODO modify the cursor depending on the mode
-            Mousetrap.bind('q', function () {
-                viewport.setActiveController('selection');
-            });
-
-            // view controls
-            Mousetrap.bind('f', function () {
-                var bbox = getViewBoundingBox();
-                camera.zoomToFit(bbox, true);
-            });
-
-            Mousetrap.bind('1', function () {
-                viewport.setActiveController('trackball');
-            });
-            Mousetrap.bind('2', function () {
-                viewport.setActiveController('walk');
-            });
-            Mousetrap.bind('3', function () {
-                viewport.setActiveController('orbit');
-            });
-            Mousetrap.bind('4', function () {
-                viewport.setActiveController('tour');
-            });
-            Mousetrap.bind('5', function () {
-                var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.TOP, bbox, true);
-            });
-            Mousetrap.bind('6', function () {
-                var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.FRONT, bbox, true);
-            });
-            Mousetrap.bind('7', function () {
-                var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.LEFT, bbox, true);
-            });
-            Mousetrap.bind('8', function () {
-                var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.RIGHT, bbox, true);
-            });
-            Mousetrap.bind('9', function () {
-                var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.BACK, bbox, true);
-            });
-            Mousetrap.bind('0', function () {
-                var bbox = getViewBoundingBox();
-                camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
-            });
-
-            // tour controls
-            Mousetrap.bind('m', function () {
-                console.log('toggle tour path visibility');
-                var path = viewport.controllers.tour.path;
-                if (path.length > 0) {
-                    pathObj.children.length = 0;
-                    var geometry, i, line;
-                    var material = new THREE.LineBasicMaterial({color: 0xFFD700});
-                    for (i = 0; i < path.length - 1; i++) {
-                        geometry = new THREE.Geometry();
-                        geometry.vertices.push(
-                                new THREE.Vector3(path[i].x, path[i].y, path[i].z),
-                                new THREE.Vector3(path[i + 1].x, path[i + 1].y, path[i + 1].z)
-                        );
-                        line = new THREE.LineSegments(geometry, material);
-                        line.name = 'path' + i;
-                        pathObj.add(line);
-                    }
-                }
-                viewport.render();
-            });
-
-            Mousetrap.bind('=', function () {
-                camera.zoomIn(true);
-            });
-            Mousetrap.bind('-', function () {
-                camera.zoomOut(true);
-            });
+//            Mousetrap.bind('ctrl+a', function () {
+//                console.log('select all');
+//                selectionSet.addAll(scene.model.children);
+//                viewport.render();
+//            });
+//            Mousetrap.bind('ctrl+n', function () {
+//                console.log('select none');
+//                selectionSet.removeAll();
+//                viewport.render();
+//            });
+//
+//            // bounding box
+//            Mousetrap.bind('b', function () {
+//                console.log('toggle bounding box visibility');
+//                boundingBox.toggleVisibility();
+//                viewport.render();
+//            });
+//
+//            // viewport mode
+//            // TODO modify the cursor depending on the mode
+//            Mousetrap.bind('q', function () {
+//                viewport.setActiveController('selection');
+//            });
+//
+//            // view controls
+//            Mousetrap.bind('f', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.zoomToFit(bbox, true);
+//            });
+//
+//            Mousetrap.bind('1', function () {
+//                viewport.setActiveController('trackball');
+//            });
+//            Mousetrap.bind('2', function () {
+//                viewport.setActiveController('walk');
+//            });
+//            Mousetrap.bind('3', function () {
+//                viewport.setActiveController('orbit');
+//            });
+//            Mousetrap.bind('4', function () {
+//                viewport.setActiveController('tour');
+//            });
+//            Mousetrap.bind('5', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.setView(camera.VIEWS.TOP, bbox, true);
+//            });
+//            Mousetrap.bind('6', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.setView(camera.VIEWS.FRONT, bbox, true);
+//            });
+//            Mousetrap.bind('7', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.setView(camera.VIEWS.LEFT, bbox, true);
+//            });
+//            Mousetrap.bind('8', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.setView(camera.VIEWS.RIGHT, bbox, true);
+//            });
+//            Mousetrap.bind('9', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.setView(camera.VIEWS.BACK, bbox, true);
+//            });
+//            Mousetrap.bind('0', function () {
+//                var bbox = getViewBoundingBox();
+//                camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
+//            });
+//
+//            // tour controls
+//            Mousetrap.bind('m', function () {
+//                console.log('toggle tour path visibility');
+//                var path = viewport.controllers.tour.path;
+//                if (path.length > 0) {
+//                    pathObj.children.length = 0;
+//                    var geometry, i, line;
+//                    var material = new THREE.LineBasicMaterial({color: 0xFFD700});
+//                    for (i = 0; i < path.length - 1; i++) {
+//                        geometry = new THREE.Geometry();
+//                        geometry.vertices.push(
+//                                new THREE.Vector3(path[i].x, path[i].y, path[i].z),
+//                                new THREE.Vector3(path[i + 1].x, path[i + 1].y, path[i + 1].z)
+//                        );
+//                        line = new THREE.LineSegments(geometry, material);
+//                        line.name = 'path' + i;
+//                        pathObj.add(line);
+//                    }
+//                }
+//                viewport.render();
+//            });
+//
+//            Mousetrap.bind('=', function () {
+//                camera.zoomIn(true);
+//            });
+//            Mousetrap.bind('-', function () {
+//                camera.zoomOut(true);
+//            });
         }
 
         function setupControllers() {
