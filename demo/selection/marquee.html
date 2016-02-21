@@ -42,11 +42,13 @@
   var points = 500;
   var primitives = 500;
 
-  var camera, marquee, domElement, geometry, helper, i, light, material, mesh, multi, particles, rotate, scene, selectionSet, viewport;
+  var camera, marquee, domElement, geometry, helper, i, index, light, material;
+  var mesh, multi, particles, rotate, scene, selectionSet, viewport;
 
   $(document).ready(function () {
     // scene
     scene = new FOUR.Scene();
+    index = new FOUR.SceneIndex();
 
     // camera
     camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
@@ -101,7 +103,7 @@
     // viewport controllers
     multi = new FOUR.MultiController({viewport: viewport});
     rotate = new FOUR.RotateController({viewport: viewport});
-    marquee = new FOUR.MarqueeSelectionController({viewport: viewport});
+    marquee = new FOUR.MarqueeSelectionController({viewport: viewport, index:index});
     multi.addController(rotate, 'rotate');
     multi.addController(marquee, 'marquee');
     multi.enable();
@@ -128,6 +130,7 @@
     selectionSet.addEventListener('update', function (event) {
       console.info('update', event);
       // FIXME this part was breaking the demo
+      // FIXME need to set the flag that updates the colour
 //      var obj;
 //      event.removed.forEach(function (item) {
 //        obj = scene.getObjectByProperty('uuid', item.uuid);
@@ -137,6 +140,15 @@
 //        obj = scene.getObjectByProperty('uuid', item.uuid);
 //        obj.material.color = '#FF0000';
 //      });
+    });
+
+    window.addEventListener('keyup', function (event) {
+      if (event.keyCode === FOUR.KEY.S) {
+        var objs = scene.getModelObjects();
+        index.indexScene(objs);
+      } else if (event.keyCode === FOUR.KEY.V) {
+        index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight);
+      }
     });
 
     var keyCommand = new FOUR.KeyCommandController();

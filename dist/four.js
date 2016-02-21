@@ -50,7 +50,15 @@ FOUR.KEY = {
   ARROW_RIGHT: 39,
   ARROW_UP: 38,
   CTRL: 17,
-  SHIFT: 16
+  SHIFT: 16,
+  E: 69,
+  Q: 81,
+  R: 82,
+  S: 83,
+  T: 84,
+  U: 85,
+  V: 86,
+  W: 87
 };
 
 FOUR.MOUSE_STATE = {
@@ -591,10 +599,19 @@ FOUR.SceneIndex = (function () {
 
   /**
    * Add objects to the scene index.
-   * @param {Array} objs Scene objects
+   * @param {Array} objs Scene objects to be indexed
    */
   SceneIndex.prototype.indexScene = function (objs) {
     // TODO perform indexing in a worker
+    // reduce each scene entity to the properties that we want to index
+    // for each element, record the uuid, index, aabb
+    // prefix the array with any values required to build a camera frustum, etc.
+    // in the worker:
+    // build the 3D index
+    // build the 2D index
+    // take advantage of memoization
+
+    objs = objs || [];
     var objects = 0, self = this, verticies = 0;
 
     //var objs = this.scene.getModelObjects().map(function (obj) {
@@ -604,19 +621,18 @@ FOUR.SceneIndex = (function () {
     //  }
     //});
 
-    hamsters.run({'array': objs}, function() {
-      for (var i = 0; i < params.array.length; i += 1) {
-        if (params.array[i].hasOwnProperty('uuid')) {
-          rtn.data.push(params.array[i].uuid);
-        } else {
-          rtn.data.push(null);
-        }
-      }
-    }, function(output) {
-      console.info(output);
-      //callback.call();
-    }, hamsters.maxThreads, true);
-
+    //hamsters.run({'array': objs}, function() {
+    //  for (var i = 0; i < params.array.length; i += 1) {
+    //    if (params.array[i].hasOwnProperty('uuid')) {
+    //      rtn.data.push(params.array[i].uuid);
+    //    } else {
+    //      rtn.data.push(null);
+    //    }
+    //  }
+    //}, function(output) {
+    //  console.info(output);
+    //  //callback.call();
+    //}, hamsters.maxThreads, true);
 
     objs.forEach(function (obj) {
       objects += 1;
@@ -646,7 +662,7 @@ FOUR.SceneIndex = (function () {
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
     // the list of entities intersecting the frustum
-    self.sceneIndex.getEntitiesIntersectingFrustum(self.frustum);
+    objs = self.sceneIndex.getEntitiesIntersectingFrustum(self.frustum);
     objs.forEach(function (obj) {
       if (obj.matrixWorldNeedsUpdate) {
         obj.updateMatrixWorld();
@@ -6449,10 +6465,9 @@ FOUR.MarqueeSelectionController = (function () {
       height: config.viewport.domElement.clientHeight,
       width: config.viewport.domElement.clientWidth
     });
-    self.sceneIndex = new SpatialHash();
+    self.index = config.index || new FOUR.SceneIndex(); // TODO this should be passed in with config
     self.selectAction = self.SELECT_ACTIONS.SELECT;
     self.selection = [];
-    self.viewIndex = new SpatialHash();
     self.viewport = config.viewport;
 
     Object.keys(self.KEY).forEach(function (key) {
@@ -6476,42 +6491,44 @@ FOUR.MarqueeSelectionController = (function () {
    * the camera frustum. Index each object by its projected screen coordinates.
    */
   MarqueeSelectionController.prototype.buildIndex = function () {
-    // TODO perform indexing in a worker if possible
-    var matrix, objs, self = this, total = 0;
-    // clear the current index
-    self.quadtree = new Quadtree({
-      height: self.viewport.domElement.clientHeight,
-      width: self.viewport.domElement.clientWidth
-    });
-    // build a frustum for the current camera view
-    matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
-    self.frustum.setFromMatrix(matrix);
-    // traverse the scene and add all entities within the frustum to the index
-    objs = self.viewport.getScene().getModelObjects();
-    objs.forEach(function (child) {
-      if (child.matrixWorldNeedsUpdate) {
-        child.updateMatrixWorld();
-      }
-      // objects without geometry will cause the frustrum intersection check to
-      // fail
-      try {
-        if (child.geometry && self.frustum.intersectsObject(child)) {
-          // switch indexing strategy depending on the type of scene object
-          //if (child instanceof THREE.BufferGeometry) {
-          //  total += self.indexBufferGeometryVertices(child, self.quadtree);
-          //} else
-          if (child instanceof THREE.Points) {
-            total += self.indexPointsVertices(child, self.quadtree);
-          } else if (child instanceof THREE.Object3D) {
-            self.indexObject3DVertices(child, self.quadtree);
-            total += 1;
-          }
-        }
-      } catch (err) {
-        // no need to do anything
-      }
-    });
-    console.info('Added %s objects to the view index', total);
+    this.index.indexScene();
+
+    //// TODO perform indexing in a worker if possible
+    //var matrix, objs, self = this, total = 0;
+    //// clear the current index
+    //self.quadtree = new Quadtree({
+    //  height: self.viewport.domElement.clientHeight,
+    //  width: self.viewport.domElement.clientWidth
+    //});
+    //// build a frustum for the current camera view
+    //matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
+    //self.frustum.setFromMatrix(matrix);
+    //// traverse the scene and add all entities within the frustum to the index
+    //objs = self.viewport.getScene().getModelObjects();
+    //objs.forEach(function (child) {
+    //  if (child.matrixWorldNeedsUpdate) {
+    //    child.updateMatrixWorld();
+    //  }
+    //  // objects without geometry will cause the frustrum intersection check to
+    //  // fail
+    //  try {
+    //    if (child.geometry && self.frustum.intersectsObject(child)) {
+    //      // switch indexing strategy depending on the type of scene object
+    //      //if (child instanceof THREE.BufferGeometry) {
+    //      //  total += self.indexBufferGeometryVertices(child, self.quadtree);
+    //      //} else
+    //      if (child instanceof THREE.Points) {
+    //        total += self.indexPointsVertices(child, self.quadtree);
+    //      } else if (child instanceof THREE.Object3D) {
+    //        self.indexObject3DVertices(child, self.quadtree);
+    //        total += 1;
+    //      }
+    //    }
+    //  } catch (err) {
+    //    // no need to do anything
+    //  }
+    //});
+    //console.info('Added %s objects to the view index', total);
   };
 
   MarqueeSelectionController.prototype.clearFilter = function () {};
@@ -6552,8 +6569,6 @@ FOUR.MarqueeSelectionController = (function () {
     addListener(window, 'keydown', self.onKeyDown);
     addListener(window, 'keyup', self.onKeyUp);
     addListener(window, 'resize', self.onWindowResize);
-    // FIXME the first time the index runs it appears to get every scene object
-    self.buildIndex();
     self.enabled = true;
   };
 
