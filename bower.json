@@ -23,7 +23,7 @@
   "dependencies": {
     "bluebird": "~3.0.6",
     "quadtree-lib": "~0.1.2",
-    "spatialhash": "spatialhash.js#*",
+    "spatialhash": "spatialhash.js#v0.1.1",
     "three.js": "0.72.0",
     "tween.js": "tweenjs#~16.3.1"
   },

@@ -43,12 +43,18 @@
   var primitives = 500;
 
   var camera, marquee, domElement, geometry, helper, i, index, light, material;
-  var mesh, multi, particles, rotate, scene, selectionSet, viewport;
+  var mesh, multi, objs, particles, rotate, scene, selectionSet, viewport;
 
   $(document).ready(function () {
     // scene
     scene = new FOUR.Scene();
     index = new FOUR.SceneIndex();
+
+    var cells = new THREE.Object3D();
+    var viewCells = new THREE.Object3D();
+
+    scene.add(cells);
+    scene.add(viewCells);
 
     // camera
     camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
@@ -142,21 +148,36 @@
 //      });
     });
 
+    // index the scene
+    objs = scene.getModelObjects();
+    index.indexScene(objs);
+
+    // create geometry to represent the cells
+    var cell, size, position;
+    Object.keys(index.envelope).forEach(function (key) {
+      cell = index.envelope(key);
+      size = cell.size();
+      position = cell.center();
+    });
+
     window.addEventListener('keyup', function (event) {
-      if (event.keyCode === FOUR.KEY.S) {
-        var objs = scene.getModelObjects();
-        index.indexScene(objs);
+      if (event.keyCode === FOUR.KEY.TAB) {
+        // TODO toggle display of view cells
+      } else if (event.keyCode === FOUR.KEY.C) {
+        // TODO toggle display of index cells
       } else if (event.keyCode === FOUR.KEY.V) {
+        // this event should be triggered when the camera changes
         index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight);
       }
     });
 
     var keyCommand = new FOUR.KeyCommandController();
 
-    keyCommand.bind('esc', function () {
+    keyCommand.bind(FOUR.KEY.ESC, function () {
       selectionSet.removeAll();
     });
-    keyCommand.bind('u', function () {
+
+    keyCommand.bind(FOUR.KEY.U, function () {
       console.info('update selection cache');
       marquee.onCameraUpdate();
     });

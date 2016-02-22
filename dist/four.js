@@ -44,21 +44,78 @@ FOUR.EVENT = {
 };
 
 FOUR.KEY = {
-  ALT: 18,
-  ARROW_DOWN: 40,
-  ARROW_LEFT: 37,
-  ARROW_RIGHT: 39,
-  ARROW_UP: 38,
-  CTRL: 17,
+  TAB: 9,
+  ENTER: 13,
   SHIFT: 16,
+  CTRL: 17,
+  ALT: 18,
+  CAPS_LOCK: 20,
+  ESC: 27,
+  SPACE: 32,
+  ARROW_LEFT: 37,
+  ARROW_UP: 38,
+  ARROW_RIGHT: 39,
+  ARROW_DOWN: 40,
+  0: 48,
+  1: 49,
+  2: 50,
+  3: 51,
+  4: 52,
+  5: 53,
+  6: 54,
+  7: 55,
+  8: 56,
+  9: 57,
+  A: 65,
+  B: 66,
+  C: 67,
+  D: 68,
   E: 69,
+  F: 70,
+  G: 71,
+  H: 72,
+  I: 73,
+  J: 74,
+  K: 75,
+  L: 76,
+  M: 77,
+  N: 78,
+  O: 79,
+  P: 80,
   Q: 81,
   R: 82,
   S: 83,
   T: 84,
   U: 85,
   V: 86,
-  W: 87
+  W: 87,
+  X: 88,
+  Y: 89,
+  Z: 90,
+  META_LEFT: 91,
+  META_RIGHT: 92,
+  F1: 112,
+  F2: 113,
+  F3: 114,
+  F4: 115,
+  F5: 116,
+  F6: 117,
+  F7: 118,
+  F8: 119,
+  F9: 120,
+  F10: 121,
+  F11: 122,
+  F12: 123,
+  SEMICOLON: 186,
+  EQUALS: 187,
+  COMMA: 188,
+  DASH: 189,
+  PERIOD: 190,
+  FORWARD_SLASH: 191,
+  GRAVE_ACCENT: 192,
+  OPEN_BRACKET: 219,
+  CLOSE_BRACKET: 221,
+  SINGLE_QUOTE: 222
 };
 
 FOUR.MOUSE_STATE = {
@@ -185,6 +242,20 @@ FOUR.utils.isContained = function (r1, r2) {
 
 FOUR.KeyCommandController = (function () {
 
+  function Matcher (config) {
+    this.keys = config.command.split('+');
+  }
+
+  /**
+   * Determine if the current key state matches the specified key command.
+   * @param {Object} pressed Map of keys currently in the down state.
+   */
+  Matcher.prototype.match = function (pressed) {
+    return this.keys.reduce(function (match, key) {
+      return key[pressed] && match !== false ? true : false;
+    }, -1);
+  };
+
   /**
    * Key command controller. The controller allows you to define key command
    * sets that can be activated and deactivated as required. A key command set
@@ -198,7 +269,7 @@ FOUR.KeyCommandController = (function () {
     self.active = null; // the active command set
     self.enabled = config.enabled || false;
     self.listeners = {};
-    self.pressed = []; // list of keys that are currently pressed
+    self.pressed = {}; // map of keys that are currently in a down state
     self.sets = {
       'default': []
     };
@@ -262,8 +333,9 @@ FOUR.KeyCommandController = (function () {
    */
   KeyCommandController.prototype.keydown = function (evt) {
     var me = this;
-    me.pressed.indexOf(evt.keyCode);
-    // check the default command set
+    // record the key down state
+    me.pressed[evt.keyCode] = true;
+    // check the default command set for commands that should be activated
     Object.keys(me.sets.default).forEach(function (command) {
       var active = command.keys.reduce(function (last, key) {
         if (me.pressed.indexOf(key) > -1) {
@@ -274,18 +346,17 @@ FOUR.KeyCommandController = (function () {
       console.info('check default command');
     });
     // check the current command set
-    Object.keys(me.sets[me.current]).forEach(function (command) {
-      console.info('check command');
-    });
-    me.dispatchEvent({'type': 'keyup', keyCode: evt.keyCode});
+    if (me.active) {
+      Object.keys(me.sets[me.active]).forEach(function (command) {
+        console.info('check command');
+      });
+    }
   };
 
   KeyCommandController.prototype.keyup = function (evt) {
-    var i = this.pressed.indexOf(evt.keyCode);
-    if (i > -1) {
-      this.pressed.slice(i, i+1);
+    if (this.pressed.hasOwnProperty(evt.keyCode)) {
+      delete this.pressed[evt.keyCode];
     }
-    this.dispatchEvent({'type': 'keyup', keyCode: evt.keyCode});
   };
 
   /**
@@ -598,10 +669,53 @@ FOUR.SceneIndex = (function () {
   };
 
   /**
+   * Index the position of each vertex in the buffered geometry.
+   * @param {THREE.Object3D} obj Scene object
+   * @returns {number} Count of the number of indexed vertices
+   */
+  SceneIndex.prototype.indexBufferedGeometryPosition = function (obj) {
+    var i, total = 0;
+    console.info('point count', obj.geometry.attributes.position.count);
+    for (i = 0; i < obj.geometry.attributes.position.count; i+= 3) {
+      total += 1;
+    }
+    return total;
+  };
+
+  /**
+   * Index the position of each vertex.
+   * @param {THREE.Object3D|THREE.Points} obj Scene object
+   * @returns {number} Count of the number of indexed vertices
+   */
+  SceneIndex.prototype.indexGeometryVertices = function (obj) {
+    var aabb, i, id, metadata, total = 0, vertex;
+    if (obj.geometry.vertices) {
+      for (i = 0; i < obj.geometry.vertices.length; i++) {
+        // TODO ensure that the vertex position is absolute
+        vertex = obj.geometry.vertices[i].clone().add(obj.position);
+        id = obj.uuid + ',' + i;
+        aabb = {
+          min: {x:vertex.x, y:vertex.y, z:vertex.z},
+          max: {x:vertex.x, y:vertex.y, z:vertex.z}
+        };
+        metadata = {
+          type:'THREE.Points'
+        };
+        this.sceneIndex.insert(id, aabb, metadata);
+        total += 1;
+      }
+    }
+    return total;
+  };
+
+  /**
    * Add objects to the scene index.
    * @param {Array} objs Scene objects to be indexed
    */
   SceneIndex.prototype.indexScene = function (objs) {
+    objs = objs || [];
+    var objects = 0, self = this, verticies = 0;
+
     // TODO perform indexing in a worker
     // reduce each scene entity to the properties that we want to index
     // for each element, record the uuid, index, aabb
@@ -610,9 +724,6 @@ FOUR.SceneIndex = (function () {
     // build the 3D index
     // build the 2D index
     // take advantage of memoization
-
-    objs = objs || [];
-    var objects = 0, self = this, verticies = 0;
 
     //var objs = this.scene.getModelObjects().map(function (obj) {
     //  return {
@@ -642,7 +753,11 @@ FOUR.SceneIndex = (function () {
       if (obj.geometry) {
         // switch indexing strategy depending on the type of scene object
         if (obj instanceof THREE.Points) {
-          verticies += self.indexPointsVertices(obj);
+          if (obj.geometry.vertices) {
+            verticies += self.indexGeometryVertices(obj);
+          } else if (obj.geometry.attributes.hasOwnProperty('position')) {
+            verticies += self.indexBufferedGeometryPosition(obj);
+          }
         } else if (obj instanceof THREE.Object3D) {
           verticies += self.indexObject3DVertices(obj);
         }
@@ -655,28 +770,32 @@ FOUR.SceneIndex = (function () {
    * Add objects to the camera view index.
    * @param {THREE.Scene} scene Scene
    * @param {THREE.Camera} camera Camera
+   * @param {number} width Viewport width
+   * @param {number} height Viewport height
    */
   SceneIndex.prototype.indexView = function (scene, camera, width, height) {
-    var objects = 0, objs, matrix, self = this, vertices = 0;
+    var id, obj, objects = 0, matrix, self = this, vertices = 0;
     // build a frustum for the current camera view
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
     // the list of entities intersecting the frustum
-    objs = self.sceneIndex.getEntitiesIntersectingFrustum(self.frustum);
-    objs.forEach(function (obj) {
-      if (obj.matrixWorldNeedsUpdate) {
-        obj.updateMatrixWorld();
-      }
-      if (obj.geometry && self.frustum.intersectsObject(obj)) {
-        objects += 1;
-        // switch indexing strategy depending on the type of scene object
-        if (obj instanceof THREE.Points) {
-          vertices += self.indexPointsVerticesScreenCoordinates(obj, width, height);
-        } else if (obj instanceof THREE.Object3D) {
-          vertices += self.indexObject3DScreenCoordinates(obj, width, height);
-        }
-      }
+    self.sceneIndex.getCellsIntersectingFrustum(self.frustum).forEach(function (cell) {
+
     });
+    //self.sceneIndex
+    //  .getEntitiesIntersectingFrustum(self.frustum)
+    //  .forEach(function (id) {
+    //    obj = scene.getObjectByProperty('uuid', uuid);
+    //    if (obj.geometry && self.frustum.intersectsObject(obj)) {
+    //      objects += 1;
+    //      // switch indexing strategy depending on the type of scene object
+    //      if (obj instanceof THREE.Points) {
+    //        vertices += self.indexPointsVerticesScreenCoordinates(obj, width, height);
+    //      } else if (obj instanceof THREE.Object3D) {
+    //        vertices += self.indexObject3DScreenCoordinates(obj, width, height);
+    //      }
+    //    }
+    //  });
     console.info('Added %s objects, %s vertices to the view index', objects, vertices);
   };
 
@@ -718,34 +837,14 @@ FOUR.SceneIndex = (function () {
    * @param {THREE.Object3D} obj Scene object
    */
   SceneIndex.prototype.indexObject3DVertices = function (obj) {
-    obj.computeBoundingBox();
-    this.sceneIndex.insert(obj.uuid.slice() + ',-1', obj.geometry.boundingBox);
-  };
-
-  SceneIndex.prototype.indexPointsVertices = function (obj, index, clientWidth, clientHeight) {
-    var i, p, self = this, total = 0, vertex;
-    if (obj.geometry.vertices) {
-      for (i = 0; i < obj.geometry.vertices.length; i++) {
+    var total = 0;
+    if (obj.geometry) {
+      obj.geometry.computeBoundingBox();
+      if (obj.geometry.vertices) {
+        total += this.indexGeometryVertices(obj);
+      } else {
+        this.sceneIndex.insert(obj.uuid.slice() + ',-1', obj.geometry.boundingBox);
         total += 1;
-        vertex = obj.geometry.vertices[i];
-        p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, clientWidth, clientHeight);
-        if (p.x >= 0 && p.y >= 0) {
-          index.push({
-            uuid:obj.uuid.slice(),
-            x:Number(p.x),
-            y:Number(p.y),
-            width:0,
-            height:0,
-            index:i,
-            type:'THREE.Points'});
-          //console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
-        }
-      }
-    } else if (obj.geometry.attributes.hasOwnProperty('position')) {
-      console.info('point count', obj.geometry.attributes.position.count);
-      for (i = 0; i < obj.geometry.attributes.position.count; i+= 3) {
-      //  p = [i+0, i+1, i+2];
-      //  //p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, clientWidth, clientHeight);
       }
     }
     return total;
