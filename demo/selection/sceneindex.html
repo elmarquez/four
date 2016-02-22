@@ -2,7 +2,7 @@
 <html>
 <head lang="en">
   <meta charset="UTF-8">
-  <title>FOUR - Marquee Selection Controller</title>
+  <title>FOUR - Scene Index</title>
   <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
@@ -18,34 +18,72 @@
     <script src="../../dist/four.js"></script>
   <style>
     body {
+      font-family: 'Helvetica Neue', Helvetica, Arial;
       margin: 0;
       padding: 0;
     }
-    #webgl {
-      bottom: 0;
+    #top {
+      background-color: red;
+      bottom: 50%;
       left: 0;
-      overflow: hidden;
-      position: absolute;
+      position: fixed;
       right: 0;
       top: 0;
-      z-index: 500;
     }
-    #webgl:focus {
+    #viewport1 {
+      height: 100%;
+      width: 100%;
+    }
+    #bottom {
+      background-color: green;
+      border-top: 1px solid darkgray;
+      bottom: 0;
+      left: 0;
+      position: fixed;
+      right: 0;
+      top: 50%;
+    }
+    .label {
+      background-color: #0040D0;
+      color: white;
+      font-family: 'Helvetica Neue', Helvetica, Arial;
+      font-weight: bold;
+      margin: 12px;
+      padding: 6px;
+      z-index: 200;
+    }
+    .webgl {
+      height: 100%;
+      width: 100%;
+    }
+    .webgl:focus {
       outline: none;
     }
   </style>
 </head>
 <body>
-<div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
-<div id="webgl"></div>
+<div id="top">
+  <div class="label">Camera View</div>
+  <div id="marquee" style="display: none;"></div>
+  <div id="viewport1" class="webgl"></div>
+</div>
+<div id="bottom">
+  <div class="label">Scene View</div>
+  <div id="viewport2" class="webgl"></div>
+</div>
+
 <script>
   var points = 500;
   var primitives = 500;
 
-  var camera, marquee, domElement, geometry, helper, i, index, light, material;
-  var mesh, multi, objs, particles, rotate, scene, selectionSet, viewport;
+  var camera1, camera2, marquee, domElement1, domElement2, geometry, helper, i, index, light;
+  var material, mesh, multi, objs, particles, rotate, scene, selectionSet;
+  var viewport1, viewport2;
 
   $(document).ready(function () {
+    domElement1 = document.getElementById('viewport1');
+    domElement2 = document.getElementById('viewport2');
+
     // scene
     scene = new FOUR.Scene();
     index = new FOUR.SceneIndex();
@@ -60,9 +98,29 @@
     scene.add(viewCells);
 
     // camera
-    camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.y = -100;
-    scene.cameras.add(camera);
+    camera1 = new FOUR.TargetCamera(60, domElement1.clientWidth / domElement1.clientHeight, 1, 500);
+    camera1.position.y = -150;
+
+    camera2 = new FOUR.TargetCamera(60, domElement2.clientWidth/ domElement2.clientHeight, 1, 5000);
+    camera2.position.x = 0;
+    camera2.position.y = 150;
+    camera2.position.z = 1000;
+    camera2.lookAt(new THREE.Vector3(0,150,0));
+    camera2.rotateOnAxis(new THREE.Vector3(0,0,1), Math.PI * 1.5);
+
+    scene.cameras.add(camera1);
+    scene.cameras.add(camera2);
+
+    // camera helper
+    var camera1Helper = new THREE.CameraHelper(camera1);
+    scene.helpers.add(camera1Helper);
+
+    // viewport
+    viewport1 = new FOUR.Viewport3D({camera: camera1, domElement: domElement1, scene: scene});
+    viewport2 = new FOUR.Viewport3D({camera: camera2, domElement: domElement2, scene: scene});
+
+    var axisHelper = new THREE.AxisHelper(100);
+    scene.helpers.add(axisHelper);
 
     // lights
     light = new THREE.DirectionalLight(0xffffff);
@@ -105,20 +163,16 @@
       scene.model.add(mesh);
     }
 
-    // viewport
-    domElement = document.getElementById('webgl');
-    viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
-
     // viewport controllers
-    multi = new FOUR.MultiController({viewport: viewport});
-    rotate = new FOUR.RotateController({viewport: viewport});
-    marquee = new FOUR.MarqueeSelectionController({viewport: viewport, index:index});
+    multi = new FOUR.MultiController({viewport: viewport1});
+    rotate = new FOUR.RotateController({viewport: viewport1});
+    marquee = new FOUR.MarqueeSelectionController({viewport: viewport1, index:index});
     multi.addController(rotate, 'rotate');
     multi.addController(marquee, 'marquee');
     multi.enable();
 
-    viewport.addController(multi, 'multi');
-    viewport.setActiveController('multi');
+    viewport1.addController(multi, 'multi');
+    viewport1.setActiveController('multi');
 
     selectionSet = new FOUR.SelectionSet();
 
@@ -180,13 +234,15 @@
         cells.visible = cells.visible ? false : true;
       } else if (event.keyCode === FOUR.KEY.THREE) {
         // this event should be triggered when the camera changes
-        index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight);
+        index.indexView(scene, camera1, domElement1.clientWidth, domElement1.clientHeight);
       }
-      viewport.render();
+      viewport1.render();
+      viewport2.render();
     });
 
-    window.addEventListener('resize', function (event) {
-      viewport.render();
+    window.addEventListener('resize', function () {
+      viewport1.render();
+      viewport2.render();
     });
 
     var keyCommand = new FOUR.KeyCommandController();
@@ -201,7 +257,8 @@
     });
 
     // start rendering
-    viewport.render();
+    viewport1.render();
+    viewport2.render();
 
   });
 </script>

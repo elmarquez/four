@@ -56,16 +56,16 @@ FOUR.KEY = {
   ARROW_UP: 38,
   ARROW_RIGHT: 39,
   ARROW_DOWN: 40,
-  0: 48,
-  1: 49,
-  2: 50,
-  3: 51,
-  4: 52,
-  5: 53,
-  6: 54,
-  7: 55,
-  8: 56,
-  9: 57,
+  ZERO: 48,
+  ONE: 49,
+  TWO: 50,
+  THREE: 51,
+  FOUR: 52,
+  FIVE: 53,
+  SIX: 54,
+  SEVEN: 55,
+  EIGHT: 56,
+  NINE: 57,
   A: 65,
   B: 66,
   C: 67,
@@ -328,27 +328,34 @@ FOUR.KeyCommandController = (function () {
   };
 
   /**
+   * Determine if a command is active.
+   * @param command
+   */
+  KeyCommandController.prototype.isActive = function (command) {
+
+  };
+
+  /**
    * @see http://api.jquery.com/event.which/
    * @param evt
    */
   KeyCommandController.prototype.keydown = function (evt) {
-    var me = this;
+    var self = this;
     // record the key down state
-    me.pressed[evt.keyCode] = true;
+    self.pressed[evt.keyCode] = true;
     // check the default command set for commands that should be activated
-    Object.keys(me.sets.default).forEach(function (command) {
-      var active = command.keys.reduce(function (last, key) {
-        if (me.pressed.indexOf(key) > -1) {
-          last = last === null ? true : last;
-        }
-        return last;
-      }, null);
-      console.info('check default command');
+    Object.keys(self.sets.default).forEach(function (command) {
+      if (self.isActive(command)) {
+
+        console.info('command active');
+      }
     });
     // check the current command set
-    if (me.active) {
-      Object.keys(me.sets[me.active]).forEach(function (command) {
-        console.info('check command');
+    if (self.active) {
+      Object.keys(self.sets[self.active]).forEach(function (command) {
+        if (self.isActive(command)) {
+          console.info('command active');
+        }
       });
     }
   };
@@ -650,6 +657,30 @@ FOUR.SceneIndex = (function () {
   };
 
   /**
+   * Get cell envelope center position.
+   * @param {Object} env Object representing cell envelope
+   * @returns {Array} Coordinate array
+   */
+  SceneIndex.prototype.getEnvelopeCenter = function (env) {
+    var x = (env.max.x + env.min.x) / 2;
+    var y = (env.max.y + env.min.y) / 2;
+    var z = (env.max.z + env.min.z) / 2;
+    return [x, y, z];
+  };
+
+  /**
+   * Get cell envelope center position.
+   * @param {Object} env Object representing cell envelope
+   * @returns {Array} Dimension array
+   */
+  SceneIndex.prototype.getEnvelopeSize = function (env) {
+    var x = Math.abs(env.max.x - env.min.x);
+    var y = Math.abs(env.max.y - env.min.y);
+    var z = Math.abs(env.max.z - env.min.z);
+    return [x, y, z];
+  };
+
+  /**
    * Get screen entities within a specified radius from the screen position.
    * @param {Object} pos Screen position
    * @param {Number} radius Radius from point
@@ -701,7 +732,7 @@ FOUR.SceneIndex = (function () {
         metadata = {
           type:'THREE.Points'
         };
-        this.sceneIndex.insert(id, aabb, metadata);
+        this.sceneIndex.insert(id, i, aabb, metadata);
         total += 1;
       }
     }
@@ -724,26 +755,6 @@ FOUR.SceneIndex = (function () {
     // build the 3D index
     // build the 2D index
     // take advantage of memoization
-
-    //var objs = this.scene.getModelObjects().map(function (obj) {
-    //  return {
-    //    uuid: obj.uuid.slice(0),
-    //    position: obj.position.toArray()
-    //  }
-    //});
-
-    //hamsters.run({'array': objs}, function() {
-    //  for (var i = 0; i < params.array.length; i += 1) {
-    //    if (params.array[i].hasOwnProperty('uuid')) {
-    //      rtn.data.push(params.array[i].uuid);
-    //    } else {
-    //      rtn.data.push(null);
-    //    }
-    //  }
-    //}, function(output) {
-    //  console.info(output);
-    //  //callback.call();
-    //}, hamsters.maxThreads, true);
 
     objs.forEach(function (obj) {
       objects += 1;
@@ -779,23 +790,23 @@ FOUR.SceneIndex = (function () {
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
     // the list of entities intersecting the frustum
-    self.sceneIndex.getCellsIntersectingFrustum(self.frustum).forEach(function (cell) {
-
-    });
-    //self.sceneIndex
-    //  .getEntitiesIntersectingFrustum(self.frustum)
-    //  .forEach(function (id) {
-    //    obj = scene.getObjectByProperty('uuid', uuid);
-    //    if (obj.geometry && self.frustum.intersectsObject(obj)) {
-    //      objects += 1;
-    //      // switch indexing strategy depending on the type of scene object
-    //      if (obj instanceof THREE.Points) {
-    //        vertices += self.indexPointsVerticesScreenCoordinates(obj, width, height);
-    //      } else if (obj instanceof THREE.Object3D) {
-    //        vertices += self.indexObject3DScreenCoordinates(obj, width, height);
-    //      }
-    //    }
-    //  });
+    //self.sceneIndex.getCellsIntersectingFrustum(self.frustum).forEach(function (cell) {
+    //});
+    self.sceneIndex
+      .getEntitiesIntersectingFrustum(self.frustum)
+      .forEach(function (id) {
+          //console.info('id', id);
+        //obj = scene.getObjectByProperty('uuid', uuid);
+        //if (obj.geometry && self.frustum.intersectsObject(obj)) {
+          objects += 1;
+        //  // switch indexing strategy depending on the type of scene object
+        //  if (obj instanceof THREE.Points) {
+        //    vertices += self.indexPointsVerticesScreenCoordinates(obj, width, height);
+        //  } else if (obj instanceof THREE.Object3D) {
+        //    vertices += self.indexObject3DScreenCoordinates(obj, width, height);
+        //  }
+        //}
+      });
     console.info('Added %s objects, %s vertices to the view index', objects, vertices);
   };
 
