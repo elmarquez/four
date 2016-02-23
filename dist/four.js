@@ -760,33 +760,19 @@ FOUR.SceneIndex = (function () {
    * @returns {Number} Count of indexed vertices
    */
   SceneIndex.prototype.indexObject3DScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-    var height, maxX = 0, maxY = 0, minX = clientWidth, minY = clientHeight, p;
-    var self = this, total = 0, width, x, y;
-    if (obj.matrixWorldNeedsUpdate) {
-      obj.updateMatrixWorld();
-    }
+    var aabb, p, points = [], rec = new THREE.Box2(), self = this;
     // project the object vertices into the screen space, then find the screen
     // space bounding box for the scene object
     obj.geometry.vertices.forEach(function (vertex) {
-      total += 1;
-      p = vertex.clone();
-      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
+      p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
       p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-      maxX = p.x > maxX ? p.x : maxX;
-      maxY = p.y > maxY ? p.y : maxY;
-      minX = p.x < minX ? p.x : minX;
-      minY = p.y < minY ? p.y : minY;
+      points.push(p);
     });
-    height = (maxY - minY) > 0 ? maxY - minY : 0;
-    width = (maxX - minX) > 0 ? maxX - minX : 0;
-    x = minX >= 0 ? minX : 0;
-    y = minY >= 0 ? minY : 0;
+    rec.setFromPoints(points);
     // add the object screen bounding box to the index
-    self.viewIndex.insert(
-        obj.uuid.slice() + ',-1',
-        new THREE.Box3(new THREE.Vector3(x, y, 0), new THREE.Box3(x + width, y + height, 0))
-    );
-    return total;
+    aabb = new THREE.Box3(new THREE.Vector3(rec.min.x, rec.min.y, 0), new THREE.Vector3(rec.max.x, rec.max.y, 0));
+    self.viewIndex.insert(obj.uuid.slice(), ',-1', aabb, {});
+    return points.length;
   };
 
   /**
@@ -800,7 +786,7 @@ FOUR.SceneIndex = (function () {
       if (obj.geometry.vertices) {
         total += this.indexGeometryVertices(obj);
       } else {
-        this.sceneIndex.insert(obj.uuid.slice() + ',-1', obj.geometry.boundingBox);
+        this.sceneIndex.insert(obj.uuid.slice() + ',-1', obj.geometry.boundingBox, {});
         total += 1;
       }
     }
@@ -816,32 +802,19 @@ FOUR.SceneIndex = (function () {
    * @returns {Number} Count of indexed vertices
    */
   SceneIndex.prototype.indexPointsScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-    // TODO use Box2 instead of hand computing the bounding rec
-    var height, maxX = 0, maxY = 0, minX = clientWidth, minY = clientHeight, p;
-    var rec = new THREE.Box2(), self = this, width, x, y;
-    if (obj.matrixWorldNeedsUpdate) {
-      obj.updateMatrixWorld();
-    }
+    var aabb, p, points = [], rec = new THREE.Box2(), self = this;
     // project the object vertices into the screen space, then find the screen
     // space bounding box for the scene object
     obj.geometry.vertices.forEach(function (vertex) {
-      p = vertex.clone();
-      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
+      p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
       p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-      maxX = p.x > maxX ? p.x : maxX;
-      maxY = p.y > maxY ? p.y : maxY;
-      minX = p.x < minX ? p.x : minX;
-      minY = p.y < minY ? p.y : minY;
+      points.push(p);
     });
-    height = (maxY - minY) > 0 ? maxY - minY : 0;
-    width = (maxX - minX) > 0 ? maxX - minX : 0;
-    x = minX >= 0 ? minX : 0;
-    y = minY >= 0 ? minY : 0;
+    rec.setFromPoints(points);
     // add the object screen bounding box to the index
-    self.viewIndex.insert(
-        obj.uuid.slice() + ',-1',
-        new THREE.Box3(new THREE.Vector3(x, y, 0), new THREE.Box3(x + width, y + height, 0))
-    );
+    aabb = new THREE.Box3(new THREE.Vector3(rec.min.x, rec.min.y, 0), new THREE.Vector3(rec.max.x, rec.max.y, 0));
+    self.viewIndex.insert(obj.uuid.slice(), -1, aabb, {});
+    return points.length;
   };
 
   /**
@@ -849,9 +822,6 @@ FOUR.SceneIndex = (function () {
    * @param {Array} objs Scene objects to be indexed
    */
   SceneIndex.prototype.indexScene = function (objs) {
-    objs = objs || [];
-    var objects = 0, self = this, verticies = 0;
-
     // TODO perform indexing in a worker
     // reduce each scene entity to the properties that we want to index
     // for each element, record the uuid, index, aabb
@@ -861,6 +831,8 @@ FOUR.SceneIndex = (function () {
     // build the 2D index
     // take advantage of memoization
 
+    objs = objs || [];
+    var objects = 0, self = this, start = new Date().getTime(), verticies = 0;
     objs.forEach(function (obj) {
       objects += 1;
       if (obj.matrixWorldNeedsUpdate) {
@@ -879,7 +851,8 @@ FOUR.SceneIndex = (function () {
         }
       }
     });
-    console.info('Added %s objects, %s vertices to the scene index', objects, verticies);
+    var time = new Date().getTime() - start;
+    console.info('Added %s objects, %s vertices to the scene index in %s ms', objects, verticies, time);
   };
 
   /**
@@ -890,28 +863,29 @@ FOUR.SceneIndex = (function () {
    * @param {number} height Viewport height
    */
   SceneIndex.prototype.indexView = function (scene, camera, width, height) {
-    var index, obj, objects = 0, matrix, self = this, vertices = 0, uuid;
+    var index, obj, objects = 0, matrix, self = this,
+      start = new Date().getTime(), vertices = 0, uuid;
     // build a frustum for the current camera view
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
     // get a list of entities intersecting the frustum
-    self.sceneIndex
-      .getEntitiesIntersectingFrustum(self.frustum)
-      .forEach(function (id) {
+    var ent = self.sceneIndex.getEntitiesIntersectingFrustum(self.frustum);
+    ent.forEach(function (id, x) {
         objects += 1;
         id = id.split(',');
-        index = parseInt(id[0]);
+        index = parseInt(id[1]);
         uuid = id[0];
         // TODO store this data in the scene index
         obj = scene.getObjectByProperty('uuid', uuid);
         // switch indexing strategy depending on the type of scene object
         if (obj instanceof THREE.Points) {
-          vertices += self.indexPointsScreenCoordinates(obj, camera, width, height);
+          //vertices += self.indexPointsScreenCoordinates(obj, camera, width, height);
         } else if (obj instanceof THREE.Object3D) {
           vertices += self.indexObject3DScreenCoordinates(obj, camera, width, height);
         }
       });
-    console.info('Added %s objects, %s vertices to the view index', objects, vertices);
+    var time = new Date().getTime() - start;
+    console.info('Added %s objects, %s vertices to the view index in %s ms', objects, vertices, time);
   };
 
   /**
