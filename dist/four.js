@@ -802,19 +802,15 @@ FOUR.SceneIndex = (function () {
    * @returns {Number} Count of indexed vertices
    */
   SceneIndex.prototype.indexPointsScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-    var aabb, p, points = [], rec = new THREE.Box2(), self = this;
-    // project the object vertices into the screen space, then find the screen
-    // space bounding box for the scene object
-    obj.geometry.vertices.forEach(function (vertex) {
+    var aabb, p, self = this, total = 0, uuid = obj.uuid.slice();
+    obj.geometry.vertices.forEach(function (vertex, i) {
       p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
       p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-      points.push(p);
+      aabb = new THREE.Box3(new THREE.Vector3(p.x, p.y, 0), new THREE.Vector3(p.x, p.y, 0));
+      self.viewIndex.insert(uuid, i, aabb, {});
+      total += 1;
     });
-    rec.setFromPoints(points);
-    // add the object screen bounding box to the index
-    aabb = new THREE.Box3(new THREE.Vector3(rec.min.x, rec.min.y, 0), new THREE.Vector3(rec.max.x, rec.max.y, 0));
-    self.viewIndex.insert(obj.uuid.slice(), -1, aabb, {});
-    return points.length;
+    return total;
   };
 
   /**
@@ -869,17 +865,13 @@ FOUR.SceneIndex = (function () {
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
     // get a list of entities intersecting the frustum
-    var ent = self.sceneIndex.getEntitiesIntersectingFrustum(self.frustum);
-    ent.forEach(function (id, x) {
+    self.sceneIndex.getEntitiesIntersectingFrustum(self.frustum).forEach(function (uuid, i, arr) {
         objects += 1;
-        id = id.split(',');
-        index = parseInt(id[1]);
-        uuid = id[0];
         // TODO store this data in the scene index
         obj = scene.getObjectByProperty('uuid', uuid);
         // switch indexing strategy depending on the type of scene object
         if (obj instanceof THREE.Points) {
-          //vertices += self.indexPointsScreenCoordinates(obj, camera, width, height);
+          vertices += self.indexPointsScreenCoordinates(obj, camera, width, height);
         } else if (obj instanceof THREE.Object3D) {
           vertices += self.indexObject3DScreenCoordinates(obj, camera, width, height);
         }
@@ -2443,11 +2435,27 @@ FOUR.Viewport3D = (function () {
   };
 
   /**
+   * Get the viewport height.
+   * @returns {Number}
+   */
+  Viewport3D.prototype.getHeight = function () {
+    return this.domElement.clientHeight;
+  };
+
+  /**
    * Get the viewport scene.
    * @returns {THREE.Scene}
    */
   Viewport3D.prototype.getScene = function () {
     return this.scene;
+  };
+
+  /**
+   * Get the viewport width.
+   * @returns {Number}
+   */
+  Viewport3D.prototype.getWidth = function () {
+    return this.domElement.clientWidth;
   };
 
   /**
@@ -6623,51 +6631,6 @@ FOUR.MarqueeSelectionController = (function () {
     this.filters[key] = fn;
   };
 
-  /**
-   * Build a quadtree index from the set of objects that are contained within
-   * the camera frustum. Index each object by its projected screen coordinates.
-   */
-  MarqueeSelectionController.prototype.buildIndex = function () {
-    this.index.indexScene();
-
-    //// TODO perform indexing in a worker if possible
-    //var matrix, objs, self = this, total = 0;
-    //// clear the current index
-    //self.quadtree = new Quadtree({
-    //  height: self.viewport.domElement.clientHeight,
-    //  width: self.viewport.domElement.clientWidth
-    //});
-    //// build a frustum for the current camera view
-    //matrix = new THREE.Matrix4().multiplyMatrices(self.camera.projectionMatrix, self.camera.matrixWorldInverse);
-    //self.frustum.setFromMatrix(matrix);
-    //// traverse the scene and add all entities within the frustum to the index
-    //objs = self.viewport.getScene().getModelObjects();
-    //objs.forEach(function (child) {
-    //  if (child.matrixWorldNeedsUpdate) {
-    //    child.updateMatrixWorld();
-    //  }
-    //  // objects without geometry will cause the frustrum intersection check to
-    //  // fail
-    //  try {
-    //    if (child.geometry && self.frustum.intersectsObject(child)) {
-    //      // switch indexing strategy depending on the type of scene object
-    //      //if (child instanceof THREE.BufferGeometry) {
-    //      //  total += self.indexBufferGeometryVertices(child, self.quadtree);
-    //      //} else
-    //      if (child instanceof THREE.Points) {
-    //        total += self.indexPointsVertices(child, self.quadtree);
-    //      } else if (child instanceof THREE.Object3D) {
-    //        self.indexObject3DVertices(child, self.quadtree);
-    //        total += 1;
-    //      }
-    //    }
-    //  } catch (err) {
-    //    // no need to do anything
-    //  }
-    //});
-    //console.info('Added %s objects to the view index', total);
-  };
-
   MarqueeSelectionController.prototype.clearFilter = function () {};
 
   MarqueeSelectionController.prototype.disable = function () {
@@ -6883,7 +6846,7 @@ FOUR.MarqueeSelectionController = (function () {
       clearTimeout(this.indexingTimeout);
       this.indexingTimeout = null;
     }
-    this.indexingTimeout = setTimeout(this.buildIndex.bind(this), this.INDEX_TIMEOUT);
+    this.indexingTimeout = setTimeout(this.updateViewIndex.bind(this), this.INDEX_TIMEOUT);
   };
 
   /**
@@ -6970,6 +6933,18 @@ FOUR.MarqueeSelectionController = (function () {
   };
 
   MarqueeSelectionController.prototype.update = function () {}; // noop
+
+  /**
+   * Update the view index.
+   */
+  MarqueeSelectionController.prototype.updateViewIndex = function () {
+    this.index.indexView(
+      this.viewport.scene,
+      this.viewport.getCamera(),
+      this.viewport.getWidth(),
+      this.viewport.getHeight()
+    );
+  };
 
   return MarqueeSelectionController;
 
