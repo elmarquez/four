@@ -213,28 +213,10 @@
 //      });
     });
 
-    // index the scene
-    objs = scene.getModelObjects();
-    index.indexScene(objs);
-
     // create geometry to represent the cells
-    var cell, size, position;
-    material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe:true});
-    Object.keys(index.sceneIndex.envelopes).forEach(function (key) {
-      cell = index.sceneIndex.envelopes[key];
-      size = index.getEnvelopeSize(cell);
-      position = index.getEnvelopeCenter(cell);
-
-      geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
-      mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(position[0], position[1], position[2]);
-      cells.add(mesh);
-    });
-
-    var matrix, frustum = new THREE.Frustum();
-
     window.addEventListener('keyup', function (event) {
       if (event.keyCode === FOUR.KEY.ONE) {
+        // make the layer visible
         console.info('toggle view cells', !viewCells.visible);
         // if the layer is currently hidden then we will turn it on in the next
         // step, so let's get it ready for display
@@ -278,6 +260,51 @@
       viewport2.render();
     });
 
+    index.addEventListener('update', function () {
+      var cell, frustum, i, material, matrix, size, position;
+      // clear all existing scene cells
+      for (i = cells.children.length; i >= 0; i--) {
+        cells.remove(viewCells.children[i]);
+      }
+      // create volumes to represent scene cells
+      material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe:true});
+      Object.keys(index.sceneIndex.envelopes).forEach(function (key) {
+        cell = index.sceneIndex.envelopes[key];
+        size = index.getEnvelopeSize(cell);
+        position = index.getEnvelopeCenter(cell);
+
+        geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(position[0], position[1], position[2]);
+        cells.add(mesh);
+      });
+
+      // clear all existing view cells
+      for (i = viewCells.children.length; i >= 0; i--) {
+        viewCells.remove(viewCells.children[i]);
+      }
+
+      // create volumes to represent view cells
+      frustum = new THREE.Frustum();
+      material = new THREE.MeshBasicMaterial({color: 0x00cc00, wireframe:true});
+      matrix = new THREE.Matrix4().multiplyMatrices(camera1.projectionMatrix, camera1.matrixWorldInverse);
+      frustum.setFromMatrix(matrix);
+      cells = index.sceneIndex.getCellsIntersectingFrustum(frustum);
+      cells.forEach(function (cell) {
+        cell = index.sceneIndex.envelopes[cell];
+        size = index.getEnvelopeSize(cell);
+        position = index.getEnvelopeCenter(cell);
+        geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(position[0], position[1], position[2]);
+        viewCells.add(mesh);
+      });
+
+      // create overlay divs to represent bounding rectangles for scene
+      // entities
+      // TODO
+    });
+
     window.addEventListener('resize', function () {
       viewport1.render();
       viewport2.render();
@@ -297,6 +324,9 @@
       console.info('update selection cache');
       marquee.onCameraUpdate();
     });
+
+    // trigger first indexing of the scene
+    marquee.updateViewIndex();
 
     // start rendering
     viewport1.render();

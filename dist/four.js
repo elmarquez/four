@@ -849,6 +849,7 @@ FOUR.SceneIndex = (function () {
     });
     var time = new Date().getTime() - start;
     console.info('Added %s objects, %s vertices to the scene index in %s ms', objects, verticies, time);
+    this.dispatchEvent({type:FOUR.EVENT.UPDATE, description:'scene index updated'});
   };
 
   /**
@@ -878,6 +879,7 @@ FOUR.SceneIndex = (function () {
       });
     var time = new Date().getTime() - start;
     console.info('Added %s objects, %s vertices to the view index in %s ms', objects, vertices, time);
+    this.dispatchEvent({type:FOUR.EVENT.UPDATE, description:'view index updated'});
   };
 
   /**
