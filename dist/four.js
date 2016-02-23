@@ -6612,7 +6612,7 @@ FOUR.MarqueeSelectionController = (function () {
       height: config.viewport.domElement.clientHeight,
       width: config.viewport.domElement.clientWidth
     });
-    self.index = config.index || new FOUR.SceneIndex(); // TODO this should be passed in with config
+    self.index = config.index;
     self.selectAction = self.SELECT_ACTIONS.SELECT;
     self.selection = [];
     self.viewport = config.viewport;
@@ -6681,65 +6681,6 @@ FOUR.MarqueeSelectionController = (function () {
     this.marquee.setAttribute('style', 'display:none;');
   };
 
-  /**
-   * Index the THREE.Object3D by its vertices.
-   * @param {THREE.Object3D} obj Scene object
-   * @param {Quadtree} index Spatial index
-   * @returns {number} Count of indexed entities
-   */
-  MarqueeSelectionController.prototype.indexObject3DVertices = function (obj, index) {
-    var height, maxX = 0, maxY = 0,
-      minX = this.viewport.domElement.clientWidth,
-      minY = this.viewport.domElement.clientHeight,
-      p, self = this, width, x, y;
-    if (obj.matrixWorldNeedsUpdate) {
-      obj.updateMatrixWorld();
-    }
-    // project the object vertices into the screen space, then find the screen
-    // space bounding box for the scene object
-    obj.geometry.vertices.forEach(function (vertex) {
-      p = vertex.clone();
-      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
-      p = FOUR.utils.getVertexScreenCoordinates(p, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-      maxX = p.x > maxX ? p.x : maxX;
-      maxY = p.y > maxY ? p.y : maxY;
-      minX = p.x < minX ? p.x : minX;
-      minY = p.y < minY ? p.y : minY;
-    });
-    height = (maxY - minY) > 0 ? maxY - minY : 0;
-    width = (maxX - minX) > 0 ? maxX - minX : 0;
-    x = minX >= 0 ? minX : 0;
-    y = minY >= 0 ? minY : 0;
-    // add the object screen bounding box to the index
-    index.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D', object: obj});
-    //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
-    return 1;
-  };
-
-  /**
-   * Index the THREE.Points object by its vertices.
-   * @param {THREE.Points} obj Scene object
-   * @param {Quadtree} index Spatial index
-   * @returns {number} Count of indexed entities
-   */
-  MarqueeSelectionController.prototype.indexPointsVertices = function (obj, index) {
-    var i, p, self = this, total = 0, vertex;
-    if (obj.geometry.vertices) {
-      for (i = 0; i < obj.geometry.vertices.length; i++) {
-        total += 1;
-        vertex = obj.geometry.vertices[i];
-        p = FOUR.utils.getObjectScreenCoordinates(vertex, self.camera, self.viewport.domElement.clientWidth, self.viewport.domElement.clientHeight);
-        if (p.x >= 0 && p.y >= 0) {
-          index.push({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
-          console.info({uuid:obj.uuid.slice(), x:Number(p.x), y:Number(p.y), width:0, height:0, index:i, type:'THREE.Points'});
-        }
-      }
-    } else if (obj.geometry.attributes.position) {
-      console.warn('Indexing buffer geometry vertices will have a significant performance impact');
-    }
-    return total;
-  };
-
   MarqueeSelectionController.prototype.onCameraChange = function () {
     this.disable();
     this.enable();
@@ -6749,10 +6690,10 @@ FOUR.MarqueeSelectionController = (function () {
     this.reindex();
   };
 
-  MarqueeSelectionController.prototype.onContextMenu = function (event) {
-    event.preventDefault();
-  };
-
+  /**
+   * Handle key down event.
+   * @param {Object} event Event
+   */
   MarqueeSelectionController.prototype.onKeyDown = function (event) {
     if (event.keyCode === this.KEY.ALT) {
       this.selectAction = this.SELECT_ACTIONS.REMOVE;
@@ -6761,6 +6702,10 @@ FOUR.MarqueeSelectionController = (function () {
     }
   };
 
+  /**
+   * Handle key up event.
+   * @param {Object} event Event
+   */
   MarqueeSelectionController.prototype.onKeyUp = function (event) {
     if (event.keyCode === this.KEY.ALT) {
       this.selectAction = this.SELECT_ACTIONS.SELECT;
@@ -6769,6 +6714,10 @@ FOUR.MarqueeSelectionController = (function () {
     }
   };
 
+  /**
+   * Handle mouse down event.
+   * @param {Object} event Event
+   */
   MarqueeSelectionController.prototype.onMouseDown = function (event) {
     if (event.button === THREE.MOUSE.LEFT) {
       event.preventDefault();
@@ -6778,6 +6727,10 @@ FOUR.MarqueeSelectionController = (function () {
     }
   };
 
+  /**
+   * Handle mouse move event.
+   * @param {Object} event Event
+   */
   MarqueeSelectionController.prototype.onMouseMove = function (event) {
     var delta = new THREE.Vector2(event.offsetX, event.offsetY).sub(this.mouse.start).length();
     if (this.mouse.state === this.MOUSE_STATE.DOWN && delta > this.EPS) {
@@ -6807,6 +6760,10 @@ FOUR.MarqueeSelectionController = (function () {
     }
   };
 
+  /**
+   * Handle mouse up event.
+   * @param {Object} event Event
+   */
   MarqueeSelectionController.prototype.onMouseUp = function (event) {
     if (this.mouse.state === this.MOUSE_STATE.DOWN && event.button === THREE.MOUSE.LEFT) {
       event.preventDefault();
@@ -6836,7 +6793,12 @@ FOUR.MarqueeSelectionController = (function () {
     }
   };
 
-  MarqueeSelectionController.prototype.onWindowResize = function () {
+  /**
+   * Handle window resize event.
+   * @param {Object} event Event
+   */
+  MarqueeSelectionController.prototype.onWindowResize = function (event) {
+    // FIXME implement
   };
 
   /**
@@ -6941,7 +6903,7 @@ FOUR.MarqueeSelectionController = (function () {
    */
   MarqueeSelectionController.prototype.updateViewIndex = function () {
     this.index.indexView(
-      this.viewport.scene,
+      this.viewport.getScene(),
       this.viewport.getCamera(),
       this.viewport.getWidth(),
       this.viewport.getHeight()

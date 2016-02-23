@@ -76,8 +76,8 @@
   var points = 500;
   var primitives = 500;
 
-  var camera1, camera2, marquee, domElement1, domElement2, geometry, helper, i, index, light;
-  var material, mesh, multi, obj, objs, particles, rotate, scene, selectionSet;
+  var camera1, camera2, cells, frustum, domElement1, domElement2, geometry, helper, i, index, light;
+  var marquee, material, matrix, mesh, multi, obj, objs, particles, position, rotate, scene, selectionSet;
   var viewport1, viewport2;
 
   $(document).ready(function () {
@@ -88,13 +88,13 @@
     scene = new FOUR.Scene();
     index = new FOUR.SceneIndex();
 
-    var cells = new THREE.Object3D();
+    var sceneCells = new THREE.Object3D();
     var viewCells = new THREE.Object3D();
 
-    cells.visible = false;
+    sceneCells.visible = false;
     viewCells.visible = false;
 
-    scene.add(cells);
+    scene.add(sceneCells);
     scene.add(viewCells);
 
     // camera
@@ -110,6 +110,9 @@
 
     scene.cameras.add(camera1);
     scene.cameras.add(camera2);
+
+    // frustum
+    frustum = new THREE.Frustum();
 
     // camera helper
     var camera1Helper = new THREE.CameraHelper(camera1);
@@ -222,15 +225,14 @@
         // step, so let's get it ready for display
         if (!viewCells.visible) {
           // clear all existing view cells
-          for (var i = viewCells.children.length; i >= 0; i--) {
+          for (i = viewCells.children.length; i >= 0; i--) {
             viewCells.remove(viewCells.children[i]);
           }
           // create new view cells
           material = new THREE.MeshBasicMaterial({color: 0x00cc00, wireframe:true});
           matrix = new THREE.Matrix4().multiplyMatrices(camera1.projectionMatrix, camera1.matrixWorldInverse);
           frustum.setFromMatrix(matrix);
-          cells = index.sceneIndex.getCellsIntersectingFrustum(frustum);
-          cells.forEach(function (cell) {
+          index.sceneIndex.getCellsIntersectingFrustum(frustum).forEach(function (cell) {
             cell = index.sceneIndex.envelopes[cell];
             size = index.getEnvelopeSize(cell);
             position = index.getEnvelopeCenter(cell);
@@ -244,9 +246,9 @@
         // make the layer visible
         viewCells.visible = viewCells.visible ? false : true;
       } else if (event.keyCode === FOUR.KEY.TWO) {
-        // toggle display of index cells
-        console.info('toggle scene cells', !cells.visible);
-        cells.visible = cells.visible ? false : true;
+        // toggle display of scene cells
+        console.info('toggle scene cells', !sceneCells.visible);
+        sceneCells.visible = sceneCells.visible ? false : true;
       } else if (event.keyCode === FOUR.KEY.THREE) {
         console.info('index view');
         // this event should be triggered when the camera changes
@@ -260,11 +262,14 @@
       viewport2.render();
     });
 
+    /**
+     * Handle updates on the scene index.
+     */
     index.addEventListener('update', function () {
-      var cell, frustum, i, material, matrix, size, position;
+      var cell, i, material, size, position;
       // clear all existing scene cells
-      for (i = cells.children.length; i >= 0; i--) {
-        cells.remove(viewCells.children[i]);
+      for (i = sceneCells.children.length; i >= 0; i--) {
+        sceneCells.remove(viewCells.children[i]);
       }
       // create volumes to represent scene cells
       material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe:true});
@@ -276,7 +281,7 @@
         geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
         mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(position[0], position[1], position[2]);
-        cells.add(mesh);
+        sceneCells.add(mesh);
       });
 
       // clear all existing view cells
@@ -285,12 +290,10 @@
       }
 
       // create volumes to represent view cells
-      frustum = new THREE.Frustum();
       material = new THREE.MeshBasicMaterial({color: 0x00cc00, wireframe:true});
       matrix = new THREE.Matrix4().multiplyMatrices(camera1.projectionMatrix, camera1.matrixWorldInverse);
       frustum.setFromMatrix(matrix);
-      cells = index.sceneIndex.getCellsIntersectingFrustum(frustum);
-      cells.forEach(function (cell) {
+      index.sceneIndex.getCellsIntersectingFrustum(frustum).forEach(function (cell) {
         cell = index.sceneIndex.envelopes[cell];
         size = index.getEnvelopeSize(cell);
         position = index.getEnvelopeCenter(cell);
@@ -326,7 +329,8 @@
     });
 
     // trigger first indexing of the scene
-    marquee.updateViewIndex();
+    objs = scene.getModelObjects();
+    index.indexScene(objs);
 
     // start rendering
     viewport1.render();
