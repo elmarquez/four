@@ -77,7 +77,7 @@
   var primitives = 500;
 
   var camera1, camera2, marquee, domElement1, domElement2, geometry, helper, i, index, light;
-  var material, mesh, multi, objs, particles, rotate, scene, selectionSet;
+  var material, mesh, multi, obj, objs, particles, rotate, scene, selectionSet;
   var viewport1, viewport2;
 
   $(document).ready(function () {
@@ -231,10 +231,35 @@
       cells.add(mesh);
     });
 
+    var matrix, frustum = new THREE.Frustum();
+
     window.addEventListener('keyup', function (event) {
       if (event.keyCode === FOUR.KEY.ONE) {
-        // toggle display of view cells
         console.info('toggle view cells', !viewCells.visible);
+        // if the layer is currently hidden then we will turn it on in the next
+        // step, so let's get it ready for display
+        if (!viewCells.visible) {
+          // clear all existing view cells
+          for (var i = viewCells.children.length; i >= 0; i--) {
+            viewCells.remove(viewCells.children[i]);
+          }
+          // create new view cells
+          material = new THREE.MeshBasicMaterial({color: 0x00cc00, wireframe:true});
+          matrix = new THREE.Matrix4().multiplyMatrices(camera1.projectionMatrix, camera1.matrixWorldInverse);
+          frustum.setFromMatrix(matrix);
+          cells = index.sceneIndex.getCellsIntersectingFrustum(frustum);
+          cells.forEach(function (cell) {
+            cell = index.sceneIndex.envelopes[cell];
+            size = index.getEnvelopeSize(cell);
+            position = index.getEnvelopeCenter(cell);
+            geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(position[0], position[1], position[2]);
+            viewCells.add(mesh);
+//              // create a rectangle for each screen space cell
+          });
+        }
+        // make the layer visible
         viewCells.visible = viewCells.visible ? false : true;
       } else if (event.keyCode === FOUR.KEY.TWO) {
         // toggle display of index cells
