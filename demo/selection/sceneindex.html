@@ -86,7 +86,6 @@
 
     // scene
     scene = new FOUR.Scene();
-    index = new FOUR.SceneIndex({width:domElement2.clientWidth, height:domElement2.clientHeight});
 
     var sceneCells = new THREE.Object3D();
     var viewCells = new THREE.Object3D();
@@ -121,6 +120,9 @@
     // viewport
     viewport1 = new FOUR.Viewport3D({camera: camera1, domElement: domElement1, scene: scene});
     viewport2 = new FOUR.Viewport3D({camera: camera2, domElement: domElement2, scene: scene});
+
+    index = new FOUR.SceneIndex({width:domElement2.clientWidth, height:domElement2.clientHeight, viewport:viewport1});
+
 
     var axisHelper = new THREE.AxisHelper(100);
     scene.helpers.add(axisHelper);

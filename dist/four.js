@@ -616,11 +616,20 @@ FOUR.SceneIndex = (function () {
     };
     self.frustum = new THREE.Frustum();
     self.sceneIndex = new SpatialHash();
-    self.viewIndex = new SpatialHash();
+    //self.viewIndex = new SpatialHash();
+    self.viewport = null; // FIXME temporary until we remove quadtree
 
     Object.keys(config).forEach(function (key) {
       self[key] = config[key];
     });
+
+    self.viewIndex = new Quadtree({
+      x: 0,
+      y: 0,
+      height: config.viewport.domElement.clientHeight,
+      width: config.viewport.domElement.clientWidth
+    });
+
   }
 
   SceneIndex.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -760,19 +769,45 @@ FOUR.SceneIndex = (function () {
    * @returns {Number} Count of indexed vertices
    */
   SceneIndex.prototype.indexObject3DScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-    var aabb, p, points = [], rec = new THREE.Box2(), self = this;
+    //var aabb, p, points = [], rec = new THREE.Box2(), self = this;
+    //// project the object vertices into the screen space, then find the screen
+    //// space bounding box for the scene object
+    //obj.geometry.vertices.forEach(function (vertex) {
+    //  p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
+    //  p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
+    //  points.push(p);
+    //});
+    //rec.setFromPoints(points);
+    //// add the object screen bounding box to the index
+    //aabb = new THREE.Box3(new THREE.Vector3(rec.min.x, rec.min.y, 0), new THREE.Vector3(rec.max.x, rec.max.y, 0));
+    //self.viewIndex.insert(obj.uuid.slice(), ',-1', aabb, {});
+    //return points.length;
+    var height, maxX = 0, maxY = 0,
+        minX = this.viewport.domElement.clientWidth,
+        minY = this.viewport.domElement.clientHeight,
+        p, width, x, y;
+    if (obj.matrixWorldNeedsUpdate) {
+      obj.updateMatrixWorld();
+    }
     // project the object vertices into the screen space, then find the screen
     // space bounding box for the scene object
     obj.geometry.vertices.forEach(function (vertex) {
-      p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
+      p = vertex.clone();
+      p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
       p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-      points.push(p);
+      maxX = p.x > maxX ? p.x : maxX;
+      maxY = p.y > maxY ? p.y : maxY;
+      minX = p.x < minX ? p.x : minX;
+      minY = p.y < minY ? p.y : minY;
     });
-    rec.setFromPoints(points);
+    height = (maxY - minY) > 0 ? maxY - minY : 0;
+    width = (maxX - minX) > 0 ? maxX - minX : 0;
+    x = minX >= 0 ? minX : 0;
+    y = minY >= 0 ? minY : 0;
     // add the object screen bounding box to the index
-    aabb = new THREE.Box3(new THREE.Vector3(rec.min.x, rec.min.y, 0), new THREE.Vector3(rec.max.x, rec.max.y, 0));
-    self.viewIndex.insert(obj.uuid.slice(), ',-1', aabb, {});
-    return points.length;
+    this.viewIndex.push({uuid: obj.uuid.slice(), x: x, y: y, height: height, width: width, index: -1, type: 'THREE.Object3D'});
+    //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
+    return 1;
   };
 
   /**
@@ -802,14 +837,36 @@ FOUR.SceneIndex = (function () {
    * @returns {Number} Count of indexed vertices
    */
   SceneIndex.prototype.indexPointsScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-    var aabb, p, self = this, total = 0, uuid = obj.uuid.slice();
-    obj.geometry.vertices.forEach(function (vertex, i) {
-      p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
-      p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-      aabb = new THREE.Box3(new THREE.Vector3(p.x, p.y, 0), new THREE.Vector3(p.x, p.y, 0));
-      self.viewIndex.insert(uuid, i, aabb, {});
-      total += 1;
-    });
+    //var aabb, p, self = this, total = 0, uuid = obj.uuid.slice();
+    //obj.geometry.vertices.forEach(function (vertex, i) {
+    //  p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
+    //  p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
+    //  aabb = new THREE.Box3(new THREE.Vector3(p.x, p.y, 0), new THREE.Vector3(p.x, p.y, 0));
+    //  self.viewIndex.insert(uuid, i, aabb, {});
+    //  total += 1;
+    //});
+    //return total;
+    var i, p, self = this, total = 0, vertex;
+    if (obj.geometry.vertices) {
+      for (i = 0; i < obj.geometry.vertices.length; i++) {
+        vertex = obj.geometry.vertices[i];
+        p = FOUR.utils.getObjectScreenCoordinates(vertex, camera, clientWidth, clientHeight);
+        if (p.x >= 0 && p.y >= 0) {
+          this.viewIndex.push({
+            uuid:obj.uuid.slice(),
+            x:Number(p.x),
+            y:Number(p.y),
+            width:0,
+            height:0,
+            index:i,
+            type:'THREE.Points'
+          });
+          total += 1;
+        }
+      }
+    } else if (obj.geometry.attributes.position) {
+      console.warn('Indexing buffer geometry vertices will have a significant performance impact');
+    }
     return total;
   };
 
@@ -862,6 +919,8 @@ FOUR.SceneIndex = (function () {
   SceneIndex.prototype.indexView = function (scene, camera, width, height) {
     var index, obj, objects = 0, matrix, self = this,
       start = new Date().getTime(), vertices = 0, uuid;
+    // clear the index
+    self.viewIndex = new Quadtree({height: height, width: width});
     // build a frustum for the current camera view
     matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     self.frustum.setFromMatrix(matrix);
@@ -6811,7 +6870,8 @@ FOUR.MarqueeSelectionController = (function () {
   MarqueeSelectionController.prototype.select = function (x, y, width, height) {
     // find entities that are wholly contained inside the selection marquee
     var r1 = {p1: {}, p2: {}}, r2 = {p1: {}, p2: {}};
-    this.selection = this.quadtree.colliding({x: x, y: y, width: width, height: height}, function (selection, obj) {
+    //this.selection = this.quadtree.colliding({x: x, y: y, width: width, height: height}, function (selection, obj) {
+    this.selection = this.index.viewIndex.colliding({x: x, y: y, width: width, height: height}, function (selection, obj) {
       r1.p1.x = obj.x;
       r1.p1.y = obj.y;
       r1.p2.x = obj.x + obj.width;
@@ -6822,12 +6882,6 @@ FOUR.MarqueeSelectionController = (function () {
       r2.p2.y = selection.y + selection.height;
       return FOUR.utils.isContained(r1, r2);
     });
-
-    var p1 = new THREE.Vector2(x, y);
-    var p2 = new THREE.Vector2(x + width, y + height);
-    var rec = new THREE.Box2().setFromPoints([p1, p2]);
-    var cells = this.index.viewIndex.getEntitiesIntersectingScreenRectangle(rec);
-
     // transform index record into a format similar to the one returned by the
     // THREE.Raycaster
     this.selection = this.selection.map(function (item) {
