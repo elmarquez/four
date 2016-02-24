@@ -918,8 +918,6 @@ FOUR.TargetCamera = (function () {
     /**
      * The camera has a default position of 0,-1,0, a default target of 0,0,0 and
      * distance of 1.
-     * @todo setters to intercept changes on position, target, distance properties
-     * @todo setters to intercept changes on THREE.Camera properties
      */
     function TargetCamera (fov, aspect, near, far) {
         THREE.PerspectiveCamera.call(this);
@@ -998,6 +996,14 @@ FOUR.TargetCamera = (function () {
      */
     TargetCamera.prototype.getTarget = function () {
         return new THREE.Vector3().copy(this.target);
+    };
+
+    /**
+     * Handle window resize event.
+     * @param {Object} event Event
+     */
+    TargetCamera.prototype.onWindowResize = function (event) {
+        // FIXME implement
     };
 
     /**
@@ -6589,13 +6595,6 @@ FOUR.MarqueeSelectionController = (function () {
     self.camera = config.camera;
     self.domElement = config.viewport.domElement;
     self.enabled = false;
-    self.filter = null;
-    self.filters = { // FIXME move into the view index
-      all: self.selectAll,
-      nearest: self.selectNearest,
-      objects: self.selectObjects,
-      points: self.selectPoints
-    };
     self.frustum = new THREE.Frustum();
     self.indexingTimeout = null;
     self.listeners = {};
@@ -6623,17 +6622,6 @@ FOUR.MarqueeSelectionController = (function () {
   }
 
   MarqueeSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-  /**
-   * Add selection filter.
-   * @param {String} key Key
-   * @param {Function} fn Filter function
-   */
-  MarqueeSelectionController.prototype.addFilter = function (key, fn) {
-    this.filters[key] = fn;
-  };
-
-  MarqueeSelectionController.prototype.clearFilter = function () {};
 
   MarqueeSelectionController.prototype.disable = function () {
     var self = this;
@@ -6834,6 +6822,12 @@ FOUR.MarqueeSelectionController = (function () {
       r2.p2.y = selection.y + selection.height;
       return FOUR.utils.isContained(r1, r2);
     });
+
+    var p1 = new THREE.Vector2(x, y);
+    var p2 = new THREE.Vector2(x + width, y + height);
+    var rec = new THREE.Box2().setFromPoints([p1, p2]);
+    var cells = this.index.viewIndex.getEntitiesIntersectingScreenRectangle(rec);
+
     // transform index record into a format similar to the one returned by the
     // THREE.Raycaster
     this.selection = this.selection.map(function (item) {
@@ -6849,9 +6843,6 @@ FOUR.MarqueeSelectionController = (function () {
         uuid: item.uuid
       };
     });
-    // TODO filtering should happen in the view index. this is disabled for now since its causing problems
-    // filter the selection results
-    //this.selection = this.selection.filter(this.filter);
     // dispatch selection event
     if (this.selectAction === this.SELECT_ACTIONS.ADD) {
       this.dispatchEvent({type: 'add', selection: this.selection});
@@ -6876,13 +6867,6 @@ FOUR.MarqueeSelectionController = (function () {
 
   MarqueeSelectionController.prototype.selectPoints = function () {
     return true;
-  };
-
-  /**
-   * Set selection filter.
-   */
-  MarqueeSelectionController.prototype.setFilter = function () {
-    throw new Error('not implemented');
   };
 
   /**
