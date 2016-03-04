@@ -343,14 +343,13 @@ FOUR.KeyCommandController = (function () {
    * Execute active commands.
    * @param {Object} commands Commands
    * @param {Object} event Event name
-   * @param {Object} key Key event
    */
-  KeyCommandController.prototype.execute = function (commands, event, key) {
+  KeyCommandController.prototype.execute = function (commands, event) {
     var self = this;
     commands = commands || [];
     commands.forEach(function (command) {
-      if (self.isActive(command, event, key)) {
-        console.info('command', command.key);
+      if (self.isActive(command, event)) {
+        command.fn.call();
       }
     });
   };
@@ -399,9 +398,9 @@ FOUR.KeyCommandController = (function () {
    * @param {Object} evt Event
    */
   KeyCommandController.prototype.onKeyUp = function (evt) {
-    this.pressed[evt.keyCode] = false;
     this.execute(this.sets.default, 'keyup');
     this.execute(this.sets[this.active], 'keyup');
+    this.pressed[evt.keyCode] = false;
   };
 
   /**

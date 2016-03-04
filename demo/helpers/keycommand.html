@@ -30,7 +30,7 @@
       z-index: 999;
     }
 
-    #webgl {
+    #log {
       bottom: 0;
       left: 0;
       overflow: hidden;
@@ -40,8 +40,8 @@
       z-index: 0;
     }
 
-    #webgl:focus {
-      outline: none;
+    #log .item {
+      padding: 10px;
     }
 
     .btn {
@@ -56,30 +56,25 @@
 </head>
 <body>
 <div id="overlay"></div>
-<div id="webgl"></div>
+<div id="log"></div>
 <script>
   $(document).ready(function () {
     var keyInput = new FOUR.KeyCommandController();
     keyInput.enable();
 
-    var webgl = document.getElementById('webgl');
+    var webgl = document.getElementById('log');
 
     function print (msg) {
       var child = document.createElement('div');
       child.innerHTML = msg;
-      webgl.addChild(child);
+      child.className += 'item';
+      webgl.appendChild(child);
     }
 
-    keyInput.bind('default', FOUR.KEY.ESC, 'keydown', window, function (e) {
-      console.info('esc keydown');
-      print('esc keydown');
-    });
-
     keyInput.bind('default', FOUR.KEY.ESC, 'keyup', window, function (e) {
-      console.info('esc keydown');
-      print('esc keydown');
+      console.info('esc keyup');
+      print('esc keyup');
     });
-
 
     keyInput.bind('default', FOUR.KEY.ONE, 'keyup', window, function (e) {
       console.info('set key input group to 1');
@@ -99,56 +94,44 @@
       keyInput.setActiveCommandGroup('3');
     });
 
-
-    keyInput.bind('default', FOUR.KEY.COMMA, 'keyup', window, function (e) {
-      console.info('comma');
-      print('comma');
+    keyInput.bind('1', FOUR.KEY.A, 'keyup', window, function (e) {
+      console.info('A keyup');
+      print('A keyup');
     });
 
-    keyInput.bind('default', FOUR.KEY.PERIOD, 'keyup', window, function (e) {
-      console.info('period');
-      print('period');
+    keyInput.bind('1', FOUR.KEY.B, 'keyup', window, function (e) {
+      console.info('B keyup');
+      print('B keyup');
     });
 
-
-    keyInput.bind('1', FOUR.KEY.A, 'keydown', window, function (e) {
-      console.info('A keydown');
-      print('A keydown');
+    keyInput.bind('1', FOUR.KEY.C, 'keyup', window, function (e) {
+      console.info('C keyup');
+      print('C keyup');
     });
 
-    keyInput.bind('1', FOUR.KEY.B, 'keydown', window, function (e) {
-      console.info('B keydown');
-      print('B keydown');
+    keyInput.bind('2', FOUR.KEY.D, 'keyup', window, function (e) {
+      console.info('D keyup');
+      print('D keyup');
     });
 
-    keyInput.bind('1', FOUR.KEY.C, 'keydown', window, function (e) {
-      console.info('C keydown');
-      print('C keydown');
+    keyInput.bind('2', FOUR.KEY.E, 'keyup', window, function (e) {
+      console.info('E keyup');
+      print('E keyup');
     });
 
-    keyInput.bind('2', FOUR.KEY.D, 'keydown', window, function (e) {
-      console.info('D keydown');
-      print('D keydown');
+    keyInput.bind('2', FOUR.KEY.F, 'keyup', window, function (e) {
+      console.info('F keyup');
+      print('F keyup');
     });
 
-    keyInput.bind('2', FOUR.KEY.E, 'keydown', window, function (e) {
-      console.info('E keydown');
-      print('D keydown');
+    keyInput.bind('3', FOUR.KEY.G, 'keyup', window, function (e) {
+      console.info('G keyup');
+      print('G keyup');
     });
 
-    keyInput.bind('2', FOUR.KEY.F, 'keydown', window, function (e) {
-      console.info('F keydown');
-      print('F keydown');
-    });
-
-    keyInput.bind('1', FOUR.KEY.A, 'keydown', window, function (e) {
-      console.info('A keydown');
-      print('A keydown');
-    });
-
-    keyInput.bind('1', FOUR.KEY.B, 'keydown', window, function (e) {
-      console.info('B keydown');
-      print('B keydown');
+    keyInput.bind('3', FOUR.KEY.H, 'keyup', window, function (e) {
+      console.info('H keyup');
+      print('H keyup');
     });
 
   });
