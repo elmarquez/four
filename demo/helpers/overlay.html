@@ -3,68 +3,87 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Overlays</title>
-  <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
-
-  <!-- vendor -->
-  <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../../vendor/jquery/dist/jquery.js"></script>
-  <script src="../../vendor/three.js/three.js"></script>
-  <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-  <!-- lib -->
-  <script src="../../dist/four.js"></script>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      padding: 0;
-    }
-
-    #controls {
-      background: whitesmoke;
-      bottom: 0;
-      display: inline;
-      position: absolute;
-      right: 0;
-      vertical-align: middle;
-      z-index: 999;
-    }
-
-    #webgl {
-      bottom: 0;
-      left: 0;
-      overflow: hidden;
-      position: absolute;
-      right: 0;
-      top: 0;
-      z-index: 0;
-    }
-
-    #webgl:focus {
-      outline: none;
-    }
-
-    .btn {
-      display: inline;
-      font-size: 12px;
-      height: 30px;
-      margin: 10px;
-      min-width: 80px;
-      padding: 5px;
-    }
-  </style>
 </head>
 <body>
+<div id="description">
+  <h2>Overlay Controller</h2>
+  <p>
+    Label overlay layer control.
+  </p>
+  <p>
+    <button type="button" class="btn" onclick="addLabel()">Add Label</button>
+    <button type="button" class="btn" onclick="clearLabels()">Clear Labels</button>
+  </p>
+</div>
 <div id="overlay"></div>
 <div id="webgl"></div>
-<div id="controls">
-  <button type="button" class="btn" onclick="addLabel()">Add Label</button>
-  <button type="button" class="btn" onclick="clearLabels()">Clear Labels</button>
-</div>
 <script>
-  var camera, controller, domElement, geometry, helper, i, light, material, mesh, multi, overlayElement, rotate, overlay, scene, viewport;
-
   $(document).ready(function () {
+    var camera, domElement, geometry, helper, i, light, material, mesh, multi, overlayElement, rotate, overlay, scene, viewport;
+
+    window.addLabel = function () {
+      function getChildren (obj) {
+        var items = [obj];
+        obj.children.forEach(function (item) {
+          getChildren(item).forEach(function (child) {
+            items.push(child);
+          });
+        });
+        return items;
+      }
+      // get the list of scene entities
+      var objs = getChildren(scene.model);
+
+      // pick a random entity
+      var i = Math.floor(Math.random() * objs.length);
+      var obj = objs[i];
+      var colors = [
+        'label blue',
+        'label darkgray',
+        'label firebrick',
+        'label lightgray',
+        'label orange',
+        'label yellow'
+      ];
+
+      // create a label
+      if (Math.random() >= 0.9) {
+        // fixed label
+        overlay.add({
+          className: 'label fixed',
+          innerHTML: '<div class="title">Fixed Label</div>',
+          position: FOUR.POSITION.FIXED,
+          left: Math.floor(Math.random() * window.innerWidth),
+          top: Math.floor(Math.random() * window.innerHeight)
+        });
+      } else {
+        var r = Math.floor(Math.random() * colors.length);
+        // tracking label
+        overlay.add({
+          className: colors[r],
+          innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
+          position: FOUR.POSITION.CENTER,
+          target: obj.uuid,
+          offset: 0
+        });
+      }
+    };
+
+    window.clearLabels = function () {
+      overlay.clear();
+    };
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      render();
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+
     // scene
     scene = new FOUR.Scene();
 
@@ -123,69 +142,6 @@
     viewport.render();
     viewport.update();
   });
-
-  function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    render();
-  }
-
-  function render() {
-    renderer.render(scene, camera);
-  }
-
-  function addLabel () {
-    function getChildren (obj) {
-      var items = [obj];
-      obj.children.forEach(function (item) {
-        getChildren(item).forEach(function (child) {
-          items.push(child);
-        });
-      });
-      return items;
-    }
-    // get the list of scene entities
-    var objs = getChildren(scene.model);
-
-    // pick a random entity
-    var i = Math.floor(Math.random() * objs.length);
-    var obj = objs[i];
-    var colors = [
-      'label blue',
-      'label darkgray',
-      'label firebrick',
-      'label lightgray',
-      'label orange',
-      'label yellow'
-    ];
-
-    // create a label
-    if (Math.random() >= 0.9) {
-      // fixed label
-      overlay.add({
-        className: 'label fixed',
-        innerHTML: '<div class="title">Fixed Label</div>',
-        position: overlay.POSITION.FIXED,
-        left: Math.floor(Math.random() * window.innerWidth),
-        top: Math.floor(Math.random() * window.innerHeight)
-      });
-    } else {
-      var r = Math.floor(Math.random() * colors.length);
-      // tracking label
-      overlay.add({
-        className: colors[r],
-        innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
-        position: overlay.POSITION.CENTER,
-        target: obj.uuid,
-        offset: 0
-      });
-    }
-  }
-
-  function clearLabels () {
-    overlay.clear();
-  }
 
 </script>
 </body>

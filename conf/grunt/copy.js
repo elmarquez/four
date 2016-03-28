@@ -6,10 +6,22 @@ module.exports = {
     dest: 'dist/four.css',
     expand: false
   },
+  dist: {
+    cwd: 'dist',
+    src: [ '**/*' ],
+    dest: 'demo/dist',
+    expand: true
+  },
   fonts: {
     cwd: 'fonts',
     src: [ '**/*' ],
     dest: 'dist/fonts',
+    expand: true
+  },
+  img: {
+    cwd: 'lib/img',
+    src: [ '**/*' ],
+    dest: 'demo/lib/img',
     expand: true
   },
   workers: {

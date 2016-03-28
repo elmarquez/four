@@ -1,48 +1,24 @@
 <html>
 <head>
     <title>FOUR - Simulated Annealing Tour Planner</title>
-    <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-    <!-- lib -->
-    <script src="../../dist/four.js"></script>
-    <script src="../../dist/workers/SimulatedAnnealer.js"></script>
-    <style>
-        body {
-            background-color: #303030;
-            color: ghostwhite;
-        }
-        #map {
-            bottom: 50px;
-            left: 0;
-            position: absolute;
-            right: 0;
-            top: 0;
-        }
-        #controls {
-            background: black;
-            bottom: 0;
-            height: 50px;
-            left: 0;
-            position: absolute;
-            right: 0;
-        }
-    </style>
 </head>
 <body>
-
-    <canvas id="map"></canvas>
-    <div id="controls">
+<div id="description">
+    <h2>Simulated Annealing Path Planner</h2>
+    <p>
+        Generate a camera route between features in the scene using a
+        simulated annealer. Minimize the total route distance. The
+        planner is used by the Tour controller for generating the
+        camera path.
+    </p>
+    <p>
         <button onclick="randomPoints();">Generate Random Points</button>
         <button onclick="update();">Update Plan</button>
         <button onclick="updateInWebWorker();">Update Plan in Worker</button>
         <button onclick="clearPath();">Clear Path</button>
-    </div>
-
+    </p>
+</div>
+    <canvas id="map"></canvas>
 <script type="text/javascript">
     var canvas = document.getElementById('map');
 

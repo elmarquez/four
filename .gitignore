@@ -5,6 +5,6 @@
 
 .idea
 NOTES.md
+demo/vendor
 docs
 node_modules
-vendor

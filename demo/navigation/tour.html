@@ -3,37 +3,17 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>FOUR - Tour Controller</title>
-    <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-    <!-- lib -->
-    <script src="../../dist/four.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #webgl {
-            bottom: 0;
-            left: 0;
-            overflow: hidden;
-            position: absolute;
-            right: 0;
-            top: 0;
-            z-index: 500;
-        }
-
-        #webgl:focus {
-            outline: none;
-        }
-    </style>
 </head>
 <body>
+<div id="description">
+    <h2>Tour Controller</h2>
+    <p>
+        Select three or more scene entities then trigger press the <code>P</code>
+        key to generate a camera route between the entities.
+        Press the <code>&lt;</code> and <code>&gt;</code> keys to move the
+        camera focus between the selected entities.
+    </p>
+</div>
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {

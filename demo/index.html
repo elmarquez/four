@@ -4,86 +4,24 @@
     <meta charset="UTF-8">
     <title>FOUR - Demos</title>
 
-    <!-- fonts -->
+    <!-- css, fonts -->
     <link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>
+    <link href='vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='styles.css' rel='stylesheet' type='text/css'>
 
     <!-- vendor -->
-    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../vendor/jquery/dist/jquery.js"></script>
-    <script src="../vendor/angular/angular.js"></script>
-    <script src="../vendor/three.js/three.js"></script>
-    <script src="../vendor/tween.js/src/Tween.js"></script>
+    <script src="vendor/jquery/dist/jquery.js"></script>
+    <script src="vendor/angular/angular.js"></script>
+    <script src="vendor/angular-aria/angular-aria.js"></script>
+    <script src="vendor/angular-route/angular-route.js"></script>
+
+    <script src="vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="vendor/three.js/three.js"></script>
+    <script src="vendor/tween.js/src/Tween.js"></script>
 
     <!-- lib -->
-    <script src="../dist/four.js"></script>
-
-    <style>
-        body {
-            background-color: black;
-            color: #272822;
-            font-family: 'Helvetica Neue', Helvetica, Arial;
-            font-size: 13px;
-            line-height: 17px;
-            margin: 0;
-            overflow: hidden;
-            padding: 0;
-        }
-        .brand {
-            font-family: Montserrat, sans-serif;
-            font-size: 2em;
-            font-weight: bold;
-            letter-spacing: 3px;
-            padding-top: 60px;
-        }
-        .footer {
-            bottom: 40px;
-            font-size: 0.8em;
-            line-height: 14px;;
-            position: absolute;
-        }
-        .inset {
-            margin: 25px;
-        }
-        .menu {
-            background-color: white;
-            border-right: 3px solid orangered;
-            bottom: 0;
-            left: 0;
-            position: absolute;
-            top: 0;
-            width: 250px;
-            z-index: 100;
-        }
-        .submenu {
-            list-style: none;
-            margin: 20px 0 0 0;
-            padding: 0;
-        }
-        .submenu li a {
-            color: #272822;
-            text-decoration: none;
-        }
-        .submenu li.heading {
-            color: rgba(0,0,0,0.3);
-            font-size: 0.8em;
-            font-weight: bold;
-            padding-top: 20px;
-            text-transform: uppercase;
-        }
-        .viewport {
-            border: none;
-            bottom: 0;
-            left: 250px;
-            position: absolute;
-            right: 0;
-            top: 0;
-        }
-        iframe {
-            border: none;
-            height: 100%;
-            width: 100%;
-        }
-    </style>
+    <script src="dist/fonts/helvetiker_regular.typeface.js"></script>
+    <script src="dist/four.js"></script>
 </head>
 <body>
     <div class="menu">
@@ -92,53 +30,47 @@
             <ul class="submenu">
                 <li class="heading">Navigation</li>
                 <li><a href="#" onclick="$('#viewport').load('navigation/arrow.html');return false;">Arrow</a></li>
-                <li><a href="#" onclick="$('#viewport').load('navigation/firstperson.html');return false;">First Person</a></li>
-                <li><a href="navigation/look.html" target="vp">Look</a></li>
-                <li><a href="navigation/orbit.html" target="vp">Orbit</a></li>
-                <li><a href="navigation/pan.html" target="vp">Pan</a></li>
-                <li><a href="navigation/rotate.html" target="vp">Rotate</a></li>
-                <li><a href="navigation/walk.html" target="vp">Walk</a></li>
-                <li><a href="navigation/zoom.html" target="vp">Zoom</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/look.html');return false;">Look</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/orbit.html');return false;">Orbit</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/pan.html');return false;">Pan</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/rotate.html');return false;">Rotate</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/tour.html');return false;">Tour</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/walk.html');return false;">Walk</a></li>
+                <li><a href="#" onclick="$('#viewport').load('navigation/zoom.html');return false;">Zoom</a></li>
 
                 <li class="heading">Path Planning</li>
-                <li><a href="path/genetic.html" target="vp">Genetic</a></li>
+                <li><a href="#" onclick="$('#viewport').load('path/genetic.html');return false;">Genetic Algorithm</a></li>
                 <li><a href="#" onclick="$('#viewport').load('path/sa.html');return false;">Simulated Annealing</a></li>
 
                 <li class="heading">Selection</li>
-                <li><a href="selection/click.html" target="vp">Click</a></li>
-                <li><a href="selection/hover.html" target="vp">Hover</a></li>
-                <li><a href="selection/marquee.html" target="vp">Marquee</a></li>
+                <li><a href="#" onclick="$('#viewport').load('selection/click.html');return false;">Click</a></li>
+                <li><a href="#" onclick="$('#viewport').load('selection/hover.html');return false;">Hover</a></li>
+                <li><a href="#" onclick="$('#viewport').load('selection/marquee.html');return false;">Marquee</a></li>
 
                 <li class="heading">Helpers</li>
-                <li><a href="helpers/keycommand.html" target="vp">Key Commands</a></li>
-                <li><a href="helpers/overlay.html" target="vp">Overlay</a></li>
-                <li><a href="helpers/undo.html" target="vp">Undo</a></li>
-                <li><a href="helpers/viewaxis.html" target="vp">View Axis</a></li>
-                <li><a href="helpers/viewcube.html" target="vp">View Cube</a></li>
+                <li><a href="#" onclick="$('#viewport').load('helpers/keycommand.html');return false;">Key Commands</a></li>
+                <li><a href="#" onclick="$('#viewport').load('helpers/overlay.html');return false;">Overlay</a></li>
+                <li><a href="#" onclick="$('#viewport').load('helpers/undo.html');return false;">Undo</a></li>
+                <li><a href="#" onclick="$('#viewport').load('helpers/viewaxis.html');return false;">View Axis</a></li>
+                <li><a href="#" onclick="$('#viewport').load('helpers/viewcube.html');return false;">View Cube</a></li>
 
                 <li class="heading">Application</li>
-                <li><a href="sink.html" target="vp">Kitchen Sink</a></li>
-                <li><a href="ui/index.html" target="vp">Demo Application</a></li>
+                <li><a href="#" onclick="$('#viewport').load('sink.html');return false;">Kitchen Sink</a></li>
+                <li><a href="ui/index.html">Demo Application</a></li>
 
                 <li class="heading">Documentation</li>
-                <li><a href="../docs/index.html" target="vp">Documentation</a></li>
+                <li><a href="docs/index.html" target="vp">Documentation</a></li>
             </ul>
             <div class="footer">
-                Copyright &copy; 2015 Davis Marques. Published under the MIT License.
+                Copyright &copy; 2015-2016 Davis Marques. Published under the MIT License.
             </div>
         </div>
     </div>
-    <div id="viewport" class="viewport">
-        <iframe name="vp" src="sink.html">
-            <p>Your browser does not support iframes.</p>
-        </iframe>
-    </div>
+    <div id="viewport" class="viewport"></div>
 
     <script>
         $(document).ready( function() {
-            $("#load_home").on("click", function() {
-                $("#content").load("content.html");
-            });
+            $('#viewport').load('sink.html');
         });
     </script>
 </body>

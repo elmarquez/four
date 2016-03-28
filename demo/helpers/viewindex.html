@@ -3,16 +3,16 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - View Index</title>
-  <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
+  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
-  <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../../vendor/jquery/dist/jquery.js"></script>
-  <script src="../../vendor/three.js/three.js"></script>
-  <script src="../../vendor/tween.js/src/Tween.js"></script>
+  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/three.js/three.js"></script>
+  <script src="../vendor/tween.js/src/Tween.js"></script>
 
   <!-- lib -->
-  <script src="../../dist/four.js"></script>
+  <script src="../dist/four.js"></script>
   <style>
     body {
       margin: 0;
@@ -171,7 +171,7 @@
       overlay.add({
         className: 'label fixed',
         innerHTML: '<div class="title">Fixed Label</div>',
-        position: overlay.POSITION.FIXED,
+        position: FOUR.POSITION.FIXED,
         left: Math.floor(Math.random() * window.innerWidth),
         top: Math.floor(Math.random() * window.innerHeight)
       });
@@ -181,7 +181,7 @@
       overlay.add({
         className: colors[r],
         innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
-        position: overlay.POSITION.CENTER,
+        position: FOUR.POSITION.CENTER,
         target: obj.uuid,
         offset: 0
       });

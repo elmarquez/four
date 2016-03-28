@@ -3,61 +3,50 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Click Selection Controller</title>
-    <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-    <!-- lib -->
-    <script src="../../dist/four.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-    }
-    #controls {
-      background: black;
-      bottom: 0;
-      height: 50px;
-      left: 0;
-      position: absolute;
-      right: 0;
-    }
-    #webgl {
-      bottom: 50px;
-      left: 0;
-      overflow: hidden;
-      position: absolute;
-      right: 0;
-      top: 0;
-    }
-    #webgl:focus {
-      outline: none;
-    }
-  </style>
 </head>
 <body>
-<div id="webgl"></div>
-<div id="controls">
-  <button onclick="updateIndex();">Rebuild selection set index</button>
+<div id="description">
+  <h2>Click Selection Controller</h2>
+  <p>
+    Select scene entities by single and double clicking using the
+    right mouse button.
+  </p>
+  <p>
+    By default, clicking an entity clears the current selection then adds the
+    intersected entity to the selection set. Hold the <code>Shift</code> key
+    down while clicking to add the intersected entity to the selection set.
+    Hold the <code>Alt</code> key down to remove the intersected entity from
+    the selection set. Console output provides information on the selection
+    state.
+  </p>
 </div>
+<div id="webgl"></div>
 <script>
-  var camera, controller, domElement, geometry, helper, i, light, material, mesh, particles, scene, viewport;
-
-  var objects = 100, points = 500;
-
-  var selection = new FOUR.SelectionSet();
-  selection.addEventListener('update', function (event) {
-    console.info('update', event);
-  });
-
-  function updateIndex () {
-    selection.updateIndex();
-  }
-
   $(document).ready(function () {
+    var camera, controller, domElement, geometry, helper, i, light, material, mesh, particles, scene, viewport;
+
+    var objects = 100, points = 500;
+
+    var selection = new FOUR.SelectionSet();
+
+    selection.addEventListener('update', function (event) {
+      console.info('update', event);
+      // set added entities to new color
+      event.added.forEach(function (item) {
+        item.object.userData.color = new THREE.Color().copy(item.object.material.color);
+        item.object.material.color.setHex(0xff0000);
+      });
+      // reset unselected entities to prior color
+      event.removed.forEach(function (item) {
+        item.object.material.color.copy(item.object.userData.color);
+      });
+      viewport.render();
+    });
+
+    function updateIndex () {
+      console.info('Updating scene index');
+      selection.updateIndex();
+    }
 
     // scene
     scene = new FOUR.Scene();
@@ -133,16 +122,12 @@
       console.info('toggle', event);
       selection.toggle(event.selection);
     });
-    controller.addEventListener('hover', function (event) {
-      console.info('hover', event);
-    });
     controller.addEventListener('lookat', function (event) {
       console.info('lookat', event);
     });
     controller.addEventListener('settarget', function (event) {
       console.info('settarget', event);
     });
-
 
     viewport.render();
     viewport.update();

@@ -3,16 +3,16 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Measurement</title>
-  <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
+  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
-  <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../../vendor/jquery/dist/jquery.js"></script>
-  <script src="../../vendor/three.js/three.js"></script>
-  <script src="../../vendor/tween.js/src/Tween.js"></script>
+  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/three.js/three.js"></script>
+  <script src="../vendor/tween.js/src/Tween.js"></script>
 
   <!-- lib -->
-  <script src="../../dist/four.js"></script>
+  <script src="../dist/four.js"></script>
   <style>
     body {
       margin: 0;
@@ -148,7 +148,7 @@
         overlay.add({
           className: 'label blue',
           innerHTML: '<div class="title">Measurement</div><div class="measurement">' + length + 'm</div>',
-          position: overlay.POSITION.CENTER,
+          position: FOUR.POSITION.CENTER,
           target: line.uuid
         });
       }

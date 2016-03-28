@@ -1,48 +1,22 @@
 <html>
 <head>
     <title>FOUR - Genetic Tour Planner</title>
-    <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-    <!-- lib -->
-    <script src="../../dist/four.js"></script>
-    <script src="../../dist/workers/GeneticPlanner.js"></script>
-    <style>
-        body {
-            background-color: #303030;
-            color: ghostwhite;
-        }
-        #map {
-            bottom: 50px;
-            left: 0;
-            position: absolute;
-            right: 0;
-            top: 0;
-        }
-        #controls {
-            background: black;
-            bottom: 0;
-            height: 50px;
-            left: 0;
-            position: absolute;
-            right: 0;
-        }
-    </style>
 </head>
 <body>
-
-    <canvas id="map"></canvas>
-    <div id="controls">
-        <button onclick="randomPoints();">Generate Random Points</button>
-        <button onclick="update();">Update Plan</button>
-        <button onclick="updateInWebWorker();">Update Plan in Worker</button>
-        <button onclick="clearPath();">Clear Path</button>
+    <div id="description">
+        <h2>Genetic Path Planner</h2>
+        <p>
+            Use a genetic algorith to plan a camera route between features in the scene
+            so that every feature is visited once.
+        </p>
+        <p>
+            <button onclick="randomPoints();">Generate Random Points</button>
+            <button onclick="update();">Update Plan</button>
+            <button onclick="updateInWebWorker();">Update Plan in Worker</button>
+            <button onclick="clearPath();">Clear Path</button>
+        </p>
     </div>
-
+    <canvas id="map"></canvas>
 <script type="text/javascript">
     var canvas = document.getElementById('map');
     fitToContainer(canvas);

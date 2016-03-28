@@ -3,37 +3,16 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>FOUR - Walk Controller</title>
-    <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-    <!-- lib -->
-    <script src="../../dist/four.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #webgl {
-            bottom: 0;
-            left: 0;
-            overflow: hidden;
-            position: absolute;
-            right: 0;
-            top: 0;
-            z-index: 500;
-        }
-
-        #webgl:focus {
-            outline: none;
-        }
-    </style>
 </head>
 <body>
+<div id="description">
+    <h2>Walk Controller</h2>
+    <p>
+        Move the camera to standing eye height and the target to the horizon.
+        As the camera moves, maintain the relative standing height above the
+        ground.
+    </p>
+</div>
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
@@ -70,10 +49,10 @@
         window.addEventListener('mousemove', viewport.render.bind(viewport));
 
         // controls
-        controller = new FOUR.WalkController({viewport: viewport});
+        controller = new FOUR.TourController({viewport: viewport});
 
-        viewport.addController(controller, 'rotate');
-        viewport.setActiveController('rotate');
+        viewport.addController(controller, 'tour');
+        viewport.setActiveController('tour');
 
         // world
         geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);

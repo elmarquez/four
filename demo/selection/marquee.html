@@ -3,49 +3,34 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Marquee Selection Controller</title>
-  <link href='../../dist/four.css' rel='stylesheet' type='text/css'>
-
-  <!-- vendor -->
-    <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../../vendor/jquery/dist/jquery.js"></script>
-    <script src="../../vendor/angular/angular.js"></script>
-    <script src="../../vendor/quadtree-lib/build/js/quadtree.js"></script>
-    <script src="../../vendor/spatialhash/dist/spatialhash.js"></script>
-    <script src="../../vendor/three.js/three.js"></script>
-    <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-    <!-- lib -->
-    <script src="../../dist/four.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-    }
-    #webgl {
-      bottom: 0;
-      left: 0;
-      overflow: hidden;
-      position: absolute;
-      right: 0;
-      top: 0;
-      z-index: 500;
-    }
-    #webgl:focus {
-      outline: none;
-    }
-  </style>
 </head>
 <body>
+<div id="description">
+  <h2>Marquee Selection Controller</h2>
+  <p>
+    Right mouse click and drag to select all entities intersecting the
+    selection marquee.
+  </p>
+  <p>
+    By default, the action clears the current selection then adds the
+    intersected entities to the selection set. Hold the <code>Shift</code> key
+    down while dragging to add all intersected entities to the selection set.
+    Hold the <code>Alt</code> key down to remove all intersected entities from
+    the selection set. Console output provides information on the selection
+    state.
+  </p>
+
+</div>
 <div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
 <script>
-  var points = 500;
-  var primitives = 500;
-
-  var camera, marquee, domElement, geometry, helper, i, index, light, material;
-  var mesh, multi, objs, particles, rotate, scene, selectionSet, viewport;
-
   $(document).ready(function () {
+    var points = 500;
+    var primitives = 500;
+
+    var camera, marquee, domElement, geometry, helper, i, index, light, material;
+    var mesh, multi, objs, particles, rotate, scene, selectionSet, viewport;
+
     // scene
     scene = new FOUR.Scene();
     index = new FOUR.SceneIndex();
@@ -185,7 +170,7 @@
       viewport.render();
     });
 
-    window.addEventListener('resize', function (event) {
+    window.addEventListener('resize', function () {
       viewport.render();
     });
 

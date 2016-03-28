@@ -4,7 +4,7 @@ module.exports = {
   dev: {
     options: {
       open: true,
-      base: '.'
+      base: 'demo'
     }
   }
 };

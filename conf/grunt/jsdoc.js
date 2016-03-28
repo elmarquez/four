@@ -4,7 +4,7 @@ module.exports = {
     lib: {
         src: ['dist/four.js'],
         options: {
-            destination: 'docs'
+            destination: 'demo/docs'
         }
     }
 };

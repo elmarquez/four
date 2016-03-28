@@ -3,62 +3,20 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Undo Service</title>
-  <!-- vendor -->
-  <script src="../../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../../vendor/dexie/dist/latest/Dexie.js"></script>
-  <script src="../../vendor/jquery/dist/jquery.js"></script>
-  <script src="../../vendor/three.js/three.js"></script>
-  <script src="../../vendor/tween.js/src/Tween.js"></script>
-
-  <!-- lib -->
-  <script src="../../dist/four.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-    }
-
-    #controls {
-      background: whitesmoke;
-      bottom: 0;
-      display: inline;
-      position: absolute;
-      right: 0;
-      vertical-align: middle;
-      z-index: 999;
-    }
-
-    #webgl {
-      bottom: 0;
-      left: 0;
-      overflow: hidden;
-      position: absolute;
-      right: 0;
-      top: 0px;
-      z-index: 500;
-    }
-
-    #webgl:focus {
-      outline: none;
-    }
-
-    .btn {
-      display: inline;
-      font-size: 12px;
-      height: 30px;
-      margin: 10px;
-      padding: 5px;
-      width: 80px;
-    }
-  </style>
 </head>
 <body>
-<div id="webgl"></div>
-<div id="controls">
-  <button type="button" class="btn" onclick="add()">Add</button>
-  <button type="button" class="btn" onclick="move()">Move</button>
-  <button type="button" class="btn" onclick="undo()">Undo</button>
+<div id="description">
+  <h2>Undo Controller</h2>
+  <p>
+    Undo action controller.
+  </p>
+  <p>
+    <button type="button" class="btn" onclick="add()">Add</button>
+    <button type="button" class="btn" onclick="move()">Move</button>
+    <button type="button" class="btn" onclick="undo()">Undo</button>
+  </p>
 </div>
+<div id="webgl"></div>
 <script>
   var camera, controls, domElement, light, mesh, scene, renderer;
 

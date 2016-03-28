@@ -1,0 +1,64 @@
+#marquee {
+    background-color: rgba(103,160,225,0.4);
+    border: 1px solid rgba(103,160,225,0.7);
+    height: 1px;
+    left: -10px;
+    margin: 0;
+    padding: 0;
+    pointer-events: none;
+    position: absolute;
+    top: -10px;
+    width: 1px;
+    z-index: 999;
+}
+
+.label {
+    background-color: #484848;
+    border-radius: 3px;
+    box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+    color: white;
+    font-family: 'Consolas', 'Lucida Console', 'Courier New', 'monospace';
+    font-size: 0.8em;
+    padding: 7px;
+    position: absolute;
+    z-index: 801;
+    -moz-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+    -webkit-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+}
+
+.label.blue {
+    /*background: linear-gradient(to bottom, rgba(23,113,196,1) 0%, rgb(20, 78, 156) 100%);*/
+    /*background-color: rgba(20, 78, 156, 1);*/
+    background-color: rgba(23,113,196,1);
+    color: white;
+}
+
+.label.darkgray {
+    background: linear-gradient(to bottom, #333333 0%, #2c2c2c 100%);
+    color: whitesmoke;
+}
+
+.label.firebrick {
+    background-color: firebrick;
+    color: whitesmoke;
+}
+
+.label.lightgray {
+    background: linear-gradient(to bottom, whitesmoke 0%, #aaaaaa 100%);
+    color: #333;
+}
+
+.label.yellow {
+    background-color: yellow;
+    color: #333;
+}
+
+.label .title {
+    display: table;
+    font-weight: bold;
+}
+
+.overlay {
+    overflow: hidden;
+    z-index: 800;
+}
