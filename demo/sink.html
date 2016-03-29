@@ -3,8 +3,33 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>FOUR - Kitchen Sink</title>
-</head>
+    <!-- css, fonts -->
+    <link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>
+    <link href='vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='styles.css' rel='stylesheet' type='text/css'>
+
+    <!-- vendor -->
+    <script src="vendor/jquery/dist/jquery.js"></script>
+    <script src="vendor/angular/angular.js"></script>
+    <script src="vendor/angular-aria/angular-aria.js"></script>
+    <script src="vendor/angular-route/angular-route.js"></script>
+
+    <script src="vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="vendor/three.js/three.js"></script>
+    <script src="vendor/tween.js/src/Tween.js"></script>
+
+    <!-- lib -->
+    <script src="dist/fonts/helvetiker_regular.typeface.js"></script>
+    <script src="dist/four.js"></script></head>
 <body>
+<div id="description">
+    <h2>Kitchen Sink Demo</h2>
+    <p>
+        Use the <code>5</code>, <code>6</code>, <code>7</code>, <code>8</code>, <code>9</code>, and <code>0</code>
+        keys to move the camera between predefined view points. Use the <code>-</code> and <code>+</code>
+        keys to zoom in and out.
+    </p>
+</div>
 <div id="viewaxis"></div>
 <div id="viewcube"></div>
 <div id="webgl"></div>
@@ -14,7 +39,7 @@
     $(document).ready(function () {
         keyinput = window.keyinput = new FOUR.KeyCommandController();
 
-        domElement = document.getElementById('viewport');
+        domElement = document.getElementById('webgl');
 
         // scene
         scene = window.scene = new FOUR.Scene();
@@ -47,6 +72,14 @@
             scene:scene
         });
 
+        camera.addEventListener('continuous-update-end', function (e) {
+            viewport.onContinuousUpdateEnd(e);
+        });
+        camera.addEventListener('continuous-update-start', function (e) {
+            viewport.onContinuousUpdateStart(e);
+        });
+        camera.addEventListener('update', viewport.render.bind(viewport), false);
+
         // selection
         var boundingBox = new FOUR.BoundingBox('scene-bounding-box');
         scene.helpers.add(boundingBox);
@@ -54,9 +87,6 @@
             boundingBox.update(selectionSet.getObjects());
             viewport.render();
         });
-
-        viewport.render();
-        viewport.update();
 
         var pathObj = new THREE.Object3D();
         scene.helpers.add(pathObj);
@@ -135,6 +165,10 @@
 
         setupKeyboardBindings();
         setupControllers();
+
+        viewport.render();
+        viewport.update();
+
         camera.zoomToFit(boundingBox, true);
 
         function getViewBoundingBox() {
@@ -150,101 +184,102 @@
 
         function setupKeyboardBindings() {
             // selection
-//            Mousetrap.bind('ctrl+a', function () {
-//                console.log('select all');
-//                selectionSet.addAll(scene.model.children);
-//                viewport.render();
-//            });
-//            Mousetrap.bind('ctrl+n', function () {
-//                console.log('select none');
-//                selectionSet.removeAll();
-//                viewport.render();
-//            });
-//
-//            // bounding box
-//            Mousetrap.bind('b', function () {
-//                console.log('toggle bounding box visibility');
-//                boundingBox.toggleVisibility();
-//                viewport.render();
-//            });
-//
-//            // viewport mode
-//            // TODO modify the cursor depending on the mode
-//            Mousetrap.bind('q', function () {
-//                viewport.setActiveController('selection');
-//            });
-//
-//            // view controls
-//            Mousetrap.bind('f', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.zoomToFit(bbox, true);
-//            });
-//
-//            Mousetrap.bind('1', function () {
-//                viewport.setActiveController('trackball');
-//            });
-//            Mousetrap.bind('2', function () {
-//                viewport.setActiveController('walk');
-//            });
-//            Mousetrap.bind('3', function () {
-//                viewport.setActiveController('orbit');
-//            });
-//            Mousetrap.bind('4', function () {
-//                viewport.setActiveController('tour');
-//            });
-//            Mousetrap.bind('5', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.setView(camera.VIEWS.TOP, bbox, true);
-//            });
-//            Mousetrap.bind('6', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.setView(camera.VIEWS.FRONT, bbox, true);
-//            });
-//            Mousetrap.bind('7', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.setView(camera.VIEWS.LEFT, bbox, true);
-//            });
-//            Mousetrap.bind('8', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.setView(camera.VIEWS.RIGHT, bbox, true);
-//            });
-//            Mousetrap.bind('9', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.setView(camera.VIEWS.BACK, bbox, true);
-//            });
-//            Mousetrap.bind('0', function () {
-//                var bbox = getViewBoundingBox();
-//                camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
-//            });
-//
-//            // tour controls
-//            Mousetrap.bind('m', function () {
-//                console.log('toggle tour path visibility');
-//                var path = viewport.controllers.tour.path;
-//                if (path.length > 0) {
-//                    pathObj.children.length = 0;
-//                    var geometry, i, line;
-//                    var material = new THREE.LineBasicMaterial({color: 0xFFD700});
-//                    for (i = 0; i < path.length - 1; i++) {
-//                        geometry = new THREE.Geometry();
-//                        geometry.vertices.push(
-//                                new THREE.Vector3(path[i].x, path[i].y, path[i].z),
-//                                new THREE.Vector3(path[i + 1].x, path[i + 1].y, path[i + 1].z)
-//                        );
-//                        line = new THREE.LineSegments(geometry, material);
-//                        line.name = 'path' + i;
-//                        pathObj.add(line);
-//                    }
-//                }
-//                viewport.render();
-//            });
-//
-//            Mousetrap.bind('=', function () {
-//                camera.zoomIn(true);
-//            });
-//            Mousetrap.bind('-', function () {
-//                camera.zoomOut(true);
-//            });
+            keyinput.bind('default', FOUR.KEY.A, 'keyup', null, function () {
+                console.log('select all');
+                selectionSet.addAll(scene.model.children);
+                viewport.render();
+            });
+            keyinput.bind('default',FOUR.KEY.N, 'keyup', null, function () {
+                console.log('select none');
+                selectionSet.removeAll();
+                viewport.render();
+            });
+
+            // bounding box
+            keyinput.bind('default',FOUR.KEY.B, 'keyup', null, function () {
+                console.log('toggle bounding box visibility');
+                boundingBox.toggleVisibility();
+                viewport.render();
+            });
+
+            // viewport mode
+            // TODO modify the cursor depending on the mode
+            keyinput.bind('default',FOUR.KEY.Q, 'keyup', null, function () {
+                viewport.setActiveController('selection');
+            });
+
+            // view controls
+            keyinput.bind('default',FOUR.KEY.F, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.zoomToFit(bbox, true);
+            });
+            keyinput.bind('default',FOUR.KEY.ONE, 'keyup', null, function () {
+                viewport.setActiveController('trackball');
+            });
+            keyinput.bind('default',FOUR.KEY.TWO, 'keyup', null, function () {
+                viewport.setActiveController('walk');
+            });
+            keyinput.bind('default',FOUR.KEY.THREE, 'keyup', null, function () {
+                viewport.setActiveController('orbit');
+            });
+            keyinput.bind('default',FOUR.KEY.FOUR, 'keyup', null, function () {
+                viewport.setActiveController('tour');
+            });
+            keyinput.bind('default',FOUR.KEY.FIVE, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.setView(camera.VIEWS.TOP, bbox, true);
+            });
+            keyinput.bind('default',FOUR.KEY.SIX, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.setView(camera.VIEWS.FRONT, bbox, true);
+            });
+            keyinput.bind('default',FOUR.KEY.SEVEN, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.setView(camera.VIEWS.LEFT, bbox, true);
+            });
+            keyinput.bind('default',FOUR.KEY.EIGHT, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.setView(camera.VIEWS.RIGHT, bbox, true);
+            });
+            keyinput.bind('default',FOUR.KEY.NINE, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.setView(camera.VIEWS.BACK, bbox, true);
+            });
+            keyinput.bind('default',FOUR.KEY.ZERO, 'keyup', null, function () {
+                var bbox = getViewBoundingBox();
+                camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
+            });
+
+            // tour controls
+            keyinput.bind('default',FOUR.KEY.M, 'keyup', null, function () {
+                console.log('toggle tour path visibility');
+                var path = viewport.controllers.tour.path;
+                if (path.length > 0) {
+                    pathObj.children.length = 0;
+                    var geometry, i, line;
+                    var material = new THREE.LineBasicMaterial({color: 0xFFD700});
+                    for (i = 0; i < path.length - 1; i++) {
+                        geometry = new THREE.Geometry();
+                        geometry.vertices.push(
+                                new THREE.Vector3(path[i].x, path[i].y, path[i].z),
+                                new THREE.Vector3(path[i + 1].x, path[i + 1].y, path[i + 1].z)
+                        );
+                        line = new THREE.LineSegments(geometry, material);
+                        line.name = 'path' + i;
+                        pathObj.add(line);
+                    }
+                }
+                viewport.render();
+            });
+
+            keyinput.bind('default',FOUR.KEY.EQUALS, 'keyup', null, function () {
+                camera.zoomIn(true);
+            });
+            keyinput.bind('default',FOUR.KEY.DASH, 'keyup', null, function () {
+                camera.zoomOut(true);
+            });
+
+            keyinput.enable();
         }
 
         function setupControllers() {

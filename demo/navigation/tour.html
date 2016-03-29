@@ -23,7 +23,6 @@
         scene = new FOUR.Scene();
 
         // camera
-//        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
         camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
         camera.position.y = -100;
         scene.cameras.add(camera);
@@ -46,11 +45,22 @@
         // viewport
         domElement = document.getElementById('webgl');
         viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
-
+        camera.addEventListener('continuous-update-end', function (e) {
+            viewport.onContinuousUpdateEnd(e);
+        });
+        camera.addEventListener('continuous-update-start', function (e) {
+            viewport.onContinuousUpdateStart(e);
+        });
+        camera.addEventListener('update', viewport.render.bind(viewport), false);
         window.addEventListener('mousemove', viewport.render.bind(viewport));
 
         // controls
-        controller = new FOUR.TourController({viewport: viewport});
+        controller = new FOUR.TourController({
+            planner: {
+                workersPath: 'dist/workers/'
+            },
+            viewport: viewport
+        });
 
         viewport.addController(controller, 'tour');
         viewport.setActiveController('tour');
@@ -68,9 +78,8 @@
             scene.add(mesh);
         }
 
-        viewport.render();
         viewport.update();
-
+        viewport.render();
     });
 </script>
 </body>

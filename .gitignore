@@ -5,6 +5,8 @@
 
 .idea
 NOTES.md
+demo/dist
+demo/lib
 demo/vendor
 docs
 node_modules
