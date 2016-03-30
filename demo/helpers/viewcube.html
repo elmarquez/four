@@ -96,9 +96,9 @@
 
     // viewport and controller
     var viewport = new FOUR.Viewport3D({camera:camera, continuousUpdate:true, domElement:domElement, scene:scene});
-    var trackball = new FOUR.TrackballController({viewport:viewport});
-    viewport.addController(trackball, 'trackball');
-    viewport.setActiveController('trackball');
+    var orbit = new FOUR.OrbitController({viewport:viewport});
+    viewport.addController(orbit, 'orbit');
+    viewport.setActiveController('orbit');
     viewport.update();
     viewport.render();
 
@@ -116,7 +116,7 @@
     });
     viewcube.enable();
 
-    trackball.addEventListener('update', function () {
+    orbit.addEventListener('update', function () {
       viewcube.updateOrientation();
     });
 

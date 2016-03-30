@@ -1,19 +1,20 @@
 <html>
 <head>
-    <title>FOUR - Genetic Tour Planner</title>
+    <title>FOUR - Genetic Algorithm Path Planner</title>
 </head>
 <body>
     <div id="description">
-        <h2>Genetic Path Planner</h2>
+        <h2>Genetic Algorithm Path Planner</h2>
         <p>
-            Use a genetic algorith to plan a camera route between features in the scene
-            so that every feature is visited once.
+            Use a genetic algorithm to plan a route between each point in the scene.
+            The algorithm minimizes the total distance travelled while ensuring that
+            each point is visited only once.
         </p>
         <p>
-            <button onclick="randomPoints();">Generate Random Points</button>
-            <button onclick="update();">Update Plan</button>
-            <button onclick="updateInWebWorker();">Update Plan in Worker</button>
-            <button onclick="clearPath();">Clear Path</button>
+            <button onclick="randomPoints();">Generate random points</button>
+            <button onclick="update();">Compute path in the main thread</button>
+            <button onclick="updateInWebWorker();">Compute path in a Worker</button>
+            <button onclick="clearPath();">Clear path</button>
         </p>
     </div>
     <canvas id="map"></canvas>

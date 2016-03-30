@@ -3,24 +3,58 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>FOUR - Tour Controller</title>
+    <!-- css, fonts -->
+    <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+    <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='../styles.css' rel='stylesheet' type='text/css'>
+
+    <!-- vendor -->
+    <script src="../vendor/jquery/dist/jquery.js"></script>
+    <script src="../vendor/angular/angular.js"></script>
+    <script src="../vendor/angular-aria/angular-aria.js"></script>
+    <script src="../vendor/angular-route/angular-route.js"></script>
+
+    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+    <script src="../vendor/spatialhash/dist/spatialhash.js"></script>
+    <script src="../vendor/three.js/three.js"></script>
+    <script src="../vendor/tween.js/src/Tween.js"></script>
+
+    <!-- lib -->
+    <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+    <script src="../dist/four.js"></script>
+    <script src="../dist/workers/GeneticPlanner.js"></script>
+    <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
 <div id="description">
     <h2>Tour Controller</h2>
     <p>
-        Select three or more scene entities then trigger press the <code>P</code>
-        key to generate a camera route between the entities.
-        Press the <code>&lt;</code> and <code>&gt;</code> keys to move the
-        camera focus between the selected entities.
+        Select three or more scene entities then use the <code>&lt;</code> and
+        <code>&gt;</code> keys to automatically move the camera target from one
+        selected entity to the next.
+    </p>
+    <p>
+        The Tour controller relies on the Path Planner service to compute the
+        camera path. The Path Planner uses either a genetic or simulated
+        annealing algorithm to generate the camera path, and can be configured to
+        execute the calculation on the main thread or in a Worker.
+    </p>
+    <p>
+        Use single click selection to select individual scene entities.
+        The camera path will be updated automatically. The console provides output
+        indicating the amount of time taken to calculate the path.
     </p>
 </div>
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var camera, controller, domElement, geometry, helper, i, light, material, mesh, scene, viewport;
+        var camera, controller, domElement, geometry, helper, i, keyCommand, light, material, mesh, scene, viewport;
 
         // scene
         scene = new FOUR.Scene();
+
+        var selectionSet = new FOUR.SelectionSet();
 
         // camera
         camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
@@ -45,41 +79,76 @@
         // viewport
         domElement = document.getElementById('webgl');
         viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
-        camera.addEventListener('continuous-update-end', function (e) {
-            viewport.onContinuousUpdateEnd(e);
-        });
-        camera.addEventListener('continuous-update-start', function (e) {
-            viewport.onContinuousUpdateStart(e);
-        });
-        camera.addEventListener('update', viewport.render.bind(viewport), false);
+
         window.addEventListener('mousemove', viewport.render.bind(viewport));
 
         // controls
-        controller = new FOUR.TourController({
-            planner: {
-                workersPath: 'dist/workers/'
-            },
-            viewport: viewport
-        });
+        keyCommand = new FOUR.KeyCommandController();
 
-        viewport.addController(controller, 'tour');
-        viewport.setActiveController('tour');
+        var multi = new FOUR.MultiController({viewport:viewport});
+        var orbit = new FOUR.OrbitController({viewport:viewport});
+        var tour = new FOUR.TourController({viewport:viewport});
+        var click = new FOUR.ClickSelectionController({viewport:viewport});
+        multi.addController(orbit, 'orbit');
+        multi.addController(tour, 'tour');
+        multi.addController(click, 'click');
+
+        viewport.addController(multi, 'multi');
+        viewport.setActiveController('multi');
 
         // world
-        geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
-        material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
         for (i = 0; i < 500; i++) {
+            geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+            material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
             mesh = new THREE.Mesh(geometry, material);
             mesh.position.x = (Math.random() - 0.5) * 1000;
             mesh.position.y = (Math.random() - 0.5) * 1000;
             mesh.position.z = (Math.random() - 0.5) * 1000;
             mesh.updateMatrix();
             mesh.matrixAutoUpdate = false;
-            scene.add(mesh);
+            scene.model.add(mesh);
         }
 
-        viewport.update();
+        function updateTour () {
+            var features = selectionSet.items.map(function (item) {
+                return {
+                    id: item.uuid,
+                    x:item.object.position.x,
+                    y:item.object.position.y,
+                    z:item.object.position.z
+                };
+            });
+            tour.plan(features).then(function () {
+                console.info('tour updated', tour.path);
+            });
+        }
+
+        click.addEventListener('add', function (e) {
+            console.info('add selection', e);
+            selectionSet.add(e.selection);
+            updateTour();
+        });
+        click.addEventListener('remove', function (e) {
+            console.info('remove selection', e);
+            selectionSet.remove(e.selection);
+            updateTour();
+        });
+        click.addEventListener('select', function (e) {
+            console.info('update selection', e);
+            selectionSet.select([e.selection]);
+            updateTour();
+        });
+
+        keyCommand.bind('default', FOUR.KEY.COMMA, null, function () {
+            tour.previous();
+        });
+        keyCommand.bind('default', FOUR.KEY.PERIOD, null, function () {
+            tour.next();
+        });
+
         viewport.render();
+        viewport.update();
+
     });
 </script>
 </body>

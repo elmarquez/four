@@ -4298,7 +4298,7 @@ FOUR.MultiController = (function () {
 
         var self = this;
         self.controllers = {};
-        self.domElement = config.domElement;
+        self.domElement = config.domElement || config.viewport.domElement;
         self.listeners = {};
         self.viewport = config.viewport;
     }

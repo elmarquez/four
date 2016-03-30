@@ -3,34 +3,13 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Marquee Selection Controller</title>
-  <!-- css, fonts -->
-  <link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>
-  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
-  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
-  <link href='../styles.css' rel='stylesheet' type='text/css'>
-
-  <!-- vendor -->
-  <script src="../vendor/jquery/dist/jquery.js"></script>
-  <script src="../vendor/angular/angular.js"></script>
-  <script src="../vendor/angular-aria/angular-aria.js"></script>
-  <script src="../vendor/angular-route/angular-route.js"></script>
-
-  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../vendor/three.js/three.js"></script>
-  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
-  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
-  <script src="../vendor/tween.js/src/Tween.js"></script>
-
-  <!-- lib -->
-  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
-  <script src="../dist/four.js"></script></head>
 </head>
 <body>
 <div id="description">
   <h2>Marquee Selection Controller</h2>
   <p>
-    Right mouse click and drag to select all entities intersecting the
-    selection marquee.
+    Select scene entities by click-and-dragging to define a selection marquee.
+    All entities intersecting the marquee will be selected.
   </p>
   <p>
     By default, the action clears the current selection then adds the
@@ -40,16 +19,9 @@
     the selection set. Console output provides information on the selection
     state.
   </p>
-  <p>
-    Press the <code>1</code> and <code>2</code> keys to toggle the display of
-    screen and scene index buckets respectively. Press <code>3</code> or move
-    the camera to manually trigger reindexing of the scene. Press
-    <code>4</code> to clear the scene index.
-  </p>
 
 </div>
-<div id="marquee"></div>
-<div id="overlay"></div>
+<div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
 <div id="webgl"></div>
 <script>
   $(document).ready(function () {
@@ -123,14 +95,6 @@
 
     index = new FOUR.SceneIndex({viewport:viewport});
 
-    camera.addEventListener('continuous-update-end', function (e) {
-      viewport.onContinuousUpdateEnd(e);
-    });
-    camera.addEventListener('continuous-update-start', function (e) {
-      viewport.onContinuousUpdateStart(e);
-    });
-    camera.addEventListener('update', viewport.render.bind(viewport), false);
-
     // viewport controllers
     multi = new FOUR.MultiController({viewport: viewport});
     rotate = new FOUR.RotateController({viewport: viewport});
@@ -191,9 +155,6 @@
       cells.add(mesh);
     });
 
-    // TODO add screen index geometry
-
-
     window.addEventListener('keyup', function (event) {
       if (event.keyCode === FOUR.KEY.ONE) {
         // toggle display of view cells
@@ -204,9 +165,8 @@
         console.info('toggle scene cells', !cells.visible);
         cells.visible = cells.visible ? false : true;
       } else if (event.keyCode === FOUR.KEY.THREE) {
+        // this event should be triggered when the camera changes
         index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight);
-      } else if (event.keyCode === FOUR.KEY.FOUR) {
-        index.clear();
       }
       viewport.render();
     });

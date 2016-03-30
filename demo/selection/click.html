@@ -9,7 +9,7 @@
   <h2>Click Selection Controller</h2>
   <p>
     Select scene entities by single and double clicking using the
-    right mouse button.
+    left mouse button.
   </p>
   <p>
     By default, clicking an entity clears the current selection then adds the
@@ -85,9 +85,9 @@
     scene.model.add(particles);
 
     // random geometry
-    geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
-    material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
     for (i = 0; i < objects; i++) {
+      geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+      material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
       mesh = new THREE.Mesh(geometry, material);
       mesh.position.x = (Math.random() - 0.5) * 1000;
       mesh.position.y = (Math.random() - 0.5) * 1000;

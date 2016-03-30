@@ -324,7 +324,7 @@
             });
 
             Mousetrap.bind('1', function () {
-                viewport.setActiveController('trackball');
+                viewport.setActiveController('orbit');
             });
             Mousetrap.bind('2', function () {
                 viewport.setActiveController('walk');
@@ -422,14 +422,14 @@
             });
             viewport.controllers.selection.addEventListener('update', viewport.render.bind(viewport));
 
-            // trackball controller
-            viewport.controllers.trackball = new FOUR.TrackballController({viewport: viewport});
-            viewport.controllers.trackball.dynamicDampingFactor = 0.5;
-            viewport.controllers.trackball.addEventListener('change', viewport.render.bind(viewport));
-            viewport.controllers.trackball.addEventListener('lookat', function (event) {
+            // orbit controller
+            viewport.controllers.orbit = new FOUR.OrbitController({viewport: viewport});
+            viewport.controllers.orbit.dynamicDampingFactor = 0.5;
+            viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
+            viewport.controllers.orbit.addEventListener('lookat', function (event) {
                 camera.setLookAt(event.position);
             }, false);
-            viewport.controllers.trackball.addEventListener('navigate', function (event) {
+            viewport.controllers.orbit.addEventListener('navigate', function (event) {
                 var bbox = new FOUR.BoundingBox();
                 bbox.update([event.object]);
                 camera.zoomToFit(bbox);
