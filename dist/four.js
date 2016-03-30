@@ -297,8 +297,8 @@ FOUR.KeyCommandController = (function () {
    * @param {String} group Group. Use 'default' for persistent commands.
    * @param {String} key Key
    * @param {String} event Key event
-   * @param {Function} fn Function
    * @param {Element} el DOM element that will listen for events. Defaults to window
+   * @param {Function} fn Function
    */
   KeyCommandController.prototype.bind = function (group, key, event, el, fn) {
     el = el || window;
@@ -1056,7 +1056,7 @@ FOUR.TargetCamera = (function () {
 
     TargetCamera.prototype = Object.create(THREE.PerspectiveCamera.prototype);
 
-    //TargetCamera.prototype.constructor = TargetCamera;
+    TargetCamera.prototype.constructor = TargetCamera;
 
     /**
      * Dispatch event.
@@ -5704,15 +5704,15 @@ FOUR.WalkController = (function () {
         var self = this;
 
         self.KEY = {
-            CANCEL: 27,
-            CTRL: 17,
-            MOVE_TO_EYE_HEIGHT: 192,
-            MOVE_FORWARD: 38,
-            MOVE_LEFT: 37,
-            MOVE_BACK: 40,
-            MOVE_RIGHT: 39,
-            MOVE_UP: 221,
-            MOVE_DOWN: 219,
+            CANCEL: FOUR.KEY.ESC,
+            CTRL: FOUR.KEY.CTRL,
+            MOVE_TO_EYE_HEIGHT: FOUR.KEY.GRAVE_ACCENT,
+            MOVE_FORWARD: FOUR.KEY.ARROW_UP,
+            MOVE_LEFT: FOUR.KEY.ARROW_LEFT,
+            MOVE_BACK: FOUR.KEY.ARROW_DOWN,
+            MOVE_RIGHT: FOUR.KEY.ARROW_RIGHT,
+            MOVE_UP: -1,
+            MOVE_DOWN: -1,
             ROTATE_LEFT: -1,
             ROTATE_RIGHT: -1
         };
@@ -5820,8 +5820,8 @@ FOUR.WalkController = (function () {
             return;
         }
         switch(event.keyCode) {
-            case self.KEY.CTRL:
-                self.modifiers[self.KEY.CTRL] = true;
+            case FOUR.KEY.CTRL:
+                self.modifiers[FOUR.KEY.CTRL] = true;
                 break;
             case self.KEY.MOVE_TO_EYE_HEIGHT:
                 self.setWalkHeight();
@@ -5857,8 +5857,8 @@ FOUR.WalkController = (function () {
     WalkController.prototype.onKeyUp = function (event) {
         var self = this;
         switch(event.keyCode) {
-            case self.KEY.CTRL:
-                self.modifiers[self.KEY.CTRL] = false;
+            case FOUR.KEY.CTRL:
+                self.modifiers[FOUR.KEY.CTRL] = false;
                 break;
             case self.KEY.MOVE_FORWARD:
                 self.move.forward = false;
@@ -5884,7 +5884,7 @@ FOUR.WalkController = (function () {
                 self.move.down = false;
                 self.dispatchEvent({type:FOUR.EVENT.CONTINUOUS_UPDATE_END});
                 break;
-            case self.KEY.CANCEL:
+            case FOUR.KEY.CANCEL:
                 Object.keys(self.move).forEach(function (key) {
                     self.move[key] = false;
                 });
@@ -5977,7 +5977,7 @@ FOUR.WalkController = (function () {
         }
 
         if (change) {
-            self.dispatchEvent({type:self.EVENT.UPDATE});
+            self.dispatchEvent({type:FOUR.EVENT.UPDATE});
         }
     };
 
@@ -6908,7 +6908,7 @@ FOUR.MarqueeSelectionController = (function () {
    */
   MarqueeSelectionController.prototype.select = function (x, y, width, height) {
     // find entities that are wholly contained inside the selection marquee
-    var r1 = {p1: {}, p2: {}}, r2 = {p1: {}, p2: {}};
+    var r1 = {p1: {}, p2: {}}, r2 = {p1: {}, p2: {}}, self = this;
     //this.selection = this.quadtree.colliding({x: x, y: y, width: width, height: height}, function (selection, obj) {
     this.selection = this.index.viewIndex.colliding({x: x, y: y, width: width, height: height}, function (selection, obj) {
       r1.p1.x = obj.x;
@@ -6923,10 +6923,20 @@ FOUR.MarqueeSelectionController = (function () {
     });
     // transform index record into a format similar to the one returned by the
     // THREE.Raycaster
+    // scene index format: height, index, type, uuid, width, x, y
+    // raycaster face intersect: distance, face, faceIndex, object, point, uv
+    // raycaster point intersect: distance, distanceToRay, face, index, object, point
     this.selection = this.selection.map(function (item) {
-      // index format: height, index, type, uuid, width, x, y
-      // raycaster face intersect: distance, face, faceIndex, object, point, uv
-      // raycaster point intersect: distance, distanceToRay, face, index, object, point
+      // get the scene object
+      if (!item.object) {
+        item.object = self.viewport.scene.getObjectByProperty('uuid', item.uuid);
+      }
+      // TODO get indexed point coordinates
+      // point intersection
+      //if (item.type && item.type === 'THREE.Points') {
+      //  item.point = new THREE.Object3D();
+      //  item.point.position.copy(item.object.position);
+      //}
       return {
         distance: null,
         face: null,
@@ -6944,22 +6954,6 @@ FOUR.MarqueeSelectionController = (function () {
     } else if (this.selectAction === this.SELECT_ACTIONS.SELECT) {
       this.dispatchEvent({type: 'select', selection: this.selection});
     }
-  };
-
-  MarqueeSelectionController.prototype.selectAll = function () {
-    return true;
-  };
-
-  MarqueeSelectionController.prototype.selectNearest = function () {
-    return true;
-  };
-
-  MarqueeSelectionController.prototype.selectObjects = function () {
-    return true;
-  };
-
-  MarqueeSelectionController.prototype.selectPoints = function () {
-    return true;
   };
 
   /**
