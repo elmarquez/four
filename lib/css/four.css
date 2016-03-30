@@ -1,6 +1,17 @@
+/**
+ * FOUR Presentation Styles
+ *
+ * Presentation layers (z-index):
+ * 0   -  99: WebGL viewport
+ * 100 - 199: WebGL overlays
+ * 200 - 299: HTML overlays
+ * 900 - 999: Marquee selection window
+ */
+
 #marquee {
     background-color: rgba(103,160,225,0.4);
     border: 1px solid rgba(103,160,225,0.7);
+    display: none;
     height: 1px;
     left: -10px;
     margin: 0;

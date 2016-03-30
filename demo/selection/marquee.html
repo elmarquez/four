@@ -40,9 +40,16 @@
     the selection set. Console output provides information on the selection
     state.
   </p>
+  <p>
+    Press the <code>1</code> and <code>2</code> keys to toggle the display of
+    screen and scene index buckets respectively. Press <code>3</code> or move
+    the camera to manually trigger reindexing of the scene. Press
+    <code>4</code> to clear the scene index.
+  </p>
 
 </div>
-<div id="marquee" style="left: 458px; width: 0px; top: 211px; height: 0px; display: none;"></div>
+<div id="marquee"></div>
+<div id="overlay"></div>
 <div id="webgl"></div>
 <script>
   $(document).ready(function () {
@@ -184,6 +191,9 @@
       cells.add(mesh);
     });
 
+    // TODO add screen index geometry
+
+
     window.addEventListener('keyup', function (event) {
       if (event.keyCode === FOUR.KEY.ONE) {
         // toggle display of view cells
@@ -194,8 +204,9 @@
         console.info('toggle scene cells', !cells.visible);
         cells.visible = cells.visible ? false : true;
       } else if (event.keyCode === FOUR.KEY.THREE) {
-        // this event should be triggered when the camera changes
         index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight);
+      } else if (event.keyCode === FOUR.KEY.FOUR) {
+        index.clear();
       }
       viewport.render();
     });

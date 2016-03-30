@@ -685,7 +685,16 @@ FOUR.SceneIndex = (function () {
    * Clear the index.
    */
   SceneIndex.prototype.clear = function () {
-    this.index.clear();
+    var self = this;
+    self.sceneIndex.clear();
+    self.viewIndex = new Quadtree({
+      x: 0,
+      y: 0,
+      height: self.viewport.domElement.clientHeight,
+      width: self.viewport.domElement.clientWidth
+    });
+    console.info('Cleared scene and view indices');
+    self.dispatchEvent({type:FOUR.EVENT.UPDATE, description:'scene and view indices cleared'});
   };
 
   SceneIndex.prototype.disable = function () {
