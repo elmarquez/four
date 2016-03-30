@@ -3,6 +3,27 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Marquee Selection Controller</title>
+  <!-- css, fonts -->
+  <link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>
+  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+  <link href='../styles.css' rel='stylesheet' type='text/css'>
+
+  <!-- vendor -->
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/angular/angular.js"></script>
+  <script src="../vendor/angular-aria/angular-aria.js"></script>
+  <script src="../vendor/angular-route/angular-route.js"></script>
+
+  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../vendor/three.js/three.js"></script>
+  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+  <script src="../vendor/tween.js/src/Tween.js"></script>
+
+  <!-- lib -->
+  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+  <script src="../dist/four.js"></script></head>
 </head>
 <body>
 <div id="description">
@@ -33,7 +54,6 @@
 
     // scene
     scene = new FOUR.Scene();
-    index = new FOUR.SceneIndex();
 
     var cells = new THREE.Object3D();
     var viewCells = new THREE.Object3D();
@@ -93,6 +113,16 @@
     // viewport
     domElement = document.getElementById('webgl');
     viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
+
+    index = new FOUR.SceneIndex({viewport:viewport});
+
+    camera.addEventListener('continuous-update-end', function (e) {
+      viewport.onContinuousUpdateEnd(e);
+    });
+    camera.addEventListener('continuous-update-start', function (e) {
+      viewport.onContinuousUpdateStart(e);
+    });
+    camera.addEventListener('update', viewport.render.bind(viewport), false);
 
     // viewport controllers
     multi = new FOUR.MultiController({viewport: viewport});
