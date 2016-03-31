@@ -292,6 +292,10 @@ FOUR.KeyCommandController = (function () {
     });
   }
 
+  KeyCommandController.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+  KeyCommandController.prototype.constructor = KeyCommandController;
+
   /**
    * Define key command.
    * @param {String} group Group. Use 'default' for persistent commands.
@@ -441,6 +445,8 @@ FOUR.KeyCommandController = (function () {
     this.active = key;
   };
 
+  KeyCommandController.prototype.update = function () {}; // noop
+
   return KeyCommandController;
 
 }());
@@ -473,32 +479,28 @@ FOUR.PathPlanner = (function () {
      * @returns {Promise}
      */
     PathPlanner.prototype.generateTourSequence = function (features) {
-        var self = this;
+        var message, path, self = this;
         if (this.strategy === this.PLANNING_STRATEGY.GENETIC) {
-            return new Promise(function (resolve, reject) {
-                try {
-                    var worker = new Worker(self.workersPath + 'GeneticPlanner.js');
-                    worker.onmessage = function (e) {
-                        resolve(e.data);
-                    };
-                    worker.postMessage({cmd:'run', itinerary:features, generations:500, populationSize:50});
-                } catch (err) {
-                    reject(err);
-                }
-            });
+            path = self.workersPath + 'GeneticPlanner.js';
+            message = {cmd:'run', itinerary:features, generations:500, populationSize:50};
         } else if (this.strategy === this.PLANNING_STRATEGY.SIMULATED_ANNEALING) {
-            return new Promise(function (resolve, reject) {
-                try {
-                    var worker = new Worker(self.workersPath + 'SimulatedAnnealer.js');
-                    worker.onmessage = function (e) {
-                        resolve(e.data);
-                    };
-                    worker.postMessage({cmd:'run', array:features, initialTemperature:10000, coolingRate:0.00001});
-                } catch (err) {
-                    reject(err);
-                }
-            });
+            path = self.workersPath + 'SimulatedAnnealer.js';
+            message = {cmd:'run', array:features, initialTemperature:10000, coolingRate:0.00001};
         }
+        return new Promise(function (resolve, reject) {
+            try {
+                var worker = new Worker(path);
+                worker.onerror = function (e) {
+                    reject(e);
+                };
+                worker.onmessage = function (e) {
+                    resolve(e.data);
+                };
+                worker.postMessage(message);
+            } catch (err) {
+                reject(err);
+            }
+        });
     };
 
     /**
@@ -2854,6 +2856,9 @@ FOUR.Overlay = (function () {
 
 FOUR.ViewAxis = (function () {
 
+  /**
+   * @param {Object} config Configuration
+   */
     function ViewAxis (config) {
         THREE.EventDispatcher.call(this);
 
@@ -2938,6 +2943,8 @@ FOUR.ViewAxis = (function () {
     }
 
     ViewAxis.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+    //ViewAxis.prototype.constructor = ViewAxis;
 
     ViewAxis.prototype.createAxis = function () {
         var axis = new THREE.Object3D(), geometry, line, self = this;
@@ -3265,6 +3272,8 @@ FOUR.Viewcube = (function () {
     }
 
     Viewcube.prototype = Object.create(THREE.EventDispatcher.prototype);
+
+    //Viewcube.prototype.constructor = Viewcube;
 
     Viewcube.prototype.disable = function () {
         var self = this;
@@ -3860,14 +3869,15 @@ FOUR.Viewcube = (function () {
 }());
 ;
 
-/**
- * Arrow key controller is used to translate the camera along the orthogonal
- * axes relative to the camera direction. CTRL+ALT+Arrow key is used to rotate
- * camera view around the current position.
- */
 FOUR.ArrowController = (function () {
 
-  function ArrowController(config) {
+  /**
+   * Arrow key controller is used to translate the camera along the orthogonal
+   * axes relative to the camera direction. CTRL+ALT+Arrow key is used to rotate
+   * camera view around the current position.
+   * @param {Object} config Configuration
+   */
+  function ArrowController (config) {
     THREE.EventDispatcher.call(this);
     config = config || {};
     var self = this;
@@ -5466,7 +5476,7 @@ FOUR.RotateController = (function () {
 FOUR.TourController = (function () {
 
     /**
-     * Tour controller provides automated navigation between selected features.
+     * Tour controller provides automated navigation between features.
      * The configuration should include a workersPath value as part of the
      * config.planner object.
      * @param {Object} config Configuration
@@ -5474,32 +5484,13 @@ FOUR.TourController = (function () {
     function TourController (config) {
         THREE.EventDispatcher.call(this);
         config = config || {};
-        config.planner = config.planner || {};
 
-        var self = this;
-        self.KEY = {
-            CANCEL: 27,     // esc
-            NEXT: 190,      // .
-            PREVIOUS: 188,  // ,
-            NONE: -1,
-            PLAN: -2,
-            UPDATE: -3
-        };
-        self.PLANNING_STRATEGY = {
-            GENETIC_EVOLUTION: 0,
-            SIMULATED_ANNEALING: 1
-        };
-
-        self.camera = config.viewport.camera;
-        self.current = -1; // index of the tour feature
-        self.domElement = config.viewport.domElement;
-        self.enabled = false;
-        self.listeners = {};
-        self.offset = 100; // distance between camera and feature when visiting
-        self.path = [];
-        self.planner = new FOUR.PathPlanner(config.planner);
-        self.planningStrategy = self.PLANNING_STRATEGY.GENETIC_EVOLUTION;
-        self.viewport = config.viewport;
+        this.current = -1; // index of the tour feature
+        this.enabled = false;
+        this.listeners = {};
+        this.path = [];
+        this.planner = new FOUR.PathPlanner(config.planner || {});
+        this.viewport = config.viewport;
     }
 
     TourController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -5551,10 +5542,7 @@ FOUR.TourController = (function () {
             }
         }
         //addListener(self.selection, 'update', self.plan);
-        addListener(window, 'keyup', self.onKeyUp);
-
-        // listen for key input events
-        // TODO
+        //addListener(window, 'keyup', self.onKeyUp);
         this.enabled = true;
     };
 
@@ -5572,10 +5560,16 @@ FOUR.TourController = (function () {
      * @returns {Promise}
      */
     TourController.prototype.navigate = function (i) {
-        var self = this;
-        var feature = self.path[i];
-        self.camera.setTarget(new THREE.Vector3(feature.x, feature.y, feature.z), true);
-        // TODO zoom to fit object
+        var feature = this.path[i];
+        var camera = this.viewport.getCamera();
+        var point = new THREE.Vector3(feature.x, feature.y, feature.z);
+        camera.setTarget(point, true);
+        this.dispatchEvent({
+            type: FOUR.EVENT.UPDATE,
+            id:'move',
+            task: 'move-camera-target',
+            target:new THREE.Vector3(feature.x, feature.y, feature.z)
+        });
     };
 
     /**
@@ -5603,7 +5597,8 @@ FOUR.TourController = (function () {
         var self = this;
         if (self.current === -1) {
             // get the nearest feature to the camera
-            var nearest = self.nearest(self.camera.position);
+            var camera = self.viewport.getCamera();
+            var nearest = self.nearest(camera.position);
             self.current = nearest.index;
         } else if (self.current < self.path.length - 1) {
             self.current++;
@@ -5617,27 +5612,6 @@ FOUR.TourController = (function () {
      * Empty function.
      */
     TourController.prototype.noop = function () {};
-
-    TourController.prototype.onKeyDown = function () {};
-
-    TourController.prototype.onKeyUp = function () {
-        var self = this;
-        if (!self.enabled) {
-            return;
-        }
-        switch(event.keyCode) {
-            case self.KEY.CANCEL:
-                self.current = -1;
-                self.path = [];
-                break;
-            case self.KEY.NEXT:
-                self.next();
-                break;
-            case self.KEY.PREVIOUS:
-                self.previous();
-                break;
-        }
-    };
 
     /**
      * Generate a tour plan.
@@ -5653,8 +5627,8 @@ FOUR.TourController = (function () {
         if (Array.isArray(features) && features.length > 2) {
             return self.planner
                 .generateTourSequence(features)
-                .then(function (path) {
-                    self.path = path;
+                .then(function (result) {
+                    self.path = result.path;
                 }, function (err) {
                     console.error(err);
                 });
@@ -5680,14 +5654,6 @@ FOUR.TourController = (function () {
             self.current--;
         }
         return self.navigate(self.current);
-    };
-
-    /**
-     * Set camera.
-     * @param {THREE.PerspectiveCamera} camera Camera
-     */
-    TourController.prototype.setCamera = function (camera) {
-        this.camera = camera;
     };
 
     /**
@@ -6343,7 +6309,6 @@ FOUR.ClickSelectionController = (function () {
     // the maximum number of pixels that the mouse can move before we interpret
     // the mouse event as not being a click action
     self.EPS = 2;
-    self.KEY = {ALT: 18, CTRL: 17, SHIFT: 16};
     self.MOUSE_STATE = {DOWN: 0, UP: 1};
 
     self.click = self.SINGLE_CLICK_ACTION.SELECT;
@@ -6365,10 +6330,8 @@ FOUR.ClickSelectionController = (function () {
     self.viewport = config.viewport;
 
     self.filter = self.filters.DEFAULT;
-
-    Object.keys(self.KEY).forEach(function (key) {
-      self.modifiers[self.KEY[key]] = false;
-    });
+    self.modifiers[FOUR.KEY.ALT] = false;
+    self.modifiers[FOUR.KEY.SHIFT] = false;
   }
 
   ClickSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -6440,7 +6403,7 @@ FOUR.ClickSelectionController = (function () {
     var selected = this.getSelected();
     if (selected) {
       // CTRL double click rotates the camera toward the selected point
-      if (this.modifiers[this.KEY.CTRL]) {
+      if (this.modifiers[FOUR.KEY.CTRL]) {
         this.dispatchEvent({type:'lookat', position:selected.point, object:selected.object});
       }
       // double click navigates the camera to the selected point
@@ -6451,13 +6414,13 @@ FOUR.ClickSelectionController = (function () {
   };
 
   ClickSelectionController.prototype.onKeyDown = function (event) {
-    if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
+    if (event.keyCode === FOUR.KEY.ALT || event.keyCode === FOUR.KEY.CTRL || event.keyCode === FOUR.KEY.SHIFT) {
       this.modifiers[event.keyCode] = true;
     }
   };
 
   ClickSelectionController.prototype.onKeyUp = function (event) {
-    if (event.keyCode === this.KEY.ALT || event.keyCode === this.KEY.CTRL || event.keyCode === this.KEY.SHIFT) {
+    if (event.keyCode === FOUR.KEY.ALT || event.keyCode === FOUR.KEY.CTRL || event.keyCode === FOUR.KEY.SHIFT) {
       this.modifiers[event.keyCode] = false;
     }
   };
@@ -6505,9 +6468,9 @@ FOUR.ClickSelectionController = (function () {
     var selection = this.getSelected();
     if (selection) {
       // TODO we need to check for exclusive SHIFT, ALT, etc. keydown
-      if (this.modifiers[this.KEY.SHIFT] === true) {
+      if (this.modifiers[FOUR.KEY.SHIFT] === true) {
         this.dispatchEvent({type:'add', selection: selection});
-      } else if (this.modifiers[this.KEY.ALT] === true) {
+      } else if (this.modifiers[FOUR.KEY.ALT] === true) {
         this.dispatchEvent({type:'remove', selection: selection});
       } else if (this.click === this.SINGLE_CLICK_ACTION.SELECT) {
         this.dispatchEvent({type:'select', selection: selection});
@@ -7046,18 +7009,22 @@ FOUR.SelectionSet = (function () {
   SelectionSet.prototype.add = function (obj, update) {
     update = typeof update === 'undefined' ? true : update;
     // add the object if it is not already present in the selection set
-    if (!this.contains(obj)) {
+    var id = this.getObjectIndexId(obj);
+    if (this.index.indexOf(id) === -1) {
+      // TODO we should only be storing the selection record
+      var selection = {};
       // normalize selection record format
       if (!obj.uuid) {
         obj.index = obj.index || -1;
         obj.type = obj.type || this.getType(obj);
         obj.uuid = obj.object.uuid;
       }
+      this.index.push(id);
       this.items.push(obj);
-    }
-    if (update) {
-      this.updateIndex();
-      this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:[obj], removed:[], selected:this.items});
+      if (update) {
+        this.updateIndex();
+        this.dispatchEvent({type:FOUR.EVENT.UPDATE, added:[obj], removed:[], selected:this.items});
+      }
     }
   };
 
@@ -7109,6 +7076,16 @@ FOUR.SelectionSet = (function () {
   SelectionSet.prototype.getObjectIndexId = function (obj) {
     var uuid = obj.uuid ? obj.uuid : obj.object.uuid;
     return uuid + ',' + (typeof obj.index !== 'undefined' ? obj.index : '-1');
+  };
+
+  /**
+   * Get the list of selected scene objects.
+   * It should return the selection record with the object reference in a field.
+   * @param {THREE.Scene} scene Scene
+   * @returns {Array}
+   */
+  SelectionSet.prototype.getSelectedObjects = function (scene) {
+    return [];
   };
 
   /**
@@ -7183,6 +7160,7 @@ FOUR.SelectionSet = (function () {
     } else {
       // remove everything
       removed = this.items;
+      this.index = [];
       this.items = [];
     }
     if (update) {

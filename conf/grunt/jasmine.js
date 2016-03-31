@@ -10,10 +10,12 @@ module.exports = {
                 'test/TargetCamera.js'
             ],
             vendor: [
-                'vendor/bluebird/js/browser/bluebird.js',
-                'vendor/jquery/dist/jquery.js',
-                'vendor/three.js/three.js',
-                'vendor/tween.js/src/Tween.js'
+                'demo/vendor/bluebird/js/browser/bluebird.js',
+                'demo/vendor/jquery/dist/jquery.js',
+                'demo/vendor/quadtree-lib/build/js/quadtree.js',
+                'demo/vendor/spatialhash.js/dist/spatialhash.js',
+                'demo/vendor/three.js/three.js',
+                'demo/vendor/tween.js/src/Tween.js'
             ]
         }
     }

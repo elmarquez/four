@@ -352,7 +352,7 @@ var GeneticPlanner = (function () {
             finalDistance: finalSolution.getDistance(),
             initialDistance: initialDistance,
             iterations: this.generations,
-            route: finalSolution.tour
+            path: finalSolution.tour
         };
     };
 

@@ -3,15 +3,39 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Zoom Controller</title>
-    <div id="description">
-        <h2>Zoom Controller</h2>
-        <p>
-            Mouse wheel forward and backward to move the camera closer to or
-            farther away from the camera target.
-        </p>
-    </div>
+  <!-- css, fonts -->
+  <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+  <link href='../styles.css' rel='stylesheet' type='text/css'>
+
+  <!-- vendor -->
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/angular/angular.js"></script>
+  <script src="../vendor/angular-aria/angular-aria.js"></script>
+  <script src="../vendor/angular-route/angular-route.js"></script>
+
+  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+  <script src="../vendor/three.js/three.js"></script>
+  <script src="../vendor/tween.js/src/Tween.js"></script>
+
+  <!-- lib -->
+  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+  <script src="../dist/four.js"></script>
+  <script src="../dist/workers/GeneticPlanner.js"></script>
+  <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
+<div id="description">
+  <h2>Zoom Controller</h2>
+  <p>
+    Mouse wheel forward and backward to move the camera closer to or
+    farther away from the camera target.
+  </p>
+</div>
+
 <div id="webgl"></div>
 <script>
   $(document).ready(function () {

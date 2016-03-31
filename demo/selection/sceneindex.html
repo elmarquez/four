@@ -3,68 +3,34 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Scene Index</title>
+  <!-- css, fonts -->
+  <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
   <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+  <link href='../styles.css' rel='stylesheet' type='text/css'>
 
   <!-- vendor -->
-    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
-    <script src="../vendor/jquery/dist/jquery.js"></script>
-    <script src="../vendor/angular/angular.js"></script>
-    <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
-    <script src="../vendor/spatialhash/dist/spatialhash.js"></script>
-    <script src="../vendor/three.js/three.js"></script>
-    <script src="../vendor/tween.js/src/Tween.js"></script>
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/angular/angular.js"></script>
+  <script src="../vendor/angular-aria/angular-aria.js"></script>
+  <script src="../vendor/angular-route/angular-route.js"></script>
 
-    <!-- lib -->
-    <script src="../dist/four.js"></script>
-  <style>
-    body {
-      font-family: 'Helvetica Neue', Helvetica, Arial;
-      margin: 0;
-      padding: 0;
-    }
-    #top {
-      background-color: red;
-      bottom: 50%;
-      left: 0;
-      position: fixed;
-      right: 0;
-      top: 0;
-    }
-    #viewport1 {
-      height: 100%;
-      width: 100%;
-    }
-    #bottom {
-      background-color: green;
-      border-top: 1px solid darkgray;
-      bottom: 0;
-      left: 0;
-      position: fixed;
-      right: 0;
-      top: 50%;
-    }
-    .label {
-      background-color: #0040D0;
-      color: white;
-      font-family: 'Helvetica Neue', Helvetica, Arial;
-      font-weight: bold;
-      margin: 12px;
-      padding: 6px;
-      z-index: 200;
-    }
-    .webgl {
-      height: 100%;
-      width: 100%;
-    }
-    .webgl:focus {
-      outline: none;
-    }
-  </style>
+  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+  <script src="../vendor/three.js/three.js"></script>
+  <script src="../vendor/tween.js/src/Tween.js"></script>
+
+  <!-- lib -->
+  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+  <script src="../dist/four.js"></script>
+  <script src="../dist/workers/GeneticPlanner.js"></script>
+  <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
 <div id="top">
   <div class="label">Camera View</div>
-  <div id="marquee" style="display: none;"></div>
+  <div id="marquee"></div>
   <div id="viewport1" class="webgl"></div>
 </div>
 <div id="bottom">

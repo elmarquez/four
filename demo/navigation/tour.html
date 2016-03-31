@@ -6,6 +6,7 @@
     <!-- css, fonts -->
     <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
     <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='../dist/four.css' rel='stylesheet' type='text/css'>
     <link href='../styles.css' rel='stylesheet' type='text/css'>
 
     <!-- vendor -->
@@ -16,21 +17,19 @@
 
     <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
     <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
-    <script src="../vendor/spatialhash/dist/spatialhash.js"></script>
+    <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
     <script src="../vendor/three.js/three.js"></script>
     <script src="../vendor/tween.js/src/Tween.js"></script>
 
     <!-- lib -->
     <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
     <script src="../dist/four.js"></script>
-    <script src="../dist/workers/GeneticPlanner.js"></script>
-    <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
 <div id="description">
     <h2>Tour Controller</h2>
     <p>
-        Select three or more scene entities then use the <code>&lt;</code> and
+        Select two or more scene entities then use the <code>&lt;</code> and
         <code>&gt;</code> keys to automatically move the camera target from one
         selected entity to the next.
     </p>
@@ -49,12 +48,10 @@
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var camera, controller, domElement, geometry, helper, i, keyCommand, light, material, mesh, scene, viewport;
+        var camera, domElement, features, geometry, helper, i, light, material, mesh, scene, viewport;
 
         // scene
         scene = new FOUR.Scene();
-
-        var selectionSet = new FOUR.SelectionSet();
 
         // camera
         camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
@@ -83,15 +80,17 @@
         window.addEventListener('mousemove', viewport.render.bind(viewport));
 
         // controls
-        keyCommand = new FOUR.KeyCommandController();
-
         var multi = new FOUR.MultiController({viewport:viewport});
-        var orbit = new FOUR.OrbitController({viewport:viewport});
-        var tour = new FOUR.TourController({viewport:viewport});
+        var keyCommand = new FOUR.KeyCommandController();
+        var zoom = new FOUR.ZoomController({viewport:viewport});
+        var rotate = new FOUR.RotateController({viewport:viewport});
+        var tour = new FOUR.TourController({viewport:viewport, planner:{workersPath:'/dist/workers/'}});
         var click = new FOUR.ClickSelectionController({viewport:viewport});
-        multi.addController(orbit, 'orbit');
-        multi.addController(tour, 'tour');
         multi.addController(click, 'click');
+        multi.addController(keyCommand, 'keycommand');
+        multi.addController(rotate, 'rotate');
+        multi.addController(tour, 'tour');
+        multi.addController(zoom, 'zoom');
 
         viewport.addController(multi, 'multi');
         viewport.setActiveController('multi');
@@ -109,8 +108,36 @@
             scene.model.add(mesh);
         }
 
-        function updateTour () {
-            var features = selectionSet.items.map(function (item) {
+        var selectionSet = new FOUR.SelectionSet();
+
+        click.addEventListener('add', function (e) {
+            console.info('add selection', e);
+            selectionSet.add(e.selection);
+        });
+        click.addEventListener('remove', function (e) {
+            console.info('remove selection', e);
+            selectionSet.remove(e.selection);
+        });
+        click.addEventListener('select', function (e) {
+            console.info('update selection', e);
+            selectionSet.removeAll(null, false);
+            selectionSet.select([e.selection]);
+        });
+
+        selectionSet.addEventListener('update', function (e) {
+            // set added entities to new color
+            e.added.forEach(function (item) {
+                item.object.userData.color = new THREE.Color().copy(item.object.material.color);
+                item.object.material.color.setHex(0x00FF00);
+            });
+            // reset unselected entities to prior color
+            e.removed.forEach(function (item) {
+                item.object.material.color.copy(item.object.userData.color);
+            });
+            viewport.render();
+
+            console.info('update tour path', selectionSet);
+            features = selectionSet.items.map(function (item) {
                 return {
                     id: item.uuid,
                     x:item.object.position.x,
@@ -119,30 +146,22 @@
                 };
             });
             tour.plan(features).then(function () {
-                console.info('tour updated', tour.path);
+                console.info('tour path updated', tour.path);
             });
-        }
-
-        click.addEventListener('add', function (e) {
-            console.info('add selection', e);
-            selectionSet.add(e.selection);
-            updateTour();
-        });
-        click.addEventListener('remove', function (e) {
-            console.info('remove selection', e);
-            selectionSet.remove(e.selection);
-            updateTour();
-        });
-        click.addEventListener('select', function (e) {
-            console.info('update selection', e);
-            selectionSet.select([e.selection]);
-            updateTour();
         });
 
-        keyCommand.bind('default', FOUR.KEY.COMMA, null, function () {
+        camera.addEventListener('continuous-update-end', function (e) {
+            viewport.onContinuousUpdateEnd(e);
+        });
+        camera.addEventListener('continuous-update-start', function (e) {
+            viewport.onContinuousUpdateStart(e);
+        });
+        camera.addEventListener('update', viewport.render.bind(viewport), false);
+
+        keyCommand.bind('default', FOUR.KEY.COMMA, 'keyup', null, function () {
             tour.previous();
         });
-        keyCommand.bind('default', FOUR.KEY.PERIOD, null, function () {
+        keyCommand.bind('default', FOUR.KEY.PERIOD, 'keyup', null, function () {
             tour.next();
         });
 

@@ -3,7 +3,29 @@
 <head lang="en">
   <meta charset="UTF-8">
   <title>FOUR - Click Selection Controller</title>
-</head>
+  <!-- css, fonts -->
+  <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+  <link href='../styles.css' rel='stylesheet' type='text/css'>
+
+  <!-- vendor -->
+  <script src="../vendor/jquery/dist/jquery.js"></script>
+  <script src="../vendor/angular/angular.js"></script>
+  <script src="../vendor/angular-aria/angular-aria.js"></script>
+  <script src="../vendor/angular-route/angular-route.js"></script>
+
+  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+  <script src="../vendor/three.js/three.js"></script>
+  <script src="../vendor/tween.js/src/Tween.js"></script>
+
+  <!-- lib -->
+  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+  <script src="../dist/four.js"></script>
+  <script src="../dist/workers/GeneticPlanner.js"></script>
+  <script src="../dist/workers/SimulatedAnnealer.js"></script></head>
 <body>
 <div id="description">
   <h2>Click Selection Controller</h2>
@@ -23,7 +45,7 @@
 <div id="webgl"></div>
 <script>
   $(document).ready(function () {
-    var camera, controller, domElement, geometry, helper, i, light, material, mesh, particles, scene, viewport;
+    var camera, domElement, geometry, helper, i, light, material, mesh, particles, scene, viewport;
 
     var objects = 100, points = 500;
 
@@ -34,7 +56,7 @@
       // set added entities to new color
       event.added.forEach(function (item) {
         item.object.userData.color = new THREE.Color().copy(item.object.material.color);
-        item.object.material.color.setHex(0xff0000);
+        item.object.material.color.setHex(0x00FF00);
       });
       // reset unselected entities to prior color
       event.removed.forEach(function (item) {
@@ -102,30 +124,35 @@
     viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
     // controllers
-    controller = new FOUR.ClickSelectionController({viewport: viewport});
-    viewport.addController(controller, 'selection');
-    viewport.setActiveController('selection');
+    var multi = new FOUR.MultiController({viewport: viewport});
+    var click = new FOUR.ClickSelectionController({viewport: viewport});
+    var rotate = new FOUR.RotateController({viewport: viewport});
 
-    controller.addEventListener('add', function (event) {
+    multi.addController(click, 'click');
+    multi.addController(rotate, 'rotate');
+    viewport.addController(multi, 'multi');
+    viewport.setActiveController('multi');
+
+    click.addEventListener('add', function (event) {
       console.info('add', event);
       selection.add(event.selection);
     });
-    controller.addEventListener('remove', function (event) {
+    click.addEventListener('remove', function (event) {
       console.info('remove', event);
       selection.remove(event.selection);
     });
-    controller.addEventListener('select', function (event) {
+    click.addEventListener('select', function (event) {
       console.info('select', event);
       selection.toggle(event.selection);
     });
-    controller.addEventListener('toggle', function (event) {
+    click.addEventListener('toggle', function (event) {
       console.info('toggle', event);
       selection.toggle(event.selection);
     });
-    controller.addEventListener('lookat', function (event) {
+    click.addEventListener('lookat', function (event) {
       console.info('lookat', event);
     });
-    controller.addEventListener('settarget', function (event) {
+    click.addEventListener('settarget', function (event) {
       console.info('settarget', event);
     });
 
