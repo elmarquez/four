@@ -24,8 +24,6 @@
   <!-- lib -->
   <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
   <script src="../dist/four.js"></script>
-  <script src="../dist/workers/GeneticPlanner.js"></script>
-  <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
 <div id="description">
@@ -88,6 +86,14 @@
       mesh.matrixAutoUpdate = false;
       scene.add(mesh);
     }
+
+    camera.addEventListener('continuous-update-end', function (e) {
+      viewport.onContinuousUpdateEnd(e);
+    });
+    camera.addEventListener('continuous-update-start', function (e) {
+      viewport.onContinuousUpdateStart(e);
+    });
+    camera.addEventListener('update', viewport.render.bind(viewport), false);
 
     viewport.render();
     viewport.update();

@@ -24,8 +24,6 @@
   <!-- lib -->
   <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
   <script src="../dist/four.js"></script>
-  <script src="../dist/workers/GeneticPlanner.js"></script>
-  <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
 <div id="description">
@@ -66,8 +64,6 @@
     domElement = document.getElementById('webgl');
     viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-    window.addEventListener('mousemove', viewport.render.bind(viewport));
-
     // controls
     controller = new FOUR.PanController({viewport: viewport});
 
@@ -89,7 +85,6 @@
 
     viewport.render();
     viewport.update();
-
   });
 </script>
 </body>

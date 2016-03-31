@@ -24,8 +24,6 @@
     <!-- lib -->
     <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
     <script src="../dist/four.js"></script>
-    <script src="../dist/workers/GeneticPlanner.js"></script>
-    <script src="../dist/workers/SimulatedAnnealer.js"></script>
 </head>
 <body>
 <div id="description">
@@ -65,13 +63,10 @@
 
         // viewport
         domElement = document.getElementById('webgl');
-        viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
-
-        window.addEventListener('mousemove', viewport.render.bind(viewport));
+        viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate:true, domElement: domElement, scene: scene});
 
         // controls
         controller = new FOUR.LookController({viewport: viewport});
-
         viewport.addController(controller, 'look');
         viewport.setActiveController('look');
 
@@ -87,6 +82,16 @@
             mesh.matrixAutoUpdate = false;
             scene.add(mesh);
         }
+
+        controller.addEventListener('update', viewport.render.bind(viewport), false);
+
+        camera.addEventListener('continuous-update-end', function (e) {
+            viewport.onContinuousUpdateEnd(e);
+        });
+        camera.addEventListener('continuous-update-start', function (e) {
+            viewport.onContinuousUpdateStart(e);
+        });
+        camera.addEventListener('update', viewport.render.bind(viewport), false);
 
         viewport.render();
         viewport.update();
