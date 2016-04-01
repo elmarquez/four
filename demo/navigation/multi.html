@@ -2,7 +2,7 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title>FOUR - Orbit Controller</title>
+    <title>FOUR - Multi Controller</title>
     <!-- css, fonts -->
     <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
     <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
@@ -27,17 +27,17 @@
 </head>
 <body>
 <div id="description">
-    <h2>Orbit Controller</h2>
+    <h2>Multi Controller</h2>
     <p>
-        Pan, rotate and zoom the camera relative to the camera target. Use the
-        right mouse button to pan, middle mouse button to rotate, and mouse
-        wheel to zoom.
+        Combine zero or more controllers to make a composite controller. In this
+        example the pan, rotate and zoom controllers are combined to make an
+        orbit controller.
     </p>
 </div>
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var camera, controller, domElement, geometry, helper, i, light, material, mesh, scene, viewport;
+        var camera, domElement, geometry, helper, i, light, material, mesh, scene, viewport;
 
         // scene
         scene = new FOUR.Scene();
@@ -66,18 +66,23 @@
         domElement = document.getElementById('webgl');
         viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-        window.addEventListener('mousemove', viewport.render.bind(viewport));
-
         // controls
-        controller = new FOUR.OrbitController({viewport: viewport});
+        var multi = new FOUR.MultiController({viewport: viewport});
+        var pan = new FOUR.PanController({viewport: viewport});
+        var rotate = new FOUR.RotateController({viewport: viewport});
+        var zoom = new FOUR.ZoomController({viewport: viewport});
 
-        viewport.addController(controller, 'look');
-        viewport.setActiveController('look');
+        multi.addController(pan, 'pan');
+        multi.addController(rotate, 'rotate');
+        multi.addController(zoom, 'zoom');
+
+        viewport.addController(multi, 'multi');
+        viewport.setActiveController('multi');
 
         // world
-        geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
-        material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
         for (i = 0; i < 500; i++) {
+            geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+            material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
             mesh = new THREE.Mesh(geometry, material);
             mesh.position.x = (Math.random() - 0.5) * 1000;
             mesh.position.y = (Math.random() - 0.5) * 1000;
