@@ -191,6 +191,17 @@
             viewport.render();
         });
 
+        var indexingTimeout = null;
+        rotate.addEventListener(FOUR.EVENT.RENDER, function () {
+            if (indexingTimeout !== null) {
+                clearTimeout(indexingTimeout);
+                indexingTimeout = null;
+            }
+            indexingTimeout = setTimeout(function () {
+                index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight);
+            }, 200);
+        });
+
         window.addEventListener('resize', function () {
             viewport.render();
         });

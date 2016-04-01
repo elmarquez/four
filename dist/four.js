@@ -36,6 +36,7 @@ FOUR.EVENT = {
     CONTINUOUS_UPDATE_END: 'continuous-update-end',
     CONTINUOUS_UPDATE_START: 'continuous-update-start',
     CONTROLLER_CHANGE: 'controller-change',
+    INDEX: 'index',
     KEY_DOWN: 'keydown',
     KEY_UP: 'keyup',
     MOUSE_DOWN: 'mousedown',
@@ -645,23 +646,21 @@ FOUR.Scene = (function () {
 
 }());;
 
-/**
- * Camera view object and object element index. The index supports search for
- * object and object element selection. The indexer can accept a function to
- * enable indexing of arbitrary element properties.
- */
 FOUR.SceneIndex = (function () {
 
     /**
-     * SceneIndex constructor.
+     * Camera view object and object element index. The index supports search
+     * for object and object element selection. The indexer can accept a
+     * function to enable indexing of arbitrary element properties.
+     * TODO enable support for multiple viewports
      * @param {Object} config Configuration
      * @constructor
      */
     function SceneIndex(config) {
         THREE.EventDispatcher.call(this);
         config = config || {};
-        var self = this;
 
+        var self = this;
         self.filter = null;
         self.filters = {
             all: self.selectAll,
@@ -672,24 +671,20 @@ FOUR.SceneIndex = (function () {
         self.frustum = new THREE.Frustum();
         self.sceneIndex = new SpatialHash();
         //self.viewIndex = new SpatialHash();
-        self.viewport = null; // FIXME temporary until we remove quadtree
-
-        Object.keys(config).forEach(function (key) {
-            self[key] = config[key];
-        });
-
         self.viewIndex = new Quadtree({
             x: 0,
             y: 0,
             height: config.viewport.domElement.clientHeight,
             width: config.viewport.domElement.clientWidth
         });
+        self.viewport = null; // FIXME temporary until we remove quadtree
 
+        Object.keys(config).forEach(function (key) {
+            self[key] = config[key];
+        });
     }
 
     SceneIndex.prototype = Object.create(THREE.EventDispatcher.prototype);
-
-    SceneIndex.prototype.constructor = SceneIndex;
 
     /**
      * Clear the index.
@@ -791,9 +786,23 @@ FOUR.SceneIndex = (function () {
      * @returns {number} Count of the number of indexed vertices
      */
     SceneIndex.prototype.indexBufferedGeometryPosition = function (obj) {
-        var i, total = 0;
-        console.info('point count', obj.geometry.attributes.position.count);
+        var aabb, i, id, metadata, total = 0, vertex;
+        //console.info('point count', obj.geometry.attributes.position.count);
         for (i = 0; i < obj.geometry.attributes.position.count; i += 3) {
+            vertex = new THREE.Vector3(
+                obj.geometry.attributes.position.array[i],
+                obj.geometry.attributes.position.array[i+1],
+                obj.geometry.attributes.position.array[i+2]);
+            vertex = vertex.add(obj.position);
+            id = obj.uuid + ',' + i;
+            aabb = {
+                min: {x: vertex.x, y: vertex.y, z: vertex.z},
+                max: {x: vertex.x, y: vertex.y, z: vertex.z}
+            };
+            metadata = {
+                type: 'THREE.Points'
+            };
+            this.sceneIndex.insert(id, i, aabb, metadata);
             total += 1;
         }
         return total;
@@ -808,7 +817,6 @@ FOUR.SceneIndex = (function () {
         var aabb, i, id, metadata, total = 0, vertex;
         if (obj.geometry.vertices) {
             for (i = 0; i < obj.geometry.vertices.length; i++) {
-                // TODO ensure that the vertex position is absolute
                 vertex = obj.geometry.vertices[i].clone().add(obj.position);
                 id = obj.uuid + ',' + i;
                 aabb = {
@@ -910,23 +918,15 @@ FOUR.SceneIndex = (function () {
      * @returns {Number} Count of indexed vertices
      */
     SceneIndex.prototype.indexPointsScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-        //var aabb, p, self = this, total = 0, uuid = obj.uuid.slice();
-        //obj.geometry.vertices.forEach(function (vertex, i) {
-        //  p = vertex.clone().applyMatrix4(obj.matrixWorld); // absolute position of vertex
-        //  p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-        //  aabb = new THREE.Box3(new THREE.Vector3(p.x, p.y, 0), new THREE.Vector3(p.x, p.y, 0));
-        //  self.viewIndex.insert(uuid, i, aabb, {});
-        //  total += 1;
-        //});
-        //return total;
-        var i, p, self = this, total = 0, vertex;
+        var i, p, total = 0, uuid = obj.uuid.slice(), vertex;
         if (obj.geometry.vertices) {
             for (i = 0; i < obj.geometry.vertices.length; i++) {
-                vertex = obj.geometry.vertices[i];
+                //vertex = obj.geometry.vertices[i];
+                vertex = obj.geometry.vertices[i].clone().add(obj.position);
                 p = FOUR.utils.getObjectScreenCoordinates(vertex, camera, clientWidth, clientHeight);
                 if (p.x >= 0 && p.y >= 0) {
                     this.viewIndex.push({
-                        uuid: obj.uuid.slice(),
+                        uuid: uuid,
                         x: Number(p.x),
                         y: Number(p.y),
                         width: 0,
@@ -938,7 +938,26 @@ FOUR.SceneIndex = (function () {
                 }
             }
         } else if (obj.geometry.attributes.position) {
-            console.warn('Indexing buffer geometry vertices will have a significant performance impact');
+            for (i = 0; i < obj.geometry.attributes.position.count; i += 3) {
+                vertex = new THREE.Vector3(
+                    obj.geometry.attributes.position.array[i],
+                    obj.geometry.attributes.position.array[i+1],
+                    obj.geometry.attributes.position.array[i+2]);
+                vertex = vertex.add(obj.position);
+                p = FOUR.utils.getObjectScreenCoordinates(vertex, camera, clientWidth, clientHeight);
+                if (p.x >= 0 && p.y >= 0) {
+                    this.viewIndex.push({
+                        uuid: uuid,
+                        x: Number(p.x),
+                        y: Number(p.y),
+                        width: 0,
+                        height: 0,
+                        index: i,
+                        type: 'THREE.Points'
+                    });
+                    total += 1;
+                }
+            }
         }
         return total;
     };
@@ -5042,7 +5061,7 @@ FOUR.TourController = (function () {
 
     TourController.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-    TourController.prototype.constructor = TourController;
+    //TourController.prototype.constructor = TourController;
 
     /**
      * Disable the controller.
@@ -5088,7 +5107,6 @@ FOUR.TourController = (function () {
                 element.addEventListener(event, self.listeners[event].fn, false);
             }
         }
-
         //addListener(self.selection, 'update', self.plan);
         //addListener(window, 'keyup', self.onKeyUp);
         this.enabled = true;
@@ -5159,8 +5177,7 @@ FOUR.TourController = (function () {
     /**
      * Empty function.
      */
-    TourController.prototype.noop = function () {
-    };
+    TourController.prototype.noop = function () {};
 
     /**
      * Generate a tour plan.
@@ -5208,8 +5225,7 @@ FOUR.TourController = (function () {
     /**
      * Update the controller state.
      */
-    TourController.prototype.update = function () {
-    }; // noop
+    TourController.prototype.update = function () {}; // noop
 
     return TourController;
 

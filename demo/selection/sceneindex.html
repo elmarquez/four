@@ -85,11 +85,7 @@
         viewport1 = new FOUR.Viewport3D({camera: camera1, domElement: domElement1, scene: scene});
         viewport2 = new FOUR.Viewport3D({camera: camera2, domElement: domElement2, scene: scene});
 
-        index = new FOUR.SceneIndex({
-            width: domElement2.clientWidth,
-            height: domElement2.clientHeight,
-            viewport: viewport1
-        });
+        index = new FOUR.SceneIndex({viewport: viewport1});
 
 
         var axisHelper = new THREE.AxisHelper(100);
