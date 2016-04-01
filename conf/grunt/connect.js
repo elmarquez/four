@@ -1,10 +1,10 @@
 'use strict';
 
 module.exports = {
-  dev: {
-    options: {
-      open: true,
-      base: 'demo'
+    dev: {
+        options: {
+            open: true,
+            base: 'demo'
+        }
     }
-  }
 };

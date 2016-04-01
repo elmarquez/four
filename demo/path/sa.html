@@ -40,13 +40,13 @@
         <button onclick="clearPath();">Clear path</button>
     </p>
 </div>
-    <canvas id="map"></canvas>
+<canvas id="map"></canvas>
 <script type="text/javascript">
     var canvas = document.getElementById('map');
 
     // remember to specify the absolute path to the folder where the workers
     // are kept
-    var planner = new FOUR.PathPlanner({workersPath:'/dist/workers/'});
+    var planner = new FOUR.PathPlanner({workersPath: '/dist/workers/'});
 
     fitToContainer(canvas);
 
@@ -54,44 +54,44 @@
     var count = 300;
 
     var items = [
-        [60, 200],[180, 200],[80, 180],[140, 180],[20, 160],
-        [100, 160],[200, 160],[140, 140],[40, 120],[100, 120],
-        [180, 100],[60, 80],[120, 80],[180, 60],[20, 40],
-        [100, 40],[200, 40],[20, 20],[60, 20],[160, 20]
+        [60, 200], [180, 200], [80, 180], [140, 180], [20, 160],
+        [100, 160], [200, 160], [140, 140], [40, 120], [100, 120],
+        [180, 100], [60, 80], [120, 80], [180, 60], [20, 40],
+        [100, 40], [200, 40], [20, 20], [60, 20], [160, 20]
     ];
     var itinerary = [];
 
-    function clear () {
+    function clear() {
         ctx.fillStyle = '#303030';
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     }
 
-    function clearPath () {
+    function clearPath() {
         clear();
         drawPoints(items);
     }
 
-    function fitToContainer(canvas){
+    function fitToContainer(canvas) {
         // Make it visually fill the positioned parent
-        canvas.style.width ='100%';
-        canvas.style.height='100%';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
         // ...then set the internal size to match
-        canvas.width  = canvas.offsetWidth;
+        canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
     }
 
-    function update () {
+    function update() {
         clear();
         drawPoints(items);
 
         // Add points to itinerary.
         itinerary = items.reduce(function (list, p) {
-            list.push({uuid: Date.now(), x: p[0], y:p[1], z:0});
+            list.push({uuid: Date.now(), x: p[0], y: p[1], z: 0});
             return list;
         }, []);
 
         // Evolve solution
-        var params = {array:itinerary, initialTemperature:5000, coolingRate:0.00001};
+        var params = {array: itinerary, initialTemperature: 5000, coolingRate: 0.00001};
         var solution = new SimulatedAnnealer(params);
         console.info(
                 'Duration', solution.duration,
@@ -101,40 +101,40 @@
         drawRoute(solution.route);
     }
 
-    function updateInWebWorker () {
+    function updateInWebWorker() {
         clear();
         drawPoints(items);
 
         // Add points to itinerary.
         itinerary = items.reduce(function (list, p) {
-            list.push({uuid: Date.now(), x: p[0], y:p[1], z:0});
+            list.push({uuid: Date.now(), x: p[0], y: p[1], z: 0});
             return list;
         }, []);
 
         // Evolve population
         planner
-            .generateTourSequence(itinerary)
-            .then(function (e) {
-                console.info('Duration', e.duration,
-                        'Iterations', e.iterations,
-                        'Initial distance', e.initialDistance,
-                        'Final distance', e.finalDistance);
-                drawRoute(e.route);
-            })
-            .catch(function (err) {
-                console.error(err);
-            });
+                .generateTourSequence(itinerary)
+                .then(function (e) {
+                    console.info('Duration', e.duration,
+                            'Iterations', e.iterations,
+                            'Initial distance', e.initialDistance,
+                            'Final distance', e.finalDistance);
+                    drawRoute(e.route);
+                })
+                .catch(function (err) {
+                    console.error(err);
+                });
     }
 
     function drawPoints(points) {
         var _ctx = ctx;
         ctx.fillStyle = 'white';
         points.forEach(function (p) {
-            _ctx.fillRect(p[0]-2,p[1]-2,4,4);
+            _ctx.fillRect(p[0] - 2, p[1] - 2, 4, 4);
         });
     }
 
-    function drawRoute (route) {
+    function drawRoute(route) {
         var i;
         ctx.beginPath();
         ctx.lineWidth = 0.5;
@@ -146,14 +146,14 @@
         ctx.stroke();
     }
 
-    function randomPoints () {
+    function randomPoints() {
         var i, x, y;
         items = [];
         clear();
-        for (i = 0;i<count;i++) {
+        for (i = 0; i < count; i++) {
             x = Math.floor(Math.random() * ctx.canvas.width);
             y = Math.floor(Math.random() * ctx.canvas.height);
-            items.push([x,y]);
+            items.push([x, y]);
         }
         drawPoints(items);
     }

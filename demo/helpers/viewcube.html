@@ -1,206 +1,211 @@
 <!DOCTYPE html>
 <html>
 <head lang="en">
-  <meta charset="UTF-8">
-  <title>FOUR - Viewcube Control</title>
-  <!-- css, fonts -->
-  <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
-  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
-  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
-  <link href='../styles.css' rel='stylesheet' type='text/css'>
+    <meta charset="UTF-8">
+    <title>FOUR - Viewcube Control</title>
+    <!-- css, fonts -->
+    <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+    <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+    <link href='../styles.css' rel='stylesheet' type='text/css'>
 
-  <!-- vendor -->
-  <script src="../vendor/jquery/dist/jquery.js"></script>
-  <script src="../vendor/angular/angular.js"></script>
-  <script src="../vendor/angular-aria/angular-aria.js"></script>
-  <script src="../vendor/angular-route/angular-route.js"></script>
+    <!-- vendor -->
+    <script src="../vendor/jquery/dist/jquery.js"></script>
+    <script src="../vendor/angular/angular.js"></script>
+    <script src="../vendor/angular-aria/angular-aria.js"></script>
+    <script src="../vendor/angular-route/angular-route.js"></script>
 
-  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
-  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
-  <script src="../vendor/three.js/three.js"></script>
-  <script src="../vendor/tween.js/src/Tween.js"></script>
+    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+    <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+    <script src="../vendor/three.js/three.js"></script>
+    <script src="../vendor/tween.js/src/Tween.js"></script>
 
-  <!-- lib -->
-  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
-  <script src="../dist/four.js"></script>
+    <!-- lib -->
+    <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+    <script src="../dist/four.js"></script>
 </head>
 <body>
 <div id="viewport"></div>
 <div id="viewcube"></div>
 <script>
-  $(document).ready(function () {
-    var domElement = document.getElementById('viewport');
-    var scene = new THREE.Scene();
+    $(document).ready(function () {
+        var domElement = document.getElementById('viewport');
+        var scene = new THREE.Scene();
 
-    // camera
-    var camera = new FOUR.TargetCamera(50, domElement.clientWidth / domElement.clientHeight, 0.1, 1000);
-    camera.position.set(0,-50,0);
-    camera.up = new THREE.Vector3(0,0,1);
-    scene.add(camera);
+        // camera
+        var camera = new FOUR.TargetCamera(50, domElement.clientWidth / domElement.clientHeight, 0.1, 1000);
+        camera.position.set(0, -50, 0);
+        camera.up = new THREE.Vector3(0, 0, 1);
+        scene.add(camera);
 
-    // lights
-    var ambientLight = new THREE.AmbientLight(0x000000);
-    scene.add(ambientLight);
+        // lights
+        var ambientLight = new THREE.AmbientLight(0x000000);
+        scene.add(ambientLight);
 
-    var lights = [];
-    lights[0] = new THREE.PointLight(0xffffff, 1, 0);
-    lights[1] = new THREE.PointLight(0xffffff, 1, 0);
-    lights[2] = new THREE.PointLight(0xffffff, 1, 0);
+        var lights = [];
+        lights[0] = new THREE.PointLight(0xffffff, 1, 0);
+        lights[1] = new THREE.PointLight(0xffffff, 1, 0);
+        lights[2] = new THREE.PointLight(0xffffff, 1, 0);
 
-    lights[0].position.set(0, 180, 0);
-    lights[1].position.set(100, 180, 100);
-    lights[2].position.set(-100, -180, -100);
+        lights[0].position.set(0, 180, 0);
+        lights[1].position.set(100, 180, 100);
+        lights[2].position.set(-100, -180, -100);
 
-    scene.add(lights[0]);
-    scene.add(lights[1]);
-    scene.add(lights[2]);
+        scene.add(lights[0]);
+        scene.add(lights[1]);
+        scene.add(lights[2]);
 
-    // add some geometry for demonstration purposes
-    var count = 1000, cloud = new THREE.Object3D();
-    var geometry, material = new THREE.MeshPhongMaterial({
-      color: 0x156289,
-      emissive: 0x072534,
-      side: THREE.DoubleSide,
-      shading: THREE.FlatShading
-    }), mesh;
-    for (var i =0;i<count;i++) {
-      geometry = new THREE.BoxGeometry(1,1,1);
-      mesh = new THREE.Mesh(geometry, material);
-      mesh.position.x = Math.floor(Math.random() * 100);
-      mesh.position.y = Math.floor(Math.random() * 100);
-      mesh.position.z = Math.floor(Math.random() * 100);
-      cloud.add(mesh);
-    }
-    cloud.position.set(-50,-50,-50);
-    scene.add(cloud);
+        // add some geometry for demonstration purposes
+        var count = 1000, cloud = new THREE.Object3D();
+        var geometry, material = new THREE.MeshPhongMaterial({
+            color: 0x156289,
+            emissive: 0x072534,
+            side: THREE.DoubleSide,
+            shading: THREE.FlatShading
+        }), mesh;
+        for (var i = 0; i < count; i++) {
+            geometry = new THREE.BoxGeometry(1, 1, 1);
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.position.x = Math.floor(Math.random() * 100);
+            mesh.position.y = Math.floor(Math.random() * 100);
+            mesh.position.z = Math.floor(Math.random() * 100);
+            cloud.add(mesh);
+        }
+        cloud.position.set(-50, -50, -50);
+        scene.add(cloud);
 
-    var axisHelper = new THREE.AxisHelper(20);
-    scene.add(axisHelper);
+        var axisHelper = new THREE.AxisHelper(20);
+        scene.add(axisHelper);
 
-    // viewport and controller
-    var viewport = new FOUR.Viewport3D({camera:camera, continuousUpdate:true, domElement:domElement, scene:scene});
-    var orbit = new FOUR.OrbitController({viewport:viewport});
-    viewport.addController(orbit, 'orbit');
-    viewport.setActiveController('orbit');
-    viewport.update();
-    viewport.render();
+        // viewport and controller
+        var viewport = new FOUR.Viewport3D({
+            camera: camera,
+            continuousUpdate: true,
+            domElement: domElement,
+            scene: scene
+        });
+        var orbit = new FOUR.OrbitController({viewport: viewport});
+        viewport.addController(orbit, 'orbit');
+        viewport.setActiveController('orbit');
+        viewport.update();
+        viewport.render();
 
-    // viewcube
-    var viewcubeElement = document.getElementById('viewcube');
-    var viewcube = window.viewcube = new FOUR.Viewcube({
-      domElement:viewcubeElement,
-      display: {
-        compass:false,
-        cube:true,
-        labels:true,
-        sceneAxis: true
-      },
-      viewport:viewport
+        // viewcube
+        var viewcubeElement = document.getElementById('viewcube');
+        var viewcube = window.viewcube = new FOUR.Viewcube({
+            domElement: viewcubeElement,
+            display: {
+                compass: false,
+                cube: true,
+                labels: true,
+                sceneAxis: true
+            },
+            viewport: viewport
+        });
+        viewcube.enable();
+
+        orbit.addEventListener('update', function () {
+            viewcube.updateOrientation();
+        });
+
+        window.addEventListener('keyup', function (event) {
+            // 1 - 0
+            if (event.keyCode === 49) {
+                console.log('top');
+                viewcube.setView(0);
+            } else if (event.keyCode === 50) {
+                console.log('front');
+                viewcube.setView(1);
+            } else if (event.keyCode === 51) {
+                console.log('right');
+                viewcube.setView(2);
+            } else if (event.keyCode === 52) {
+                console.log('back');
+                viewcube.setView(3);
+            } else if (event.keyCode === 53) {
+                console.log('left');
+                viewcube.setView(4);
+            } else if (event.keyCode === 54) {
+                console.log('bottom');
+                viewcube.setView(5);
+            } else if (event.keyCode === 55) {
+                console.log('top front edge');
+                viewcube.setView(6);
+            } else if (event.keyCode === 56) {
+                console.log('top right edge');
+                viewcube.setView(7);
+            } else if (event.keyCode === 57) {
+                console.log('top back edge');
+                viewcube.setView(8);
+            } else if (event.keyCode === 48) {
+                console.log('top left edge');
+                viewcube.setView(9);
+            }
+
+            // Q, W, E, R
+            else if (event.keyCode === 81) {
+                console.log('front right edge');
+                viewcube.setView(10);
+            } else if (event.keyCode === 87) {
+                console.log('back right edge');
+                viewcube.setView(11);
+            } else if (event.keyCode === 69) {
+                console.log('back left edge');
+                viewcube.setView(12);
+            } else if (event.keyCode === 82) {
+                console.log('front left edge');
+                viewcube.setView(13);
+            }
+
+            // T, Y, U, I
+            else if (event.keyCode === 84) {
+                console.log('bottom front edge');
+                viewcube.setView(14);
+            } else if (event.keyCode === 89) {
+                console.log('bottom right edge');
+                viewcube.setView(15);
+            } else if (event.keyCode === 85) {
+                console.log('bottom back edge');
+                viewcube.setView(16);
+            } else if (event.keyCode === 73) {
+                console.log('bottom left edge');
+                viewcube.setView(17);
+            }
+
+            // A, S, D, F
+            else if (event.keyCode === 65) {
+                console.log('top front right corner');
+                viewcube.setView(18);
+            } else if (event.keyCode === 83) {
+                console.log('top back right corner');
+                viewcube.setView(19);
+            } else if (event.keyCode === 68) {
+                console.log('top back left corner');
+                viewcube.setView(20);
+            } else if (event.keyCode === 70) {
+                console.log('top front left corner');
+                viewcube.setView(21);
+            }
+
+            // G, H, J, K
+            else if (event.keyCode === 71) {
+                console.log('bottom front right corner');
+                viewcube.setView(22);
+            } else if (event.keyCode === 72) {
+                console.log('bottom back right corner');
+                viewcube.setView(23);
+            } else if (event.keyCode === 74) {
+                console.log('bottom back left corner');
+                viewcube.setView(24);
+            } else if (event.keyCode === 75) {
+                console.log('bottom front left corner');
+                viewcube.setView(25);
+            }
+
+
+        }, false);
     });
-    viewcube.enable();
-
-    orbit.addEventListener('update', function () {
-      viewcube.updateOrientation();
-    });
-
-    window.addEventListener('keyup', function (event) {
-      // 1 - 0
-      if (event.keyCode === 49) {
-        console.log('top');
-        viewcube.setView(0);
-      } else if (event.keyCode === 50) {
-        console.log('front');
-        viewcube.setView(1);
-      } else if (event.keyCode === 51) {
-        console.log('right');
-        viewcube.setView(2);
-      } else if (event.keyCode === 52) {
-        console.log('back');
-        viewcube.setView(3);
-      } else if (event.keyCode === 53) {
-        console.log('left');
-        viewcube.setView(4);
-      } else if (event.keyCode === 54) {
-        console.log('bottom');
-        viewcube.setView(5);
-      } else if (event.keyCode === 55) {
-        console.log('top front edge');
-        viewcube.setView(6);
-      } else if (event.keyCode === 56) {
-        console.log('top right edge');
-        viewcube.setView(7);
-      } else if (event.keyCode === 57) {
-        console.log('top back edge');
-        viewcube.setView(8);
-      } else if (event.keyCode === 48) {
-        console.log('top left edge');
-        viewcube.setView(9);
-      }
-
-      // Q, W, E, R
-      else if (event.keyCode === 81) {
-        console.log('front right edge');
-        viewcube.setView(10);
-      } else if (event.keyCode === 87) {
-        console.log('back right edge');
-        viewcube.setView(11);
-      } else if (event.keyCode === 69) {
-        console.log('back left edge');
-        viewcube.setView(12);
-      } else if (event.keyCode === 82) {
-        console.log('front left edge');
-        viewcube.setView(13);
-      }
-
-      // T, Y, U, I
-      else if (event.keyCode === 84) {
-        console.log('bottom front edge');
-        viewcube.setView(14);
-      } else if (event.keyCode === 89) {
-        console.log('bottom right edge');
-        viewcube.setView(15);
-      } else if (event.keyCode === 85) {
-        console.log('bottom back edge');
-        viewcube.setView(16);
-      } else if (event.keyCode === 73) {
-        console.log('bottom left edge');
-        viewcube.setView(17);
-      }
-
-      // A, S, D, F
-      else if (event.keyCode === 65) {
-        console.log('top front right corner');
-        viewcube.setView(18);
-      } else if (event.keyCode === 83) {
-        console.log('top back right corner');
-        viewcube.setView(19);
-      } else if (event.keyCode === 68) {
-        console.log('top back left corner');
-        viewcube.setView(20);
-      } else if (event.keyCode === 70) {
-        console.log('top front left corner');
-        viewcube.setView(21);
-      }
-
-      // G, H, J, K
-      else if (event.keyCode === 71) {
-        console.log('bottom front right corner');
-        viewcube.setView(22);
-      } else if (event.keyCode === 72) {
-        console.log('bottom back right corner');
-        viewcube.setView(23);
-      } else if (event.keyCode === 74) {
-        console.log('bottom back left corner');
-        viewcube.setView(24);
-      } else if (event.keyCode === 75) {
-        console.log('bottom front left corner');
-        viewcube.setView(25);
-      }
-
-
-    }, false);
-  });
 </script>
 </body>
 </html>

@@ -20,7 +20,7 @@ describe('TargetCamera', function () {
     describe('default direction', function () {
         it('should be 0,1,0', function (done) {
             var direction = camera.getDirection();
-            expect(direction.equals(new THREE.Vector3(0,1,0))).toBe(true);
+            expect(direction.equals(new THREE.Vector3(0, 1, 0))).toBe(true);
             done();
         });
     });
@@ -36,21 +36,21 @@ describe('TargetCamera', function () {
             var position = camera.getPosition();
             var target = camera.getTarget();
             var direction = new THREE.Vector3().subVectors(position, target);
-            expect(direction.equals(new THREE.Vector3(0,-1,0))).toBe(true);
+            expect(direction.equals(new THREE.Vector3(0, -1, 0))).toBe(true);
             done();
         });
     });
     describe('default offset', function () {
         it('should be 0,1,0', function (done) {
             var offset = camera.getOffset();
-            expect(offset.equals(new THREE.Vector3(0,1,0))).toBe(true);
+            expect(offset.equals(new THREE.Vector3(0, 1, 0))).toBe(true);
             done();
         });
     });
     describe('default position', function () {
         it('should be 0,-1,0', function (done) {
             var position = camera.getPosition();
-            expect(position.equals(new THREE.Vector3(0,-1,0))).toBe(true);
+            expect(position.equals(new THREE.Vector3(0, -1, 0))).toBe(true);
             done();
         });
     });
@@ -66,7 +66,7 @@ describe('TargetCamera', function () {
     // Set position
 
     describe('set position', function () {
-        var p = new THREE.Vector3(0,-2,0);
+        var p = new THREE.Vector3(0, -2, 0);
         it('should not change the direction', function (done) {
             before = camera.getDirection();
             camera.setPosition(p).then(function () {
@@ -94,7 +94,7 @@ describe('TargetCamera', function () {
             before = camera.getTarget();
             camera.setPosition(p).then(function () {
                 after = camera.getTarget();
-                expect(after.equals(new THREE.Vector3(0,-1,0))).toBe(true);
+                expect(after.equals(new THREE.Vector3(0, -1, 0))).toBe(true);
                 done();
             });
         });
@@ -104,7 +104,7 @@ describe('TargetCamera', function () {
     // Set target
 
     describe('set target', function () {
-        var t = new THREE.Vector3(0,1,0);
+        var t = new THREE.Vector3(0, 1, 0);
         it('should not change the direction', function (done) {
             before = camera.getDirection();
             camera.setTarget(t).then(function () {
@@ -247,7 +247,7 @@ describe('TargetCamera', function () {
 
     describe('zoom to fit', function () {
         bbox = new FOUR.BoundingBox();
-        bbox.position.copy(new THREE.Vector3(1,1,1));
+        bbox.position.copy(new THREE.Vector3(1, 1, 1));
         it('should set the camera a minimum distance from the target', function (done) {
             before = camera.getDistance();
             camera.zoomToFit(bbox, false).then(function () {

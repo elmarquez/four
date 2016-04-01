@@ -5,7 +5,8 @@
     <title>FOUR - Sample CAD Application Interface</title>
     <!-- fonts -->
     <link href="https://fonts.googleapis.com/css?family=Lato:400,300,100,700,900" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:400,300,500,600" rel="stylesheet"
+          type="text/css">
     <link href="../vendor/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css">
     <link href="../vendor/four-angular/dist/four-angular.css" rel="stylesheet" type="text/css">
     <link href="../vendor/slickgrid/slick.grid.css" rel="stylesheet" type="text/css">
@@ -44,32 +45,32 @@
 <div id="hud"></div>
 
 <!--<div id="hud">-->
-    <!--<div class="row top">-->
-        <!--<div class="tools">-->
-            <!--<button class="button tool"><i class="fa fa-mouse-pointer fa-fw fa-inverse"></i></button>-->
-            <!--<button class="button tool"><i class="fa fa-arrows fa-fw fa-inverse"></i></button>-->
-            <!--<button class="button tool"><i class="fa fa-cube fa-fw fa-inverse"></i></button>-->
-            <!--<button class="button tool"><i class="fa fa-map-marker fa-fw fa-inverse"></i></button>-->
-            <!--<button class="button tool"><i class="fa fa-history fa-fw fa-inverse"></i></button>-->
-        <!--</div>-->
-        <!--<div class="center">-->
-            <!--Center-->
-        <!--</div>-->
-        <!--<div class="right">-->
-            <!--Right-->
-        <!--</div>-->
-    <!--</div>-->
-    <!--<div class="row bottom">-->
-        <!--<div class="left">-->
-            <!--Lat. 10000, Lng. 10000, Elev: 10-->
-        <!--</div>-->
-        <!--<div class="center">-->
-            <!--Perspective View-->
-        <!--</div>-->
-        <!--<div class="right">-->
-            <!--Right-->
-        <!--</div>-->
-    <!--</div>-->
+<!--<div class="row top">-->
+<!--<div class="tools">-->
+<!--<button class="button tool"><i class="fa fa-mouse-pointer fa-fw fa-inverse"></i></button>-->
+<!--<button class="button tool"><i class="fa fa-arrows fa-fw fa-inverse"></i></button>-->
+<!--<button class="button tool"><i class="fa fa-cube fa-fw fa-inverse"></i></button>-->
+<!--<button class="button tool"><i class="fa fa-map-marker fa-fw fa-inverse"></i></button>-->
+<!--<button class="button tool"><i class="fa fa-history fa-fw fa-inverse"></i></button>-->
+<!--</div>-->
+<!--<div class="center">-->
+<!--Center-->
+<!--</div>-->
+<!--<div class="right">-->
+<!--Right-->
+<!--</div>-->
+<!--</div>-->
+<!--<div class="row bottom">-->
+<!--<div class="left">-->
+<!--Lat. 10000, Lng. 10000, Elev: 10-->
+<!--</div>-->
+<!--<div class="center">-->
+<!--Perspective View-->
+<!--</div>-->
+<!--<div class="right">-->
+<!--Right-->
+<!--</div>-->
+<!--</div>-->
 <!--</div>-->
 <div id="grid">
     <div class="header">
@@ -79,7 +80,7 @@
 </div>
 <div id="viewport"></div>
 <div class="commandbox">
-    <input type="text" placeholder="Command" />
+    <input type="text" placeholder="Command"/>
     <div class="matches">
         <ul class="list">
             <li>Item / Item</li>
@@ -281,7 +282,7 @@
         };
 
         // viewport
-        var viewport = window.viewport = new FOUR.Viewport3D({domElement:domElement, scene:scene, camera:camera});
+        var viewport = window.viewport = new FOUR.Viewport3D({domElement: domElement, scene: scene, camera: camera});
         viewport.addEventListener('update', viewport.render.bind(viewport), false);
         viewport.render();
         viewport.update();
@@ -449,7 +450,7 @@
             }, false);
 
             // orbit controller
-            viewport.controllers.orbit = new FOUR.OrbitController({camera:camera, domElement:domElement});
+            viewport.controllers.orbit = new FOUR.OrbitController({camera: camera, domElement: domElement});
             viewport.controllers.orbit.addEventListener('change', viewport.render.bind(viewport));
 
             // tour controller

@@ -1,167 +1,168 @@
 <!DOCTYPE html>
 <html>
 <head lang="en">
-  <meta charset="UTF-8">
-  <title>FOUR - Overlays</title>
-  <!-- css, fonts -->
-  <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
-  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
-  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
-  <link href='../styles.css' rel='stylesheet' type='text/css'>
+    <meta charset="UTF-8">
+    <title>FOUR - Overlays</title>
+    <!-- css, fonts -->
+    <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+    <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+    <link href='../styles.css' rel='stylesheet' type='text/css'>
 
-  <!-- vendor -->
-  <script src="../vendor/jquery/dist/jquery.js"></script>
-  <script src="../vendor/angular/angular.js"></script>
-  <script src="../vendor/angular-aria/angular-aria.js"></script>
-  <script src="../vendor/angular-route/angular-route.js"></script>
+    <!-- vendor -->
+    <script src="../vendor/jquery/dist/jquery.js"></script>
+    <script src="../vendor/angular/angular.js"></script>
+    <script src="../vendor/angular-aria/angular-aria.js"></script>
+    <script src="../vendor/angular-route/angular-route.js"></script>
 
-  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
-  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
-  <script src="../vendor/three.js/three.js"></script>
-  <script src="../vendor/tween.js/src/Tween.js"></script>
+    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+    <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+    <script src="../vendor/three.js/three.js"></script>
+    <script src="../vendor/tween.js/src/Tween.js"></script>
 
-  <!-- lib -->
-  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
-  <script src="../dist/four.js"></script>
+    <!-- lib -->
+    <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+    <script src="../dist/four.js"></script>
 <body>
 <div id="description">
-  <h2>Overlay Controller</h2>
-  <p>
-    Label overlay layer control.
-  </p>
-  <p>
-    <button type="button" class="btn" onclick="addLabel()">Add Label</button>
-    <button type="button" class="btn" onclick="clearLabels()">Clear Labels</button>
-  </p>
+    <h2>Overlay Controller</h2>
+    <p>
+        Label overlay layer control.
+    </p>
+    <p>
+        <button type="button" class="btn" onclick="addLabel()">Add Label</button>
+        <button type="button" class="btn" onclick="clearLabels()">Clear Labels</button>
+    </p>
 </div>
 <div id="overlay"></div>
 <div id="webgl"></div>
 <script>
-  $(document).ready(function () {
-    var camera, domElement, geometry, helper, i, light, material, mesh, multi, overlayElement, rotate, overlay, scene, viewport;
+    $(document).ready(function () {
+        var camera, domElement, geometry, helper, i, light, material, mesh, multi, overlayElement, rotate, overlay, scene, viewport;
 
-    window.addLabel = function () {
-      function getChildren (obj) {
-        var items = [obj];
-        obj.children.forEach(function (item) {
-          getChildren(item).forEach(function (child) {
-            items.push(child);
-          });
-        });
-        return items;
-      }
-      // get the list of scene entities
-      var objs = getChildren(scene.model);
+        window.addLabel = function () {
+            function getChildren(obj) {
+                var items = [obj];
+                obj.children.forEach(function (item) {
+                    getChildren(item).forEach(function (child) {
+                        items.push(child);
+                    });
+                });
+                return items;
+            }
 
-      // pick a random entity
-      var i = Math.floor(Math.random() * objs.length);
-      var obj = objs[i];
-      var colors = [
-        'label blue',
-        'label darkgray',
-        'label firebrick',
-        'label lightgray',
-        'label orange',
-        'label yellow'
-      ];
+            // get the list of scene entities
+            var objs = getChildren(scene.model);
 
-      // create a label
-      if (Math.random() >= 0.9) {
-        // fixed label
-        overlay.add({
-          className: 'label fixed',
-          innerHTML: '<div class="title">Fixed Label</div>',
-          position: FOUR.POSITION.FIXED,
-          left: Math.floor(Math.random() * window.innerWidth),
-          top: Math.floor(Math.random() * window.innerHeight)
-        });
-      } else {
-        var r = Math.floor(Math.random() * colors.length);
-        // tracking label
-        overlay.add({
-          className: colors[r],
-          innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
-          position: FOUR.POSITION.CENTER,
-          target: obj.uuid,
-          offset: 0
-        });
-      }
-    };
+            // pick a random entity
+            var i = Math.floor(Math.random() * objs.length);
+            var obj = objs[i];
+            var colors = [
+                'label blue',
+                'label darkgray',
+                'label firebrick',
+                'label lightgray',
+                'label orange',
+                'label yellow'
+            ];
 
-    window.clearLabels = function () {
-      overlay.clear();
-    };
+            // create a label
+            if (Math.random() >= 0.9) {
+                // fixed label
+                overlay.add({
+                    className: 'label fixed',
+                    innerHTML: '<div class="title">Fixed Label</div>',
+                    position: FOUR.POSITION.FIXED,
+                    left: Math.floor(Math.random() * window.innerWidth),
+                    top: Math.floor(Math.random() * window.innerHeight)
+                });
+            } else {
+                var r = Math.floor(Math.random() * colors.length);
+                // tracking label
+                overlay.add({
+                    className: colors[r],
+                    innerHTML: '<div class="title">Tracking Label</div><div class="measurement">10.32m</div>',
+                    position: FOUR.POSITION.CENTER,
+                    target: obj.uuid,
+                    offset: 0
+                });
+            }
+        };
 
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      render();
-    }
+        window.clearLabels = function () {
+            overlay.clear();
+        };
 
-    function render() {
-      renderer.render(scene, camera);
-    }
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            render();
+        }
 
-    // scene
-    scene = new FOUR.Scene();
+        function render() {
+            renderer.render(scene, camera);
+        }
 
-    // camera
-    camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.y = -100;
-    scene.cameras.add(camera);
+        // scene
+        scene = new FOUR.Scene();
 
-    // lights
-    light = new THREE.DirectionalLight(0xffffff);
-    light.position.set(1, 1, 1);
-    scene.lights.add(light);
+        // camera
+        camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.y = -100;
+        scene.cameras.add(camera);
 
-    light = new THREE.DirectionalLight(0x002288);
-    light.position.set(-1, -1, -1);
-    scene.lights.add(light);
+        // lights
+        light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(1, 1, 1);
+        scene.lights.add(light);
 
-    light = new THREE.AmbientLight(0x222222);
-    scene.lights.add(light);
+        light = new THREE.DirectionalLight(0x002288);
+        light.position.set(-1, -1, -1);
+        scene.lights.add(light);
 
-    helper = new THREE.AxisHelper(10);
-    scene.helpers.add(helper);
+        light = new THREE.AmbientLight(0x222222);
+        scene.lights.add(light);
 
-    // viewport
-    domElement = document.getElementById('webgl');
-    viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
+        helper = new THREE.AxisHelper(10);
+        scene.helpers.add(helper);
 
-    window.addEventListener('mousemove', viewport.render.bind(viewport));
+        // viewport
+        domElement = document.getElementById('webgl');
+        viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-    // controls
-    overlayElement = document.getElementById('overlay');
-    overlay = new FOUR.Overlay({viewport: viewport, domElement: overlayElement});
+        window.addEventListener('mousemove', viewport.render.bind(viewport));
 
-    multi = new FOUR.MultiController({viewport: viewport});
-    rotate = new FOUR.RotateController({viewport: viewport});
+        // controls
+        overlayElement = document.getElementById('overlay');
+        overlay = new FOUR.Overlay({viewport: viewport, domElement: overlayElement});
 
-    multi.addController(rotate, 'rotate');
-    viewport.addController(multi, 'multi');
-    viewport.setActiveController('multi');
+        multi = new FOUR.MultiController({viewport: viewport});
+        rotate = new FOUR.RotateController({viewport: viewport});
 
-    // world
-    geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
-    material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
-    for (i = 0; i < 500; i++) {
-      mesh = new THREE.Mesh(geometry, material);
-      mesh.position.x = (Math.random() - 0.5) * 1000;
-      mesh.position.y = (Math.random() - 0.5) * 1000;
-      mesh.position.z = (Math.random() - 0.5) * 1000;
-      mesh.updateMatrix();
-      mesh.matrixAutoUpdate = false;
-      scene.model.add(mesh);
-    }
+        multi.addController(rotate, 'rotate');
+        viewport.addController(multi, 'multi');
+        viewport.setActiveController('multi');
 
-    camera.addEventListener('update', overlay.update.bind(overlay));
+        // world
+        geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+        material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
+        for (i = 0; i < 500; i++) {
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.position.x = (Math.random() - 0.5) * 1000;
+            mesh.position.y = (Math.random() - 0.5) * 1000;
+            mesh.position.z = (Math.random() - 0.5) * 1000;
+            mesh.updateMatrix();
+            mesh.matrixAutoUpdate = false;
+            scene.model.add(mesh);
+        }
 
-    viewport.render();
-    viewport.update();
-  });
+        camera.addEventListener('update', overlay.update.bind(overlay));
+
+        viewport.render();
+        viewport.update();
+    });
 
 </script>
 </body>

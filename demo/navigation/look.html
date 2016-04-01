@@ -29,8 +29,10 @@
 <div id="description">
     <h2>Look Controller</h2>
     <p>
-        Rotate the camera target around the camera's current position
-        to simulate a first person perspective.
+        The look controller provides a first person view perspective by
+        rotating the camera target around the current camera position. Hold the
+        <code>CTRL</code> key and middle mouse button down, then move the mouse
+        to move the camera target.
     </p>
 </div>
 <div id="webgl"></div>
@@ -63,7 +65,7 @@
 
         // viewport
         domElement = document.getElementById('webgl');
-        viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate:true, domElement: domElement, scene: scene});
+        viewport = new FOUR.Viewport3D({camera: camera, domElement: domElement, scene: scene});
 
         // controls
         controller = new FOUR.LookController({viewport: viewport});
@@ -71,9 +73,9 @@
         viewport.setActiveController('look');
 
         // world
-        geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
-        material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
         for (i = 0; i < 500; i++) {
+            geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+            material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
             mesh = new THREE.Mesh(geometry, material);
             mesh.position.x = (Math.random() - 0.5) * 1000;
             mesh.position.y = (Math.random() - 0.5) * 1000;
@@ -82,16 +84,6 @@
             mesh.matrixAutoUpdate = false;
             scene.add(mesh);
         }
-
-        controller.addEventListener('update', viewport.render.bind(viewport), false);
-
-        camera.addEventListener('continuous-update-end', function (e) {
-            viewport.onContinuousUpdateEnd(e);
-        });
-        camera.addEventListener('continuous-update-start', function (e) {
-            viewport.onContinuousUpdateStart(e);
-        });
-        camera.addEventListener('update', viewport.render.bind(viewport), false);
 
         viewport.render();
         viewport.update();

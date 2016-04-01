@@ -25,7 +25,8 @@
     <script src="dist/fonts/helvetiker_regular.typeface.js"></script>
     <script src="dist/four.js"></script>
     <script src="dist/workers/GeneticPlanner.js"></script>
-    <script src="dist/workers/SimulatedAnnealer.js"></script><body>
+    <script src="dist/workers/SimulatedAnnealer.js"></script>
+<body>
 <div id="description">
     <h2>Kitchen Sink Demo</h2>
     <p>
@@ -60,9 +61,9 @@
         scene.lights.add(spotLight);
 
         // camera
-        camera = new FOUR.TargetCamera(45, domElement.clientWidth/domElement.clientHeight, 0.1, 10000);
+        camera = new FOUR.TargetCamera(45, domElement.clientWidth / domElement.clientHeight, 0.1, 10000);
         camera.name = 'camera1';
-        camera.lookAt(0,0,0);
+        camera.lookAt(0, 0, 0);
         scene.cameras.add(camera);
 
         // selection set
@@ -70,10 +71,10 @@
 
         // viewport
         viewport = window.viewport = new FOUR.Viewport3D({
-            camera:camera,
+            camera: camera,
             continuousUpdate: true,
-            domElement:domElement,
-            scene:scene
+            domElement: domElement,
+            scene: scene
         });
 
         camera.addEventListener('continuous-update-end', function (e) {
@@ -155,12 +156,12 @@
         boundingBox.update(scene.children);
 
         var viewaxisElement = document.getElementById('viewaxis');
-        var viewaxis = window.viewaxis = new FOUR.ViewAxis({domElement:viewaxisElement, viewport:viewport});
+        var viewaxis = window.viewaxis = new FOUR.ViewAxis({domElement: viewaxisElement, viewport: viewport});
         viewaxis.render();
         viewaxis.update();
 
         var viewcubeElement = document.getElementById('viewcube');
-        var viewcube = new FOUR.Viewcube({domElement:viewcubeElement, viewport:viewport});
+        var viewcube = new FOUR.Viewcube({domElement: viewcubeElement, viewport: viewport});
         viewcube.enable();
 
 //        trackball.addEventListener('update', function () {
@@ -193,14 +194,14 @@
                 selectionSet.addAll(scene.model.children);
                 viewport.render();
             });
-            keyinput.bind('default',FOUR.KEY.N, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.N, 'keyup', null, function () {
                 console.log('select none');
                 selectionSet.removeAll();
                 viewport.render();
             });
 
             // bounding box
-            keyinput.bind('default',FOUR.KEY.B, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.B, 'keyup', null, function () {
                 console.log('toggle bounding box visibility');
                 boundingBox.toggleVisibility();
                 viewport.render();
@@ -208,54 +209,54 @@
 
             // viewport mode
             // TODO modify the cursor depending on the mode
-            keyinput.bind('default',FOUR.KEY.Q, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.Q, 'keyup', null, function () {
                 viewport.setActiveController('selection');
             });
 
             // view controls
-            keyinput.bind('default',FOUR.KEY.F, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.F, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.zoomToFit(bbox, true);
             });
-            keyinput.bind('default',FOUR.KEY.ONE, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.ONE, 'keyup', null, function () {
                 viewport.setActiveController('trackball');
             });
-            keyinput.bind('default',FOUR.KEY.TWO, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.TWO, 'keyup', null, function () {
                 viewport.setActiveController('walk');
             });
-            keyinput.bind('default',FOUR.KEY.THREE, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.THREE, 'keyup', null, function () {
                 viewport.setActiveController('orbit');
             });
-            keyinput.bind('default',FOUR.KEY.FOUR, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.FOUR, 'keyup', null, function () {
                 viewport.setActiveController('tour');
             });
-            keyinput.bind('default',FOUR.KEY.FIVE, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.FIVE, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.setView(camera.VIEWS.TOP, bbox, true);
             });
-            keyinput.bind('default',FOUR.KEY.SIX, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.SIX, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.setView(camera.VIEWS.FRONT, bbox, true);
             });
-            keyinput.bind('default',FOUR.KEY.SEVEN, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.SEVEN, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.setView(camera.VIEWS.LEFT, bbox, true);
             });
-            keyinput.bind('default',FOUR.KEY.EIGHT, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.EIGHT, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.setView(camera.VIEWS.RIGHT, bbox, true);
             });
-            keyinput.bind('default',FOUR.KEY.NINE, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.NINE, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.setView(camera.VIEWS.BACK, bbox, true);
             });
-            keyinput.bind('default',FOUR.KEY.ZERO, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.ZERO, 'keyup', null, function () {
                 var bbox = getViewBoundingBox();
                 camera.setView(camera.VIEWS.PERSPECTIVE, bbox, true);
             });
 
             // tour controls
-            keyinput.bind('default',FOUR.KEY.M, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.M, 'keyup', null, function () {
                 console.log('toggle tour path visibility');
                 var path = viewport.controllers.tour.path;
                 if (path.length > 0) {
@@ -276,10 +277,10 @@
                 viewport.render();
             });
 
-            keyinput.bind('default',FOUR.KEY.EQUALS, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.EQUALS, 'keyup', null, function () {
                 camera.zoomIn(true);
             });
-            keyinput.bind('default',FOUR.KEY.DASH, 'keyup', null, function () {
+            keyinput.bind('default', FOUR.KEY.DASH, 'keyup', null, function () {
                 camera.zoomOut(true);
             });
 
@@ -323,14 +324,14 @@
                 camera.zoomToFit(bbox, true);
             }, false);
 
-            var orbit = new FOUR.MultiController({viewport:viewport});
+            var orbit = new FOUR.MultiController({viewport: viewport});
             orbit.addController(select, 'select');
             orbit.addController(pan, 'pan');
             orbit.addController(rotate, 'rotate');
             orbit.addController(tour, 'tour');
             orbit.addController(zoom, 'zoom');
 
-            var firstperson = new FOUR.MultiController({viewport:viewport});
+            var firstperson = new FOUR.MultiController({viewport: viewport});
             firstperson.addController(look, 'look');
             firstperson.addController(select, 'select');
             firstperson.addController(tour, 'tour');
@@ -346,7 +347,7 @@
                 Object.keys(event.target.selection).forEach(function (key) {
 
                 });
-               console.info('selection set update', event);
+                console.info('selection set update', event);
             });
         }
 

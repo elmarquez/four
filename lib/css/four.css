@@ -9,8 +9,8 @@
  */
 
 #marquee {
-    background-color: rgba(103,160,225,0.4);
-    border: 1px solid rgba(103,160,225,0.7);
+    background-color: rgba(103, 160, 225, 0.4);
+    border: 1px solid rgba(103, 160, 225, 0.7);
     display: none;
     height: 1px;
     left: -10px;
@@ -26,21 +26,21 @@
 .label {
     background-color: #484848;
     border-radius: 3px;
-    box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+    box-shadow: 0 2px 4px 0 rgba(22, 22, 22, 0.8);
     color: white;
     font-family: 'Consolas', 'Lucida Console', 'Courier New', 'monospace';
     font-size: 0.8em;
     padding: 7px;
     position: absolute;
     z-index: 801;
-    -moz-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
-    -webkit-box-shadow: 0 2px 4px 0 rgba(22,22,22,0.8);
+    -moz-box-shadow: 0 2px 4px 0 rgba(22, 22, 22, 0.8);
+    -webkit-box-shadow: 0 2px 4px 0 rgba(22, 22, 22, 0.8);
 }
 
 .label.blue {
     /*background: linear-gradient(to bottom, rgba(23,113,196,1) 0%, rgb(20, 78, 156) 100%);*/
     /*background-color: rgba(20, 78, 156, 1);*/
-    background-color: rgba(23,113,196,1);
+    background-color: rgba(23, 113, 196, 1);
     color: white;
 }
 

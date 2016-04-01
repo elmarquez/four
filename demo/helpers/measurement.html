@@ -1,160 +1,160 @@
 <!DOCTYPE html>
 <html>
 <head lang="en">
-  <meta charset="UTF-8">
-  <title>FOUR - Measurement</title>
-  <!-- css, fonts -->
-  <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
-  <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
-  <link href='../dist/four.css' rel='stylesheet' type='text/css'>
-  <link href='../styles.css' rel='stylesheet' type='text/css'>
+    <meta charset="UTF-8">
+    <title>FOUR - Measurement</title>
+    <!-- css, fonts -->
+    <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
+    <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
+    <link href='../dist/four.css' rel='stylesheet' type='text/css'>
+    <link href='../styles.css' rel='stylesheet' type='text/css'>
 
-  <!-- vendor -->
-  <script src="../vendor/jquery/dist/jquery.js"></script>
-  <script src="../vendor/angular/angular.js"></script>
-  <script src="../vendor/angular-aria/angular-aria.js"></script>
-  <script src="../vendor/angular-route/angular-route.js"></script>
+    <!-- vendor -->
+    <script src="../vendor/jquery/dist/jquery.js"></script>
+    <script src="../vendor/angular/angular.js"></script>
+    <script src="../vendor/angular-aria/angular-aria.js"></script>
+    <script src="../vendor/angular-route/angular-route.js"></script>
 
-  <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
-  <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
-  <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
-  <script src="../vendor/three.js/three.js"></script>
-  <script src="../vendor/tween.js/src/Tween.js"></script>
+    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="../vendor/quadtree-lib/build/js/quadtree.js"></script>
+    <script src="../vendor/spatialhash.js/dist/spatialhash.js"></script>
+    <script src="../vendor/three.js/three.js"></script>
+    <script src="../vendor/tween.js/src/Tween.js"></script>
 
-  <!-- lib -->
-  <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
-  <script src="../dist/four.js"></script>
+    <!-- lib -->
+    <script src="../dist/fonts/helvetiker_regular.typeface.js"></script>
+    <script src="../dist/four.js"></script>
 </head>
 <body>
 <div id="overlay"></div>
 <div id="webgl"></div>
 <script>
-  var camera, click, controller, domElement, geometry, helper, i, light,
-      material, mesh, multi, overlayElement, rotate, overlay, scene, selection,
-      viewport;
+    var camera, click, controller, domElement, geometry, helper, i, light,
+            material, mesh, multi, overlayElement, rotate, overlay, scene, selection,
+            viewport;
 
-  $(document).ready(function () {
-    // scene
-    scene = new FOUR.Scene();
+    $(document).ready(function () {
+        // scene
+        scene = new FOUR.Scene();
 
-    // camera
-    camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.y = -100;
-    scene.cameras.add(camera);
+        // camera
+        camera = new FOUR.TargetCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.y = -100;
+        scene.cameras.add(camera);
 
-    // lights
-    light = new THREE.DirectionalLight(0xffffff);
-    light.position.set(1, 1, 1);
-    scene.lights.add(light);
+        // lights
+        light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(1, 1, 1);
+        scene.lights.add(light);
 
-    light = new THREE.DirectionalLight(0x002288);
-    light.position.set(-1, -1, -1);
-    scene.lights.add(light);
+        light = new THREE.DirectionalLight(0x002288);
+        light.position.set(-1, -1, -1);
+        scene.lights.add(light);
 
-    light = new THREE.AmbientLight(0x222222);
-    scene.lights.add(light);
+        light = new THREE.AmbientLight(0x222222);
+        scene.lights.add(light);
 
-    helper = new THREE.AxisHelper(10);
-    scene.helpers.add(helper);
+        helper = new THREE.AxisHelper(10);
+        scene.helpers.add(helper);
 
-    // viewport
-    domElement = document.getElementById('webgl');
-    viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
+        // viewport
+        domElement = document.getElementById('webgl');
+        viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-    window.addEventListener('mousemove', viewport.render.bind(viewport));
+        window.addEventListener('mousemove', viewport.render.bind(viewport));
 
-    selection = new FOUR.SelectionSet();
+        selection = new FOUR.SelectionSet();
 
-    // controls
-    overlayElement = document.getElementById('overlay');
-    overlay = new FOUR.Overlay({viewport: viewport, domElement: overlayElement});
+        // controls
+        overlayElement = document.getElementById('overlay');
+        overlay = new FOUR.Overlay({viewport: viewport, domElement: overlayElement});
 
-    multi = new FOUR.MultiController({viewport: viewport});
-    click = new FOUR.ClickSelectionController({viewport: viewport});
-    rotate = new FOUR.RotateController({viewport: viewport});
+        multi = new FOUR.MultiController({viewport: viewport});
+        click = new FOUR.ClickSelectionController({viewport: viewport});
+        rotate = new FOUR.RotateController({viewport: viewport});
 
-    multi.addController(click, 'click');
-    multi.addController(rotate, 'rotate');
+        multi.addController(click, 'click');
+        multi.addController(rotate, 'rotate');
 
-    viewport.addController(multi, 'multi');
-    viewport.setActiveController('multi');
+        viewport.addController(multi, 'multi');
+        viewport.setActiveController('multi');
 
-    click.addEventListener('add', function (event) {
-      selection.addAll(event.selection);
-    });
-    click.addEventListener('remove', function (event) {
-      selection.removeAll(event.selection);
-    });
-    click.addEventListener('select', function (event) {
-      selection.select(event.selection);
-    });
-    click.addEventListener('toggle', function (event) {
-      selection.toggle(event.selection);
-    });
-
-    selection.addEventListener('update', function (event) {
-      // clear any existing measurement objects
-      scene.helpers.children.forEach(function (child) {
-        scene.helpers.remove(child);
-      });
-      // clear any existing measurement labels
-      overlay.clear();
-      // add measurements
-      if (event.selected.length === 2) {
-        console.info('measure', event);
-        // create a new measurement
-        var material = new THREE.LineBasicMaterial({color: 0xFFD700});
-        var geometry = new THREE.Geometry();
-        var p1 = new THREE.Vector3().copy(event.selected[0].position);
-        var p2 = new THREE.Vector3().copy(event.selected[1].position);
-        geometry.vertices.push(
-            event.selected[0].position,
-            event.selected[1].position
-        );
-        var line = new THREE.Line(geometry, material);
-        scene.helpers.add(line);
-        line.updateMatrixWorld();
-
-        var length = parseFloat(p1.sub(p2).length()).toFixed(2);
-        overlay.add({
-          className: 'label blue',
-          innerHTML: '<div class="title">Measurement</div><div class="measurement">' + length + 'm</div>',
-          position: FOUR.POSITION.CENTER,
-          target: line.uuid
+        click.addEventListener('add', function (event) {
+            selection.addAll(event.selection);
         });
-      }
-      viewport.render();
+        click.addEventListener('remove', function (event) {
+            selection.removeAll(event.selection);
+        });
+        click.addEventListener('select', function (event) {
+            selection.select(event.selection);
+        });
+        click.addEventListener('toggle', function (event) {
+            selection.toggle(event.selection);
+        });
+
+        selection.addEventListener('update', function (event) {
+            // clear any existing measurement objects
+            scene.helpers.children.forEach(function (child) {
+                scene.helpers.remove(child);
+            });
+            // clear any existing measurement labels
+            overlay.clear();
+            // add measurements
+            if (event.selected.length === 2) {
+                console.info('measure', event);
+                // create a new measurement
+                var material = new THREE.LineBasicMaterial({color: 0xFFD700});
+                var geometry = new THREE.Geometry();
+                var p1 = new THREE.Vector3().copy(event.selected[0].position);
+                var p2 = new THREE.Vector3().copy(event.selected[1].position);
+                geometry.vertices.push(
+                        event.selected[0].position,
+                        event.selected[1].position
+                );
+                var line = new THREE.Line(geometry, material);
+                scene.helpers.add(line);
+                line.updateMatrixWorld();
+
+                var length = parseFloat(p1.sub(p2).length()).toFixed(2);
+                overlay.add({
+                    className: 'label blue',
+                    innerHTML: '<div class="title">Measurement</div><div class="measurement">' + length + 'm</div>',
+                    position: FOUR.POSITION.CENTER,
+                    target: line.uuid
+                });
+            }
+            viewport.render();
+        });
+
+        // world
+        geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
+        material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
+        for (i = 0; i < 500; i++) {
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.position.x = (Math.random() - 0.5) * 1000;
+            mesh.position.y = (Math.random() - 0.5) * 1000;
+            mesh.position.z = (Math.random() - 0.5) * 1000;
+            mesh.updateMatrix();
+            mesh.matrixAutoUpdate = false;
+            scene.model.add(mesh);
+        }
+
+        camera.addEventListener('update', overlay.update.bind(overlay));
+
+        viewport.render();
+        viewport.update();
     });
 
-    // world
-    geometry = new THREE.CylinderGeometry(0, 10, 30, 4, 1);
-    material = new THREE.MeshPhongMaterial({color: 0xffffff, shading: THREE.FlatShading});
-    for (i = 0; i < 500; i++) {
-      mesh = new THREE.Mesh(geometry, material);
-      mesh.position.x = (Math.random() - 0.5) * 1000;
-      mesh.position.y = (Math.random() - 0.5) * 1000;
-      mesh.position.z = (Math.random() - 0.5) * 1000;
-      mesh.updateMatrix();
-      mesh.matrixAutoUpdate = false;
-      scene.model.add(mesh);
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
     }
 
-    camera.addEventListener('update', overlay.update.bind(overlay));
-
-    viewport.render();
-    viewport.update();
-  });
-
-  function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    render();
-  }
-
-  function render() {
-    renderer.render(scene, camera);
-  }
+    function render() {
+        renderer.render(scene, camera);
+    }
 
 </script>
 </body>

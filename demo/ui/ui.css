@@ -6,6 +6,7 @@ body {
     margin: 0;
     padding: 0;
 }
+
 #grid {
     background-color: rgb(35, 35, 35);
     bottom: 0;
@@ -16,27 +17,33 @@ body {
     right: 280px;
     z-index: 600;
 }
+
 #myGrid {
     font-size: 0.8em;
 }
+
 .hud {
     color: rgba(200, 200, 200, 0.8);
     font-weight: 300;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
     z-index: 600;
 }
+
 .hud .row {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: space-between;
 }
+
 .hud .bottom .center {
     display: flex;
 }
+
 .map {
     height: 180px;
 }
+
 #sidebar {
     background-color: rgb(35, 35, 35);
     bottom: 0;
@@ -49,6 +56,7 @@ body {
     width: 280px;
     z-index: 500;
 }
+
 #viewport {
     bottom: 0;
     display: flex;
@@ -62,18 +70,23 @@ body {
     top: 0;
     z-index: 500;
 }
+
 #viewport:focus {
     outline: none;
 }
+
 .active {
-    background-color: rgba(200,200,200,0.2) !important;
+    background-color: rgba(200, 200, 200, 0.2) !important;
 }
+
 .btn {
     width: 100%;
 }
+
 .btn:focus {
     outline: none;
 }
+
 .commandbox {
     background: #888;
     display: none;
@@ -84,24 +97,27 @@ body {
     z-index: 800;
 }
 
-
 ul.list {
     list-style: none;
     margin: 0;
     padding: 0;
 }
+
 ul.list li {
     border-top: 1px solid rgba(60, 60, 60, 1);
     padding: 7px;
     text-align: left;
 }
+
 ul.list li i {
     padding-left: 5px;
     padding-right: 10px;
 }
+
 ul.list li:first-child {
     border-top: none;
 }
+
 .color-swatch {
     background-color: purple;
     border: 1px solid rgb(60, 60, 60);
@@ -109,15 +125,20 @@ ul.list li:first-child {
     height: 16px;
     width: 16px;
 }
+
 .float-right {
     float: right;
 }
+
 .inset {
     margin-left: 15px;
     margin-right: 15px;
 }
+
 .inset-bottom {
     margin-bottom: 15px;
-}.inset-top {
+}
+
+.inset-top {
     margin-top: 15px;
 }

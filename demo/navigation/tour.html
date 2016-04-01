@@ -80,12 +80,12 @@
         window.addEventListener('mousemove', viewport.render.bind(viewport));
 
         // controls
-        var multi = new FOUR.MultiController({viewport:viewport});
+        var multi = new FOUR.MultiController({viewport: viewport});
         var keyCommand = new FOUR.KeyCommandController();
-        var zoom = new FOUR.ZoomController({viewport:viewport});
-        var rotate = new FOUR.RotateController({viewport:viewport});
-        var tour = new FOUR.TourController({viewport:viewport, planner:{workersPath:'/dist/workers/'}});
-        var click = new FOUR.ClickSelectionController({viewport:viewport});
+        var zoom = new FOUR.ZoomController({viewport: viewport});
+        var rotate = new FOUR.RotateController({viewport: viewport});
+        var tour = new FOUR.TourController({viewport: viewport, planner: {workersPath: '/dist/workers/'}});
+        var click = new FOUR.ClickSelectionController({viewport: viewport});
         multi.addController(click, 'click');
         multi.addController(keyCommand, 'keycommand');
         multi.addController(rotate, 'rotate');
@@ -140,9 +140,9 @@
             features = selectionSet.items.map(function (item) {
                 return {
                     id: item.uuid,
-                    x:item.object.position.x,
-                    y:item.object.position.y,
-                    z:item.object.position.z
+                    x: item.object.position.x,
+                    y: item.object.position.y,
+                    z: item.object.position.z
                 };
             });
             tour.plan(features).then(function () {
