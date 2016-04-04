@@ -101,7 +101,7 @@
         domElement = document.getElementById('webgl');
         viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-        index = new FOUR.SceneIndex();
+        index = new FOUR.SceneIndex2();
 
         // viewport controllers
         multi = new FOUR.MultiController({viewport: viewport});
@@ -135,10 +135,6 @@
             // FIXME this part was breaking the demo
             // FIXME need to set the flag that updates the colour
         });
-
-        // index the scene
-        objs = scene.getModelObjects();
-        index.indexScene(objs);
 
         // create geometry to represent the cells
         var cell, size, position;
@@ -198,6 +194,13 @@
 
         // start rendering
         viewport.render();
+
+        // index the scene
+        objs = scene.getModelObjects();
+
+        var records = index.getRecords(objs);
+        var positions = index.getPositions(records);
+        index.indexScene(positions);
 
     });
 </script>

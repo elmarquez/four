@@ -33,6 +33,7 @@
     "inject": false,
     "it": false,
     "jasmine": false,
+    "Parallel": false,
     "params": false,
     "Quadtree": false,
     "rtn": false,

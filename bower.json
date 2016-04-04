@@ -25,7 +25,9 @@
     "quadtree-lib": "~0.1.2",
     "spatialhash.js": "*",
     "three.js": "0.72.0",
-    "tween.js": "tweenjs#~16.3.1"
+    "tween.js": "tweenjs#~16.3.1",
+    "parallel.js": "paralleljs#*",
+    "WebHamsters": "^3.8.0"
   },
   "devDependencies": {
     "angular": "~1.4.6",
