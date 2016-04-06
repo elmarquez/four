@@ -33,8 +33,8 @@
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var points = 500;
-        var primitives = 500;
+        var points = 10;
+        var primitives = 10;
 
         var camera, marquee, domElement, geometry, helper, i, index, light, material;
         var mesh, multi, objs, particles, rotate, scene, selectionSet, viewport;
@@ -197,10 +197,13 @@
 
         // index the scene
         objs = scene.getModelObjects();
-
-        var records = index.getRecords(objs);
-        var positions = index.getPositions(records);
-        index.indexScene(positions);
+        index.indexScene(objs).then(function (data) {
+            console.info('scene index', data);
+            index.indexView(scene, camera, domElement.clientWidth, domElement.clientHeight)
+              .then(function (data) {
+                console.info('done', data);
+              });
+        });
 
     });
 </script>
