@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Just a test</title>
+    <script src="../vendor/bluebird/js/browser/bluebird.js"></script>
+    <script src="../vendor/three.js/three.js"></script>
+    <script src="../vendor/WebHamsters/src/hamsters.js"></script>
+<body>
+<script>
+    var i, testArray = [];
+    for (i = 0; i < 1000000; i++) {
+        testArray.push(i);
+    }
+
+    function test () {
+        return new Promise(function (resolve, reject) {
+            hamsters.run({'array': testArray, a:1, b:true, c: {data:'arg',arr:[1,2,3]}}, function () {
+                self.importScripts('/vendor/three.js/three.js');
+                console.info('params', params, THREE.Math.randInt());
+                for (var i = 0; i < params.array.length; i += 1) {
+                    rtn.data.push(Math.sqrt(params.array[i]));
+                }
+            }, function (output, err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(output);
+                }
+            }, hamsters.maxThreads, true, 'Int32');
+        });
+    }
+
+    var start = new Date().getTime();
+    test().then(function () {
+        console.info('done in %s ms', new Date().getTime() - start);
+    });
+
+
+</script>
+</body>
+</html>

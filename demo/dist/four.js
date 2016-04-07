@@ -1375,6 +1375,14 @@ FOUR.SceneIndex2 = (function () {
      */
     SceneIndex2.prototype.getScreenCoordinates = function (positions, camera, width, height) {
         var pa, self = this;
+        // setScreenCoordinates will fail because the camera object functions
+        // will not be serialized along with the object. We'll modify the
+        // camera object here to provide only those required fields
+        // (matrixWorld and projectionMatrix) required for the function
+        camera = {
+            matrixWorld: camera.matrixWorld, // TODO copy
+            projectionMatrix: camera.projectionMatrix // TODO copy
+        };
         return new Promise(function (resolve, reject) {
             if (positions.length === 0) {
                 resolve([]);
@@ -1447,7 +1455,7 @@ FOUR.SceneIndex2 = (function () {
                     return self.getScreenCoordinates(positions, camera, width, height);
                 })
                 .then(function (positions) {
-                    console.info('screen', Array.isArray(positions), positions);
+                    //console.info('screen', Array.isArray(positions), positions);
                     return self.viewIndex.insertAll(positions);
                 })
                 .then(function (data) {
