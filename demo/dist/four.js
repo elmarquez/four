@@ -1079,6 +1079,72 @@ FOUR.SceneIndex = (function () {
 /* globals getPosition */
 FOUR.SceneIndex2 = (function () {
 
+    //-------------------------------------------------------------------------
+    // Worker functions
+
+    function getObject3DScreenCoordinates (obj, camera, clientWidth, clientHeight) {
+        var height, maxX = 0, maxY = 0,
+            minX = clientWidth,
+            minY = clientHeight,
+            p, width, x, y;
+        if (obj.matrixWorldNeedsUpdate) {
+            obj.updateMatrixWorld();
+        }
+        // project the object vertices into the screen space, then find the screen
+        // space bounding box for the scene object
+        obj.geometry.vertices.forEach(function (vertex) {
+            p = vertex.clone();
+            p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
+            p = getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
+            maxX = p.x > maxX ? p.x : maxX;
+            maxY = p.y > maxY ? p.y : maxY;
+            minX = p.x < minX ? p.x : minX;
+            minY = p.y < minY ? p.y : minY;
+        });
+        height = (maxY - minY) > 0 ? maxY - minY : 0;
+        width = (maxX - minX) > 0 ? maxX - minX : 0;
+        x = minX >= 0 ? minX : 0;
+        y = minY >= 0 ? minY : 0;
+        // add the object screen bounding box to the index
+        return {
+            id: obj.uuid + ',-1',
+            uuid: obj.uuid.slice(),
+            position: {
+                x: x,
+                y: y,
+                z: 0
+            },
+            x: x,
+            y: y,
+            z: 0,
+            height: height,
+            width: width,
+            index: -1,
+            type: 'THREE.Object3D'
+        };
+    }
+
+    function getVertexScreenCoordinates (vertex, camera, screenWidth, screenHeight) {
+        var pos = new THREE.Vector3().copy(vertex);
+        pos.project(camera);
+        // get screen coordinates
+        pos.x = Math.round((pos.x + 1) * screenWidth / 2);
+        pos.y = Math.round((-pos.y + 1) * screenHeight / 2);
+        pos.z = 0;
+        return pos;
+    }
+
+    function setScreenCoordinates (obj, camera, screenWidth, screenHeight) {
+        var pos = new THREE.Vector3(obj.x, obj.y, obj.z);
+        pos.project(camera);
+        obj.x = Math.round((pos.x + 1) * screenWidth / 2);
+        obj.y = Math.round((-pos.y + 1) * screenHeight / 2);
+        obj.z = 0;
+        return obj;
+    }
+
+    //-------------------------------------------------------------------------
+
     /**
      * Camera view object and object element index. The index supports search
      * for object and object element selection. The indexer can accept a
@@ -1152,6 +1218,11 @@ FOUR.SceneIndex2 = (function () {
                     min: {x: vertex.x, y: vertex.y, z: vertex.z},
                     max: {x: vertex.x, y: vertex.y, z: vertex.z}
                 },
+                position: {
+                    x: vertex.x,
+                    y: vertex.y,
+                    z: vertex.z
+                },
                 type: 'THREE.Points',
                 x: vertex.x,
                 y: vertex.y,
@@ -1197,6 +1268,11 @@ FOUR.SceneIndex2 = (function () {
                     min: {x: vertex.x, y: vertex.y, z: vertex.z},
                     max: {x: vertex.x, y: vertex.y, z: vertex.z}
                 },
+                position: {
+                    x: vertex.x,
+                    y: vertex.y,
+                    z: vertex.z
+                },
                 type: 'THREE.Points',
                 x: vertex.x,
                 y: vertex.y,
@@ -1204,44 +1280,6 @@ FOUR.SceneIndex2 = (function () {
             });
         });
         return positions;
-    };
-
-    SceneIndex2.prototype.getObject3DScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-        var height, maxX = 0, maxY = 0,
-            minX = this.viewport.domElement.clientWidth,
-            minY = this.viewport.domElement.clientHeight,
-            p, width, x, y;
-        if (obj.matrixWorldNeedsUpdate) {
-            obj.updateMatrixWorld();
-        }
-        // project the object vertices into the screen space, then find the screen
-        // space bounding box for the scene object
-        obj.geometry.vertices.forEach(function (vertex) {
-            p = vertex.clone();
-            p.applyMatrix4(obj.matrixWorld); // absolute position of vertex
-            p = FOUR.utils.getVertexScreenCoordinates(p, camera, clientWidth, clientHeight);
-            maxX = p.x > maxX ? p.x : maxX;
-            maxY = p.y > maxY ? p.y : maxY;
-            minX = p.x < minX ? p.x : minX;
-            minY = p.y < minY ? p.y : minY;
-        });
-        height = (maxY - minY) > 0 ? maxY - minY : 0;
-        width = (maxX - minX) > 0 ? maxX - minX : 0;
-        x = minX >= 0 ? minX : 0;
-        y = minY >= 0 ? minY : 0;
-        // add the object screen bounding box to the index
-        this.viewIndex.push({
-            id: obj.uuid + ',-1',
-            uuid: obj.uuid.slice(),
-            x: x,
-            y: y,
-            height: height,
-            width: width,
-            index: -1,
-            type: 'THREE.Object3D'
-        });
-        //console.info({uuid:obj.uuid.slice(), x:x, y:y, h:height, w:width, type:'THREE.Object3D'});
-        return 1;
     };
 
     SceneIndex2.prototype.getObject3DVertices = function (obj) {
@@ -1254,6 +1292,11 @@ FOUR.SceneIndex2 = (function () {
                     uuid: obj.uuid.slice(),
                     aabb: obj.geometry.boundingBox,
                     index: -1,
+                    position: {
+                        x: obj.position.x,
+                        y: obj.position.y,
+                        z: obj.position.z
+                    },
                     type: 'THREE.Object3D',
                     x: obj.position.x,
                     y: obj.position.y,
@@ -1262,52 +1305,6 @@ FOUR.SceneIndex2 = (function () {
             }
         }
         return [];
-    };
-
-    SceneIndex2.prototype.getPointsScreenCoordinates = function (obj, camera, clientWidth, clientHeight) {
-        var i, p, total = 0, uuid = obj.uuid.slice(), vertex;
-        if (obj.geometry.vertices) {
-            for (i = 0; i < obj.geometry.vertices.length; i++) {
-                vertex = obj.geometry.vertices[i].clone().add(obj.position);
-                p = FOUR.utils.getObjectScreenCoordinates(vertex, camera, clientWidth, clientHeight);
-                if (p.x >= 0 && p.y >= 0) {
-                    this.viewIndex.push({
-                        id: uuid + ',' + i,
-                        uuid: uuid,
-                        x: Number(p.x),
-                        y: Number(p.y),
-                        width: 0,
-                        height: 0,
-                        index: i,
-                        type: 'THREE.Points'
-                    });
-                    total += 1;
-                }
-            }
-        } else if (obj.geometry.attributes.position) {
-            for (i = 0; i < obj.geometry.attributes.position.count; i += 3) {
-                vertex = new THREE.Vector3(
-                    obj.geometry.attributes.position.array[i],
-                    obj.geometry.attributes.position.array[i+1],
-                    obj.geometry.attributes.position.array[i+2]);
-                vertex = vertex.add(obj.position);
-                p = FOUR.utils.getObjectScreenCoordinates(vertex, camera, clientWidth, clientHeight);
-                if (p.x >= 0 && p.y >= 0) {
-                    this.viewIndex.push({
-                        id: uuid + ',' + i,
-                        uuid: uuid,
-                        x: Number(p.x),
-                        y: Number(p.y),
-                        width: 0,
-                        height: 0,
-                        index: i,
-                        type: 'THREE.Points'
-                    });
-                    total += 1;
-                }
-            }
-        }
-        return total;
     };
 
     /**
@@ -1371,33 +1368,33 @@ FOUR.SceneIndex2 = (function () {
     /**
      * Get scene object screen positions.
      * @param {Array} positions Positions
+     * @param {THREE.Camera} camera Camera
+     * @param {Number} width Width
+     * @param {Number} height Height
      * @returns {Promise}
      */
-    SceneIndex2.prototype.getScreenCoordinates = function (positions) {
-        var opts, pa, self = this;
+    SceneIndex2.prototype.getScreenCoordinates = function (positions, camera, width, height) {
+        var pa, self = this;
         return new Promise(function (resolve, reject) {
             if (positions.length === 0) {
-                resolve(positions);
+                resolve([]);
+            } else {
+                pa = new Parallel(positions, {env: {camera:camera,width:width,height:height}, evalPath: self.SCRIPTS.EVAL});
+                pa.require(self.SCRIPTS.THREE)
+                  .require({fn:setScreenCoordinates, name:'setScreenCoordinates'});
+                pa.map(function (obj) {
+                        return setScreenCoordinates(obj, global.env.camera, global.env.width, global.env.height);
+                    })
+                    .then(function (data, err) {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(data);
+                        }
+                    });
             }
-            opts = {
-                env: {},
-                evalPath: self.SCRIPTS.EVAL
-            };
-            resolve(positions);
-            //pa = new Parallel(positions, opts);
-            //pa.require(self.SCRIPTS.THREE);
-            //pa.map(function (obj) {
-            //    return obj;
-            //})
-            //.then(function (positions) {
-            //    resolve(positions);
-            //});
         });
     };
-
-    SceneIndex2.prototype.getViewBuckets = function (frustum) {};
-
-    SceneIndex2.prototype.getViewObjects = function (buckets) {};
 
     /**
      * Index scene objects.
@@ -1416,59 +1413,49 @@ FOUR.SceneIndex2 = (function () {
         return self
             .sceneIndex
             .insertAll(self.positions)
-            .then(function (data) {
-                self.count.scene.objects = -1;
-                self.count.scene.vertices = -1;
+            .then(function () {
                 self.dispatchEvent({type: FOUR.EVENT.UPDATE, description: 'scene index updated'});
-                console.info('Added %s objects, %s vertices to the scene index in %s ms',
-                    self.count.scene.objects,
-                    self.count.scene.vertices,
-                    new Date().getTime() - start);
-                return self.count.scene;
+                console.info('Updated scene index in %s ms', new Date().getTime() - start);
             });
     };
 
     /**
      * Index view.
-     * @param {THREE.Scene} scene Scene
-     * @param {THREE.Camera} camera Camera
-     * @param {Number} width Viewport width
-     * @param {Number} height Viewport height
+     * @param {FOUR.Viewport3D} viewport Viewport
      * @returns {Promise}
      */
-    SceneIndex2.prototype.indexView = function (scene, camera, width, height) {
-        var index, obj, objects = 0, matrix, self = this,
-            start = new Date().getTime(), vertices = 0;
+    SceneIndex2.prototype.indexView = function (viewport) {
+        var index, matrix, positions, self = this, start = new Date().getTime();
+        var camera = viewport.getCamera().clone();
+        var width = viewport.domElement.clientWidth;
+        var height = viewport.domElement.clientHeight;
         // clear the index
         self.viewIndex.clear();
-        self.count.view = {edges:0, faces:0, objects:0, vertices:0};
         // build a frustum for the current camera view
         matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
         self.frustum.setFromMatrix(matrix);
         // build view index
-        return self
-            .sceneIndex
-            .getEntitiesIntersectingFrustum(self.frustum)
-            .then(function (objs) {
-                console.info('entities', objs);
-                return objs;
-                //var positions = objs.reduce(function (items, key) {
-                //    items.push(self.positions[key]);
-                //    return items;
-                //}, []);
-                //console.info('positions', positions);
-                //return self.getScreenCoordinates(positions, camera, width, height);
-            })
-            //.then(function (positions) {
-            //    console.info('screen', Array.isArray(positions), positions);
-            //    return self.viewIndex.insertAll(positions);
-            //})
-            //.then(function (counts) {
-            //    self.dispatchEvent({type: FOUR.EVENT.UPDATE, description: 'view index updated'});
-            //    console.info('Added %s objects, %s vertices to the view index in %s ms', -1, -1, new Date().getTime() - start);
-            //    return counts;
-            //});
-        ;
+        //return new Promise(function (resolve, reject) {
+            return self
+                .sceneIndex
+                .getEntitiesIntersectingFrustum(self.frustum)
+                .then(function (cells) {
+                    positions = cells.reduce(function (objs, key) {
+                        objs.push(self.positions[key]);
+                        return objs;
+                    }, []);
+                    return self.getScreenCoordinates(positions, camera, width, height);
+                })
+                .then(function (positions) {
+                    console.info('screen', Array.isArray(positions), positions);
+                    return self.viewIndex.insertAll(positions);
+                })
+                .then(function (data) {
+                    self.dispatchEvent({type: FOUR.EVENT.UPDATE, description: 'view index updated'});
+                    console.info('Updated view index in %s ms', new Date().getTime() - start);
+                    //resolve();
+                });
+        //});
     };
 
     SceneIndex2.prototype.insert = function (obj) {};
