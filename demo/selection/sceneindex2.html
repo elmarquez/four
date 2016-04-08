@@ -27,13 +27,13 @@
     <script src="../dist/four.js"></script>
 <body>
 <div id="description">
-    <h2>Scene Index Selection Controller</h2>
+    <h2>Scene Index</h2>
 </div>
 <div id="marquee"></div>
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var points = 1;
+        var points = 10000;
         var primitives = 100;
 
         var camera, marquee, domElement, geometry, helper, i, index, light, material;
@@ -101,7 +101,10 @@
         domElement = document.getElementById('webgl');
         viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-        index = new FOUR.SceneIndex2();
+        index = new FOUR.SceneIndex2({
+            sceneIndex: { cellSize:16 },
+            viewIndex: { cellSize:8 }
+        });
 
         // viewport controllers
         multi = new FOUR.MultiController({viewport: viewport});

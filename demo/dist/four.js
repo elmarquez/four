@@ -1171,10 +1171,6 @@ FOUR.SceneIndex2 = (function () {
         self.positions = [];
         self.sceneIndex = new SpatialHash(config.sceneIndex || {});
         self.viewIndex = new SpatialHash(config.viewIndex || {});
-
-        Object.keys(config).forEach(function (key) {
-            self[key] = config[key];
-        });
     }
 
     SceneIndex2.prototype = Object.create(THREE.EventDispatcher.prototype);
@@ -1416,7 +1412,10 @@ FOUR.SceneIndex2 = (function () {
         self.count.scene = {edges:0, faces:0, objects:0, vertices:0};
         // get scene objects data
         var records = self.getRecords(objs);
+        console.info('get records %s ms', new Date().getTime() - start);
+        start = new Date().getTime();
         self.positions = self.getPositions(records);
+        console.info('get positions %s ms', new Date().getTime() - start);
         // build scene index
         return self
             .sceneIndex
@@ -1443,27 +1442,24 @@ FOUR.SceneIndex2 = (function () {
         matrix = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
         self.frustum.setFromMatrix(matrix);
         // build view index
-        //return new Promise(function (resolve, reject) {
-            return self
-                .sceneIndex
-                .getEntitiesIntersectingFrustum(self.frustum)
-                .then(function (cells) {
-                    positions = cells.reduce(function (objs, key) {
-                        objs.push(self.positions[key]);
-                        return objs;
-                    }, []);
-                    return self.getScreenCoordinates(positions, camera, width, height);
-                })
-                .then(function (positions) {
-                    //console.info('screen', Array.isArray(positions), positions);
-                    return self.viewIndex.insertAll(positions);
-                })
-                .then(function (data) {
-                    self.dispatchEvent({type: FOUR.EVENT.UPDATE, description: 'view index updated'});
-                    console.info('Updated view index in %s ms', new Date().getTime() - start);
-                    //resolve();
-                });
-        //});
+        return self
+            .sceneIndex
+            .getEntitiesIntersectingFrustum(self.frustum)
+            .then(function (cells) {
+                positions = cells.reduce(function (objs, key) {
+                    objs.push(self.positions[key]);
+                    return objs;
+                }, []);
+                console.info('positions', positions.length);
+                return self.getScreenCoordinates(positions, camera, width, height);
+            })
+            .then(function (positions) {
+                return self.viewIndex.insertAll(positions);
+            })
+            .then(function () {
+                self.dispatchEvent({type: FOUR.EVENT.UPDATE, description: 'view index updated'});
+                console.info('Updated view index in %s ms', new Date().getTime() - start);
+            });
     };
 
     SceneIndex2.prototype.insert = function (obj) {};
