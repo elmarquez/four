@@ -2,7 +2,7 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title>FOUR - Marquee Selection Controller</title>
+    <title>FOUR - Scene Index Selection Controller</title>
     <!-- css, fonts -->
     <!--<link href='https://fonts.googleapis.com/css?family=Montserrat:700|Cantarell:700' rel='stylesheet' type='text/css'>-->
     <link href='../vendor/animate.css/animate.css' rel='stylesheet' type='text/css'>
@@ -28,41 +28,21 @@
     <script src="../dist/four.js"></script>
 <body>
 <div id="description">
-    <h2>Marquee Selection Controller</h2>
+    <h2>Scene Index</h2>
     <p>
-        Select scene entities by click-and-dragging to define a selection marquee.
-        All entities intersecting the marquee will be selected.
+        The scene index provides search functionality to suport selection
+        tools, including marquee selection. Indexing occurs at the scene and
+        view levels. Scene indexing records the 3D coordinates of all scene
+        entities while view indexing records the 2D screen coordinates of
+        all scene entities within the camera view. Indexing runs in one or
+        more worker threads, leaving the main thread for user interaction.
     </p>
-    <p>
-        By default, the action clears the current selection then adds the
-        intersected entities to the selection set. Hold the <code>Shift</code> key
-        down while dragging to add all intersected entities to the selection set.
-        Hold the <code>Alt</code> key down to remove all intersected entities from
-        the selection set. Console output provides information on the selection
-        state.
-    </p>
-
-    <!--
-
-    TODO
-
-    ESC select none
-    CTRL+A select all
-    SHIFT+LMB toggle selection
-    ALT+LMB deselect
-
-    navigation HUD
-    event emitter on controller to indicate the position in the selection
-    one or more entities required for tour
-
-    -->
-
 </div>
 <div id="marquee"></div>
 <div id="webgl"></div>
 <script>
     $(document).ready(function () {
-        var points = 5000;
+        var points = 10000;
         var primitives = 1000;
 
         var camera, marquee, domElement, geometry, helper, i, index, light, material;
@@ -130,7 +110,7 @@
         domElement = document.getElementById('webgl');
         viewport = new FOUR.Viewport3D({camera: camera, continuousUpdate: true, domElement: domElement, scene: scene});
 
-        index = new FOUR.SceneIndex4({viewport: viewport});
+        index = new FOUR.SceneIndex4({viewport:viewport});
 
         // viewport controllers
         multi = new FOUR.MultiController({viewport: viewport});
@@ -163,15 +143,6 @@
             console.info('update', event);
             // FIXME this part was breaking the demo
             // FIXME need to set the flag that updates the colour
-//      var obj;
-//      event.removed.forEach(function (item) {
-//        obj = scene.getObjectByProperty('uuid', item.uuid);
-//        obj.material.color = '#FFFFFF';
-//      });
-//      event.added.forEach(function (item) {
-//        obj = scene.getObjectByProperty('uuid', item.uuid);
-//        obj.material.color = '#FF0000';
-//      });
         });
 
 //        // create geometry to represent the cells
@@ -188,7 +159,6 @@
 //            cells.add(mesh);
 //        });
 
-        // handle key commands
         window.addEventListener('keyup', function (event) {
             if (event.keyCode === FOUR.KEY.ONE) {
                 // toggle display of view cells
@@ -220,26 +190,26 @@
             viewport.render();
         });
 
-        // handle key commands
-//        var keyCommand = new FOUR.KeyCommandController();
-//
-//        keyCommand.bind(FOUR.KEY.ESC, function () {
-//            selectionSet.removeAll();
-//        });
-//
-//        keyCommand.bind(FOUR.KEY.U, function () {
-//            console.info('update selection cache');
-//            marquee.onCameraUpdate();
-//        });
+        var keyCommand = new FOUR.KeyCommandController();
+
+        keyCommand.bind(FOUR.KEY.ESC, function () {
+            selectionSet.removeAll();
+        });
+
+        keyCommand.bind(FOUR.KEY.U, function () {
+            console.info('update selection cache');
+            marquee.onCameraUpdate();
+        });
 
         // start rendering
         viewport.render();
 
         // index the scene
-        objs = scene.getModelObjects();
-        index.indexScene(objs);
+//        objs = scene.getModelObjects();
+//        index.indexScene(objs).then(function () {
+//            index.indexView(viewport);
+//        });
         index.indexView(viewport);
-
     });
 </script>
 </body>

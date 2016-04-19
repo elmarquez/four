@@ -27,7 +27,8 @@
     "three.js": "0.72.0",
     "tween.js": "tweenjs#~16.3.1",
     "parallel.js": "paralleljs#*",
-    "WebHamsters": "^3.8.0"
+    "WebHamsters": "^3.8.0",
+    "threeoctree": "https://github.com/collinhover/threeoctree.git"
   },
   "devDependencies": {
     "angular": "~1.4.6",
