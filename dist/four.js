@@ -7031,6 +7031,10 @@ FOUR.ZoomController = (function () {
         config = config || {};
         var self = this;
 
+        // constans for wheel event
+        self.PIXEL_STEP = 10;
+        self.WHEEL_ZOOM_RATIO = 800;
+
         self.EPS = 0.000001;
         self.KEY = {
             ZOOM: 16
@@ -7141,6 +7145,38 @@ FOUR.ZoomController = (function () {
     };
 
     /**
+     * Normalize scroll movement
+     * @param {Object} event Mouse event
+     *
+     * https://github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
+     */
+    ZoomController.prototype.normalizeWheel = function (event) {
+        var self = this;
+        var sX = 0, sY = 0, // spinX, spinY
+            pX, pY; // pixelX, pixelY
+
+        // Legacy
+        if ('detail'      in event) { sY = event.detail; }
+        if ('wheelDelta'  in event) { sY = -event.wheelDelta / 120; }
+        if ('wheelDeltaY' in event) { sY = -event.wheelDeltaY / 120; }
+        if ('wheelDeltaX' in event) { sX = -event.wheelDeltaX / 120; }
+
+        // side scrolling on FF with DOMMouseScroll
+        if ( 'axis' in event && event.axis === event.HORIZONTAL_AXIS ) {
+            sX = sY;
+            sY = 0;
+        }
+
+        pX = sX * self.PIXEL_STEP;
+        pY = sY * self.PIXEL_STEP;
+
+        if ('deltaY' in event) { pY = event.deltaY; }
+        if ('deltaX' in event) { pX = event.deltaX; }
+
+        return [pX, pY];
+    };
+
+    /**
      * Zoom the camera in or out using the mouse wheel as input.
      * @param {Object} event Mouse event
      */
@@ -7150,15 +7186,8 @@ FOUR.ZoomController = (function () {
             return;
         }
         event.preventDefault();
-        if (event.wheelDeltaY) {
-            // WebKit / Opera / Explorer 9
-            self.zoom.delta = event.wheelDeltaY / 40;
-        } else if (event.detail) {
-            // Firefox
-            self.zoom.delta = -event.detail / 3;
-        } else {
-            self.zoom.delta = 0;
-        }
+        var pixels = self.normalizeWheel(event);
+        self.zoom.delta = -pixels[1] * self.wheelZoomSpeed / self.WHEEL_ZOOM_RATIO;
         self.dispatchEvent({type: FOUR.EVENT.UPDATE});
     };
 
