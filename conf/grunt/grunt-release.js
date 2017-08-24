@@ -1,9 +1,9 @@
-'use strict';
-
 module.exports = function (grunt) {
-    grunt.registerTask('release', 'Create and tag a release',
-        function () {
-            grunt.task.run(['checkbranch:master', 'compile', 'bump']);
-        }
-    );
+  'use strict';
+  grunt.registerTask('release', 'Create and tag a release',
+    function (increment) {
+      var bump = 'bump:' + (increment || 'patch');
+      grunt.task.run(['checkbranch:master', 'compile', bump]);
+    }
+  );
 };
