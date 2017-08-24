@@ -137,6 +137,17 @@ FOUR.MOUSE_STATE = {
 };
 
 /**
+ * Mouse button code (left, middle, right).
+ * @type {number}
+ */
+FOUR.MOUSE_BUTTON = {
+    LEFT: 0,
+    MIDDLE: 1,
+    MIDDLE_EXT: 4,
+    RIGHT: 2
+};
+
+/**
  * Pointer state.
  * @type {Number}
  */
@@ -268,6 +279,41 @@ FOUR.utils.isContained = function (r1, r2) {
         }
     }
     return false;
+};
+
+/**
+ * Determine if mouse middle button is pressed.
+ * @param {Object} event Mouse event
+ */
+FOUR.utils.isMouseMiddlePressed = function (event) {
+    return (
+      event.button === FOUR.MOUSE_BUTTON.MIDDLE ||
+      event.button === FOUR.MOUSE_BUTTON.MIDDLE_EXT ||
+      event.buttons === FOUR.MOUSE_BUTTON.MIDDLE ||
+      event.buttons === FOUR.MOUSE_BUTTON.MIDDLE_EXT
+    );
+};
+
+/**
+ * Determine if mouse left button is pressed.
+ * @param {Object} event Mouse event
+ */
+FOUR.utils.isMouseLeftPressed = function (event) {
+    return (
+      event.button === FOUR.MOUSE_BUTTON.LEFT ||
+      event.buttons === FOUR.MOUSE_BUTTON.LEFT
+    );
+};
+
+/**
+ * Determine if mouse right button is pressed.
+ * @param {Object} event Mouse event
+ */
+FOUR.utils.isMouseRightPressed = function (event) {
+    return (
+      event.button === FOUR.MOUSE_BUTTON.RIGHT ||
+      event.buttons === FOUR.MOUSE_BUTTON.RIGHT
+    );
 };
 ;
 
@@ -5877,7 +5923,7 @@ FOUR.LookController = (function () {
     };
 
     LookController.prototype.onMouseDown = function (event) {
-        if (this.active && event.button === THREE.MOUSE.MIDDLE) {
+        if (this.active && FOUR.utils.isMouseMiddlePressed(event)) {
             this.domElement.style.cursor = FOUR.CURSOR.LOOK;
             this.mouse = this.MOUSE_STATE.DOWN;
             this.look.start.set(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop);
@@ -5886,14 +5932,14 @@ FOUR.LookController = (function () {
     };
 
     LookController.prototype.onMouseMove = function (event) {
-        if (this.active && this.mouse === this.MOUSE_STATE.DOWN && event.button === THREE.MOUSE.MIDDLE) {
+        if (this.active && this.mouse === this.MOUSE_STATE.DOWN && FOUR.utils.isMouseMiddlePressed(event)) {
             this.look.end.set(event.offsetX - this.domElement.clientLeft, event.offsetY - this.domElement.clientTop);
             this.dispatchEvent({type: FOUR.EVENT.UPDATE});
         }
     };
 
     LookController.prototype.onMouseUp = function () {
-        if (this.active && this.mouse === this.MOUSE_STATE.DOWN && event.button === THREE.MOUSE.MIDDLE) {
+        if (this.active && this.mouse === this.MOUSE_STATE.DOWN && FOUR.utils.isMouseMiddlePressed(event)) {
             this.domElement.style.cursor = FOUR.CURSOR.DEFAULT;
             this.mouse = this.MOUSE_STATE.UP;
             this.look.start.copy(this.look.end);
@@ -5905,7 +5951,7 @@ FOUR.LookController = (function () {
         if (this.enabled === false) {
             return;
         }
-        if (this.active && this.mouse === this.MOUSE_STATE.DOWN && event.button === THREE.MOUSE.MIDDLE) {
+        if (this.active && this.mouse === this.MOUSE_STATE.DOWN && FOUR.utils.isMouseMiddlePressed(event)) {
             // calculate mouse movement
             this.look.delta.set(this.look.end.x - this.look.start.x, this.look.end.y - this.look.start.y);
             if (this.look.delta.length() > 0) {
@@ -6129,7 +6175,7 @@ FOUR.PanController = (function () {
     };
 
     PanController.prototype.onMouseDown = function (event) {
-        if (event.button === THREE.MOUSE.RIGHT) {
+        if (FOUR.utils.isMouseRightPressed(event)) {
             this.domElement.style.cursor = this.CURSOR.PAN;
             this.mode = this.MODES.PAN;
             var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
@@ -6140,7 +6186,7 @@ FOUR.PanController = (function () {
     };
 
     PanController.prototype.onMouseMove = function (event) {
-        if (event.button === THREE.MOUSE.RIGHT) {
+        if (FOUR.utils.isMouseRightPressed(event)) {
             var ndc = this.getNormalizedDeviceCoordinates(event.offsetX, event.offsetY, this.domElement);
             //console.info('ndc', ndc);
             this.pan.end.copy(ndc);
@@ -6381,7 +6427,7 @@ FOUR.RotateController = (function () {
     };
 
     RotateController.prototype.isActivated = function (event) {
-        if (event.button === THREE.MOUSE.MIDDLE) {
+        if (FOUR.utils.isMouseMiddlePressed(event)) {
             return true;
         } else if (this.modifiers[this.KEY.ALT] && this.modifiers[this.KEY.CTRL]) {
             return true;
@@ -7118,7 +7164,7 @@ FOUR.ZoomController = (function () {
 
     ZoomController.prototype.onMouseDown = function (event) {
         event.preventDefault();
-        if (this.keydown && event.button === THREE.MOUSE.LEFT) {
+        if (this.keydown && FOUR.utils.isMouseLeftPressed(event)) {
             this.domElement.style.cursor = FOUR.CURSOR.ZOOM;
             this.mouse = this.MOUSE_STATE.DOWN;
             this.zoom.end.set(0, 0);
@@ -7128,7 +7174,7 @@ FOUR.ZoomController = (function () {
 
     ZoomController.prototype.onMouseMove = function (event) {
         event.preventDefault();
-        if (this.keydown && event.button === THREE.MOUSE.LEFT && this.mouse === this.MOUSE_STATE.DOWN) {
+        if (this.keydown && FOUR.utils.isMouseLeftPressed(event) && this.mouse === this.MOUSE_STATE.DOWN) {
             this.zoom.end.copy(this.zoom.start);
             this.zoom.start.set(event.offsetX, event.offsetY);
             this.zoom.delta = -((this.zoom.end.y - this.zoom.start.y) / this.domElement.clientHeight) * this.wheelZoomSpeed;
@@ -7137,7 +7183,7 @@ FOUR.ZoomController = (function () {
 
     ZoomController.prototype.onMouseUp = function (event) {
         event.preventDefault();
-        if (event.button === THREE.MOUSE.LEFT) {
+        if (FOUR.utils.isMouseLeftPressed(event)) {
             this.domElement.style.cursor = FOUR.CURSOR.DEFAULT;
             this.mouse = this.MOUSE_STATE.UP;
             this.zoom.delta = 0;
@@ -7187,7 +7233,11 @@ FOUR.ZoomController = (function () {
         }
         event.preventDefault();
         var pixels = self.normalizeWheel(event);
-        self.zoom.delta = -pixels[1] * self.wheelZoomSpeed / self.WHEEL_ZOOM_RATIO;
+        if (event.ctrlKey) { // fine increment mode
+            self.zoom.delta = (pixels[1] < 0) ? 1 : -1;
+        } else {
+            self.zoom.delta = -pixels[1] * self.wheelZoomSpeed / self.WHEEL_ZOOM_RATIO;
+        }
         self.dispatchEvent({type: FOUR.EVENT.UPDATE});
     };
 
