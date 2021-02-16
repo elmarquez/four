@@ -1,0 +1,8 @@
+{
+    "helpers": [ "helpers/**/*.js" ],
+    "random": false,
+    "requires": [ "esm" ],
+    "spec_dir": "tests",
+    "spec_files": [ "**/*.spec.js" ],
+    "stopSpecOnExpectationFailure": false
+}

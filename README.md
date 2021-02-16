@@ -1,7 +1,7 @@
-FOUR - CAD Application Components
-=================================
+FOUR - User Interface Components for Web Based CAD
+==================================================
 
-Components for threejs computer aided design applications.
+FOUR is a family of components for building web-based computer aided design applications using THREE.js.
  
  * FirstPersonController - First person navigation controller
  * OrbitController - Orbit controller
@@ -16,13 +16,9 @@ Components for threejs computer aided design applications.
 Dependencies
 ------------
 
-Install build tooling dependencies:
+Install dependencies:
 
-    npm install
-    
-Install run time dependencies:
-
-    bower install
+    yarn install
     
 The ViewAxis control requires the THREE Helvetiker Regular typeface. This font
 file is not included in the compiled FOUR library and must be loaded separately.
@@ -32,17 +28,13 @@ However, the file itself is provided in the distribution folder.
 Compiling and Running the Demo
 ------------------------------
 
-List all available build commands:
-
-    grunt
-    
 Compile the library:
     
-    grunt compile
+    yarn build
     
 Start a web server and serve the demo application from the localhost:
 
-    grunt serve
+    yarn serve
 
 Your default browser will open at the top level folder of the project. Select
 the 'demo' folder in the file listing.
