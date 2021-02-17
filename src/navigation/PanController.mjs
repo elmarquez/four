@@ -1,5 +1,5 @@
-import { EVENT } from '../Globals';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import { EventDispatcher, Vector2, Vector3 } from 'three';
 
 const PanController = (function () {
 
@@ -11,7 +11,7 @@ const PanController = (function () {
      * @see http://threejs.org/examples/js/controls/OrbitControls.js
      */
     function PanController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -38,11 +38,11 @@ const PanController = (function () {
         self.maxDistance = Infinity;
         self.minDistance = 1;
         self.mode = self.MODES.NONE;
-        self.offset = new THREE.Vector3();
+        self.offset = new Vector3();
         self.pan = {
-            delta: new THREE.Vector2(),
-            end: new THREE.Vector2(),
-            start: new THREE.Vector2()
+            delta: new Vector2(),
+            end: new Vector2(),
+            start: new Vector2()
         };
         self.panSpeed = 0.2;
         self.viewport = config.viewport;
@@ -52,7 +52,7 @@ const PanController = (function () {
         });
     }
 
-    PanController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    PanController.prototype = Object.create(EventDispatcher.prototype);
 
     PanController.prototype.disable = function () {
         var self = this;
@@ -96,7 +96,7 @@ const PanController = (function () {
     PanController.prototype.getNormalizedDeviceCoordinates = function (x, y, element) {
         var nx = (x - element.clientLeft) / element.clientWidth;
         var ny = (y - element.clientTop) / element.clientHeight;
-        return new THREE.Vector2(nx, ny);
+        return new Vector2(nx, ny);
     };
 
     /**
@@ -107,7 +107,7 @@ const PanController = (function () {
      * @returns {THREE.Vector3}
      */
     PanController.prototype.getWorldSpaceCoordinates = function (ndc, camera) {
-        var mouse = new THREE.Vector3().set(-ndc.x * 2 - 1, ndc.y * 2 + 1, 0.5);
+        var mouse = new Vector3().set(-ndc.x * 2 - 1, ndc.y * 2 + 1, 0.5);
         return mouse.unproject(camera);
     };
 
@@ -154,7 +154,7 @@ const PanController = (function () {
                 // translate world space coordinates to camera movement delta
                 var delta = end.sub(start).multiplyScalar(camera.getDistance() * this.panSpeed);
                 // add delta to camera position
-                var position = new THREE.Vector3().addVectors(delta, camera.position);
+                var position = new Vector3().addVectors(delta, camera.position);
                 camera.setPosition(position, false);
                 // consume the change
                 this.pan.start.copy(this.pan.end);

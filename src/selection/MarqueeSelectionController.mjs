@@ -1,7 +1,7 @@
-import { EVENT } from '../Globals';
+import { EVENT } from '../Globals.mjs';
 import Quadtree from 'quadtree-lib';
-import THREE from 'three';
-import utils from '../utils';
+import { EventDispatcher, Frustum, Vector2 } from 'three';
+import utils from '../utils.mjs';
 
 const MarqueeSelectionController = (function () {
 
@@ -15,7 +15,7 @@ const MarqueeSelectionController = (function () {
      * @constructor
      */
     function MarqueeSelectionController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -33,14 +33,14 @@ const MarqueeSelectionController = (function () {
         self.camera = config.camera;
         self.domElement = config.viewport.domElement;
         self.enabled = false;
-        self.frustum = new THREE.Frustum();
+        self.frustum = new Frustum();
         self.indexingTimeout = null;
         self.listeners = {};
         self.marquee = document.getElementById('marquee');
         self.modifiers = {};
         self.mouse = {
-            end: new THREE.Vector2(),
-            start: new THREE.Vector2(),
+            end: new Vector2(),
+            start: new Vector2(),
             state: self.MOUSE_STATE.UP
         };
         self.quadtree = new Quadtree({
@@ -59,7 +59,7 @@ const MarqueeSelectionController = (function () {
         });
     }
 
-    MarqueeSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    MarqueeSelectionController.prototype = Object.create(EventDispatcher.prototype);
 
     MarqueeSelectionController.prototype.disable = function () {
         var self = this;
@@ -159,7 +159,7 @@ const MarqueeSelectionController = (function () {
      * @param {Object} event Event
      */
     MarqueeSelectionController.prototype.onMouseMove = function (event) {
-        var delta = new THREE.Vector2(event.offsetX, event.offsetY).sub(this.mouse.start).length();
+        var delta = new Vector2(event.offsetX, event.offsetY).sub(this.mouse.start).length();
         if (this.mouse.state === this.MOUSE_STATE.DOWN && delta > this.EPS) {
             //console.info('marquee selection');
             event.preventDefault();

@@ -1,5 +1,5 @@
-import { EVENT, KEY } from '../Globals';
-import THREE from 'three';
+import { EVENT, KEY } from '../Globals.mjs';
+import { EventDispatcher, Raycaster, Vector2, Vector3 } from 'three';
 
 const WalkController = (function () {
 
@@ -9,7 +9,7 @@ const WalkController = (function () {
      * maintains a minimum Z position.
      */
     function WalkController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -44,7 +44,7 @@ const WalkController = (function () {
             'SHIFT': false
         };
         self.mouse = {
-            direction: new THREE.Vector2(),
+            direction: new Vector2(),
             end: {x: 0, y: 0},
             start: {x: 0, y: 0},
             state: self.MOUSE_STATE.UP
@@ -58,7 +58,7 @@ const WalkController = (function () {
             down: false
         };
         self.movementSpeed = 100.0;
-        self.raycaster = new THREE.Raycaster();
+        self.raycaster = new Raycaster();
         self.timeout = null;
         self.viewport = config.viewport;
         self.walkHeight = null;
@@ -74,7 +74,7 @@ const WalkController = (function () {
         });
     }
 
-    WalkController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    WalkController.prototype = Object.create(EventDispatcher.prototype);
 
     WalkController.prototype.constructor = WalkController;
 
@@ -207,12 +207,12 @@ const WalkController = (function () {
 
     WalkController.prototype.setWalkHeight = function () {
         var self = this;
-        var pos = new THREE.Vector3(
+        var pos = new Vector3(
             self.camera.position.x,
             self.camera.position.y,
             self.WALK_HEIGHT
         );
-        var target = new THREE.Vector3(
+        var target = new Vector3(
             self.camera.target.x,
             self.camera.target.y,
             self.WALK_HEIGHT
@@ -230,58 +230,58 @@ const WalkController = (function () {
             return;
         }
         distance = delta * self.movementSpeed;
-        offset = new THREE.Vector3().subVectors(self.camera.position, self.camera.target);
+        offset = new Vector3().subVectors(self.camera.position, self.camera.target);
         offset.setLength(distance);
-        cross = new THREE.Vector3().crossVectors(offset, self.camera.up);
+        cross = new Vector3().crossVectors(offset, self.camera.up);
 
         // translate the camera
         if (self.move.forward) {
             offset.negate();
-            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            next = new Vector3().addVectors(self.camera.position, offset);
             self.camera.position.copy(next);
-            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            next = new Vector3().addVectors(self.camera.target, offset);
             self.camera.target.copy(next);
             change = true;
         }
         if (self.move.backward) {
-            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            next = new Vector3().addVectors(self.camera.position, offset);
             self.camera.position.copy(next);
-            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            next = new Vector3().addVectors(self.camera.target, offset);
             self.camera.target.copy(next);
             change = true;
         }
         if (self.move.right) {
             cross.negate();
-            next = new THREE.Vector3().addVectors(self.camera.position, cross);
+            next = new Vector3().addVectors(self.camera.position, cross);
             self.camera.position.copy(next);
-            next = new THREE.Vector3().addVectors(self.camera.target, cross);
+            next = new Vector3().addVectors(self.camera.target, cross);
             self.camera.target.copy(next);
             change = true;
         }
         if (self.move.left) {
-            next = new THREE.Vector3().addVectors(self.camera.position, cross);
+            next = new Vector3().addVectors(self.camera.position, cross);
             self.camera.position.copy(next);
-            next = new THREE.Vector3().addVectors(self.camera.target, cross);
+            next = new Vector3().addVectors(self.camera.target, cross);
             self.camera.target.copy(next);
             change = true;
         }
         if (self.move.up) {
-            offset = new THREE.Vector3().copy(self.camera.up);
+            offset = new Vector3().copy(self.camera.up);
             offset.setLength(distance);
-            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            next = new Vector3().addVectors(self.camera.position, offset);
             self.camera.position.copy(next);
-            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            next = new Vector3().addVectors(self.camera.target, offset);
             self.camera.target.copy(next);
             change = true;
         }
         if (self.move.down) {
             height = self.getWalkHeight(self.camera.position);
-            offset = new THREE.Vector3().copy(self.camera.up).negate();
+            offset = new Vector3().copy(self.camera.up).negate();
             offset.setLength(distance);
-            next = new THREE.Vector3().addVectors(self.camera.position, offset);
+            next = new Vector3().addVectors(self.camera.position, offset);
             next.z = next.z < height ? height : next.z;
             self.camera.position.copy(next);
-            next = new THREE.Vector3().addVectors(self.camera.target, offset);
+            next = new Vector3().addVectors(self.camera.target, offset);
             next.z = next.z < height ? height : next.z;
             self.camera.target.copy(next);
             change = true;

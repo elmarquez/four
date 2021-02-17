@@ -1,4 +1,4 @@
-import THREE from 'three';
+import { EventDispatcher, Raycaster, Vector2 } from 'three';
 
 const HoverSelectionController = (function () {
 
@@ -12,7 +12,7 @@ const HoverSelectionController = (function () {
      * @constructor
      */
     function HoverSelectionController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -32,18 +32,18 @@ const HoverSelectionController = (function () {
         self.intersects = [];
         self.listeners = {};
         self.mouse = {
-            end: new THREE.Vector2(),
-            start: new THREE.Vector2(),
+            end: new Vector2(),
+            start: new Vector2(),
             state: self.MOUSE_STATE.UP
         };
-        self.raycaster = new THREE.Raycaster();
+        self.raycaster = new Raycaster();
         self.timeout = null;
         self.viewport = config.viewport;
 
         self.filter = self.filters.DEFAULT;
     }
 
-    HoverSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    HoverSelectionController.prototype = Object.create(EventDispatcher.prototype);
 
     /**
      * Remove the current selection filter.

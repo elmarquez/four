@@ -1,5 +1,5 @@
-import { EVENT } from '../Globals';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import { EventDispatcher, Vector3 } from 'three';
 
 const ArrowController = (function () {
 
@@ -10,7 +10,7 @@ const ArrowController = (function () {
      * @param {Object} config Configuration
      */
     function ArrowController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -50,7 +50,7 @@ const ArrowController = (function () {
         });
     }
 
-    ArrowController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    ArrowController.prototype = Object.create(EventDispatcher.prototype);
 
     ArrowController.prototype.constructor = ArrowController;
 
@@ -221,56 +221,56 @@ const ArrowController = (function () {
         }
         this.temp.change = false;
         this.temp.distance = delta * this.movementSpeed;
-        this.temp.offset = new THREE.Vector3().subVectors(this.camera.position, this.camera.target);
+        this.temp.offset = new Vector3().subVectors(this.camera.position, this.camera.target);
         this.temp.offset.setLength(this.temp.distance);
-        this.temp.cross = new THREE.Vector3().crossVectors(this.temp.offset, this.camera.up);
+        this.temp.cross = new Vector3().crossVectors(this.temp.offset, this.camera.up);
 
         // translate the camera
         if (this.move.forward) {
             this.temp.offset.negate();
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.position, this.temp.offset);
             this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.target, this.temp.offset);
             this.camera.target.copy(this.temp.next);
             this.temp.change = true;
         }
         if (this.move.backward) {
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.position, this.temp.offset);
             this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.target, this.temp.offset);
             this.camera.target.copy(this.temp.next);
             this.temp.change = true;
         }
         if (this.move.right) {
             this.temp.cross.negate();
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.cross);
+            this.temp.next = new Vector3().addVectors(this.camera.position, this.temp.cross);
             this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.cross);
+            this.temp.next = new Vector3().addVectors(this.camera.target, this.temp.cross);
             this.camera.target.copy(this.temp.next);
             this.temp.change = true;
         }
         if (this.move.left) {
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.cross);
+            this.temp.next = new Vector3().addVectors(this.camera.position, this.temp.cross);
             this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.cross);
+            this.temp.next = new Vector3().addVectors(this.camera.target, this.temp.cross);
             this.camera.target.copy(this.temp.next);
             this.temp.change = true;
         }
         if (this.move.up) {
-            this.temp.offset = new THREE.Vector3().copy(this.camera.up);
+            this.temp.offset = new Vector3().copy(this.camera.up);
             this.temp.offset.setLength(this.temp.distance);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.position, this.temp.offset);
             this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.target, this.temp.offset);
             this.camera.target.copy(this.temp.next);
             this.temp.change = true;
         }
         if (this.move.down) {
-            this.temp.offset = new THREE.Vector3().copy(this.camera.up).negate();
+            this.temp.offset = new Vector3().copy(this.camera.up).negate();
             this.temp.offset.setLength(this.temp.distance);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.position, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.position, this.temp.offset);
             this.camera.position.copy(this.temp.next);
-            this.temp.next = new THREE.Vector3().addVectors(this.camera.target, this.temp.offset);
+            this.temp.next = new Vector3().addVectors(this.camera.target, this.temp.offset);
             this.camera.target.copy(this.temp.next);
             this.temp.change = true;
         }

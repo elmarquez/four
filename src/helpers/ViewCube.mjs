@@ -1,5 +1,26 @@
-import { EVENT } from '../Globals';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import { 
+    AmbientLight,
+    AxisHelper,
+    BoxGeometry,
+    CircleGeometry,
+    DoubleSide,
+    Euler,
+    EventDispatcher,
+    ImageUtils,
+    Mesh,
+    MeshBasicMaterial,
+    MultiMaterial,
+    Object3D,
+    PerspectiveCamera,
+    PlaneGeometry,
+    Quaternion,
+    Raycaster,
+    Scene,
+    SpotLight,
+    Vector2,
+    Vector3,
+    WebGLRenderer } from 'three';
 import TWEEN from 'tween.js';
 
 const ViewCube = (function () {
@@ -10,7 +31,7 @@ const ViewCube = (function () {
      * @constructor
      */
     function ViewCube(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
 
         var self = this;
@@ -73,14 +94,14 @@ const ViewCube = (function () {
         self.ROTATION_270 = Math.PI * 1.5;
         self.ROTATION_360 = Math.PI * 2;
 
-        self.X_AXIS = new THREE.Vector3(1, 0, 0);
-        self.Y_AXIS = new THREE.Vector3(0, 1, 0);
-        self.Z_AXIS = new THREE.Vector3(0, 0, 1);
+        self.X_AXIS = new Vector3(1, 0, 0);
+        self.Y_AXIS = new Vector3(0, 1, 0);
+        self.Z_AXIS = new Vector3(0, 0, 1);
 
         self.camera = null; // ViewCube camera
-        self.compass = new THREE.Object3D();
-        self.control = new THREE.Object3D();
-        self.cube = new THREE.Object3D();
+        self.compass = new Object3D();
+        self.control = new Object3D();
+        self.cube = new Object3D();
         self.display = {
             axis: false,
             compass: true,
@@ -95,11 +116,11 @@ const ViewCube = (function () {
         self.labelSize = 128;
         self.listeners = {};
         self.materials = {compass: null, face: null, faces: []};
-        self.mouse = new THREE.Vector2();
-        self.raycaster = new THREE.Raycaster();
+        self.mouse = new Vector2();
+        self.raycaster = new Raycaster();
         self.renderContinuous = false;
-        self.scene = new THREE.Scene();
-        self.view = new THREE.Object3D();
+        self.scene = new Scene();
+        self.view = new Object3D();
         self.viewport = config.viewport; // target viewport
 
         self.compass.name = 'compass';
@@ -111,7 +132,7 @@ const ViewCube = (function () {
         });
 
         // renderer
-        self.renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+        self.renderer = new WebGLRenderer({alpha: true, antialias: true});
         self.renderer.setSize(self.domElement.clientWidth, self.domElement.clientHeight);
         self.domElement.appendChild(self.renderer.domElement);
 
@@ -129,7 +150,7 @@ const ViewCube = (function () {
         }, 0);
     }
 
-    ViewCube.prototype = Object.create(THREE.EventDispatcher.prototype);
+    ViewCube.prototype = Object.create(EventDispatcher.prototype);
 
     //ViewCube.prototype.constructor = ViewCube;
 
@@ -176,11 +197,11 @@ const ViewCube = (function () {
     };
 
     ViewCube.prototype.makeCompass = function (name, x, y, z, radius, segments, color, opacity) {
-        var obj = new THREE.Object3D();
-        var material = new THREE.MeshBasicMaterial({color: color});
+        var obj = new Object3D();
+        var material = new MeshBasicMaterial({color: color});
 
-        var circleGeometry = new THREE.CircleGeometry(radius, segments);
-        var circle = new THREE.Mesh(circleGeometry, material);
+        var circleGeometry = new CircleGeometry(radius, segments);
+        var circle = new Mesh(circleGeometry, material);
         obj.add(circle);
         obj.name = name;
         obj.opacity = opacity;
@@ -192,29 +213,29 @@ const ViewCube = (function () {
 
     ViewCube.prototype.makeCorner = function (name, w, x, y, z, rotations) {
         var face1, face2, face3, geometry, material, obj, self = this;
-        obj = new THREE.Object3D();
+        obj = new Object3D();
         material = self.materials.face.clone();
         self.materials.faces.push(material);
 
-        geometry = new THREE.PlaneGeometry(w, w);
-        face1 = new THREE.Mesh(geometry, material);
+        geometry = new PlaneGeometry(w, w);
+        face1 = new Mesh(geometry, material);
         face1.name = name;
         face1.position.setX(w / 2);
         face1.position.setY(w / 2);
 
-        geometry = new THREE.PlaneGeometry(w, w);
-        face2 = new THREE.Mesh(geometry, material);
+        geometry = new PlaneGeometry(w, w);
+        face2 = new Mesh(geometry, material);
         face2.name = name;
         face2.position.setX(w / 2);
         face2.position.setZ(-w / 2);
-        face2.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+        face2.rotateOnAxis(new Vector3(1, 0, 0), Math.PI / 2);
 
-        geometry = new THREE.PlaneGeometry(w, w);
-        face3 = new THREE.Mesh(geometry, material);
+        geometry = new PlaneGeometry(w, w);
+        face3 = new Mesh(geometry, material);
         face3.name = name;
         face3.position.setY(w / 2);
         face3.position.setZ(-w / 2);
-        face3.rotateOnAxis(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+        face3.rotateOnAxis(new Vector3(0, 1, 0), -Math.PI / 2);
 
         obj.add(face1);
         obj.add(face2);
@@ -234,18 +255,18 @@ const ViewCube = (function () {
         material = self.materials.face.clone();
         self.materials.faces.push(material);
 
-        obj = new THREE.Object3D();
+        obj = new Object3D();
 
-        geometry = new THREE.PlaneGeometry(w, h);
-        face1 = new THREE.Mesh(geometry, material);
+        geometry = new PlaneGeometry(w, h);
+        face1 = new Mesh(geometry, material);
         face1.name = name;
         face1.position.setY(h / 2);
 
-        geometry = new THREE.PlaneGeometry(w, h);
-        face2 = new THREE.Mesh(geometry, material);
+        geometry = new PlaneGeometry(w, h);
+        face2 = new Mesh(geometry, material);
         face2.name = name;
         face2.position.setZ(-h / 2);
-        face2.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+        face2.rotateOnAxis(new Vector3(1, 0, 0), Math.PI / 2);
 
         obj.add(face1);
         obj.add(face2);
@@ -261,11 +282,11 @@ const ViewCube = (function () {
 
     ViewCube.prototype.makeFace = function (name, w, x, y, z, rotations) {
         var face, geometry, material, self = this;
-        geometry = new THREE.PlaneGeometry(w, w);
+        geometry = new PlaneGeometry(w, w);
         material = self.materials.face.clone();
         self.materials.faces.push(material);
 
-        face = new THREE.Mesh(geometry, material);
+        face = new Mesh(geometry, material);
         face.name = name;
         face.position.setX(x);
         face.position.setY(y);
@@ -340,13 +361,13 @@ const ViewCube = (function () {
 
     ViewCube.prototype.setupCamera = function () {
         var self = this;
-        self.camera = new THREE.PerspectiveCamera(self.fov, self.domElement.clientWidth / self.domElement.clientHeight, 0.1, 1000);
+        self.camera = new PerspectiveCamera(self.fov, self.domElement.clientWidth / self.domElement.clientHeight, 0.1, 1000);
         self.camera.name = 'camera';
         self.camera.position.x = 0;
         self.camera.position.y = 0;
         self.camera.position.z = 250;
-        self.camera.up = new THREE.Vector3(0, 1, 0);
-        self.camera.lookAt(new THREE.Vector3(0, 0, 0));
+        self.camera.up = new Vector3(0, 1, 0);
+        self.camera.lookAt(new Vector3(0, 0, 0));
         self.view.add(self.camera);
     };
 
@@ -362,8 +383,8 @@ const ViewCube = (function () {
             var ROTATE_360 = Math.PI * 2;
 
             if (self.display.labels) {
-                var geometry = new THREE.BoxGeometry(self.CUBE_LABEL_SIZE, self.CUBE_LABEL_SIZE, self.CUBE_LABEL_SIZE);
-                var labels = new THREE.Mesh(geometry, self.materials.labels);
+                var geometry = new BoxGeometry(self.CUBE_LABEL_SIZE, self.CUBE_LABEL_SIZE, self.CUBE_LABEL_SIZE);
+                var labels = new Mesh(geometry, self.materials.labels);
                 labels.name = 'labels';
                 self.cube.add(labels);
             }
@@ -514,17 +535,17 @@ const ViewCube = (function () {
         }
 
         if (self.display.controlAxis) {
-            var controlAxis = new THREE.AxisHelper(100);
+            var controlAxis = new AxisHelper(100);
             self.cube.add(controlAxis);
         }
 
         if (self.display.sceneAxis) {
-            var sceneAxis = new THREE.AxisHelper(150);
+            var sceneAxis = new AxisHelper(150);
             self.scene.add(sceneAxis);
         }
 
         if (self.display.cameraAxis) {
-            var cameraAxis = new THREE.AxisHelper(100);
+            var cameraAxis = new AxisHelper(100);
             self.view.add(cameraAxis);
         }
 
@@ -535,17 +556,17 @@ const ViewCube = (function () {
         var self = this;
 
         // ambient light
-        var ambientLight = new THREE.AmbientLight(0x545454);
+        var ambientLight = new AmbientLight(0x545454);
         self.view.add(ambientLight);
 
         // top, left spotlight
-        var topLeftSpot = new THREE.SpotLight(0xffffff);
+        var topLeftSpot = new SpotLight(0xffffff);
         topLeftSpot.lookAt(0, 0, 0);
         topLeftSpot.position.set(250, -250, 250);
         topLeftSpot.intensity = 2;
 
         // top, right spotlight
-        var topRightSpot = new THREE.SpotLight(0xffffff);
+        var topRightSpot = new SpotLight(0xffffff);
         topRightSpot.lookAt(0, 0, 0);
         topRightSpot.position.set(250, 250, 250);
         topRightSpot.intensity = 0.75;
@@ -557,53 +578,53 @@ const ViewCube = (function () {
     ViewCube.prototype.setupMaterials = function () {
         var self = this;
         // faces
-        self.materials.face = new THREE.MeshBasicMaterial({
+        self.materials.face = new MeshBasicMaterial({
             alphaTest: 0.5,
             color: self.FACE_COLOUR,
             opacity: self.FACE_OPACITY_MOUSE_OFF,
             transparent: true
         });
-        //self.materials.face = new THREE.MeshBasicMaterial({color: self.FACE_COLOUR, alphaTest: 0.5});
-        self.materials.face.side = THREE.DoubleSide;
+        //self.materials.face = new MeshBasicMaterial({color: self.FACE_COLOUR, alphaTest: 0.5});
+        self.materials.face.side = DoubleSide;
         // labels
-        var label1 = new THREE.MeshPhongMaterial({
+        var label1 = new MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/top.png'),
+            map: ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/top.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
-        var label2 = new THREE.MeshPhongMaterial({
+        var label2 = new MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/front.png'),
+            map: ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/front.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
-        var label3 = new THREE.MeshPhongMaterial({
+        var label3 = new MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/right.png'),
+            map: ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/right.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
-        var label4 = new THREE.MeshPhongMaterial({
+        var label4 = new MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/left.png'),
+            map: ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/left.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
-        var label5 = new THREE.MeshPhongMaterial({
+        var label5 = new MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/back.png'),
+            map: ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/back.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
-        var label6 = new THREE.MeshPhongMaterial({
+        var label6 = new MeshPhongMaterial({
             color: 0xAAAAAA,
-            map: THREE.ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/bottom.png'),
+            map: ImageUtils.loadTexture('/lib/img/' + self.labelSize + '/bottom.png'),
             opacity: self.LABELS_HOVER_OFF,
             transparent: true
         });
         var labels = [label3, label4, label5, label2, label1, label6];
-        self.materials.labels = new THREE.MeshFaceMaterial(labels);
+        self.materials.labels = new MeshFaceMaterial(labels);
     };
 
     ViewCube.prototype.setView = function (view) {
@@ -614,7 +635,7 @@ const ViewCube = (function () {
                 self.dispatchEvent({
                     type: EVENT.UPDATE,
                     view: view,
-                    direction: new THREE.Euler(Math.PI / 2, Math.PI, 0)
+                    direction: new Euler(Math.PI / 2, Math.PI, 0)
                 });
                 break;
             case self.FACES.BACK_LEFT_EDGE:
@@ -676,14 +697,14 @@ const ViewCube = (function () {
             case self.FACES.TOP_BACK_LEFT_CORNER:
                 euler = new THREE
                     .Euler(0, 0, 0)
-                    .setFromVector3(new THREE.Vector3(-1.5, -1.5, 2.75).normalize()); // good
+                    .setFromVector3(new Vector3(-1.5, -1.5, 2.75).normalize()); // good
                 self.tweenViewRotation(euler.x, euler.y, euler.z * Math.PI * 1.5);
                 break;
             case self.FACES.TOP_BACK_RIGHT_CORNER:
                 euler = new THREE
                     .Euler(0, 0, 0)
-                    .setFromVector3(new THREE.Vector3(-1.5, 1.5, 2.5).normalize());
-                //.setFromVector3(new THREE.Vector3(-Math.sqrt(2),Math.sqrt(2),2.5).normalize());
+                    .setFromVector3(new Vector3(-1.5, 1.5, 2.5).normalize());
+                //.setFromVector3(new Vector3(-Math.sqrt(2),Math.sqrt(2),2.5).normalize());
                 self.tweenViewRotation(euler.x, euler.y, euler.z * Math.PI);
                 break;
             case self.FACES.TOP_FRONT_EDGE:
@@ -692,15 +713,15 @@ const ViewCube = (function () {
             case self.FACES.TOP_FRONT_LEFT_CORNER:
                 euler = new THREE
                     .Euler(0, 0, 0)
-                    .setFromVector3(new THREE.Vector3(1.5, -1.5, -2).normalize());
-                //.setFromVector3(new THREE.Vector3(Math.sqrt(2),-Math.sqrt(2),-2).normalize());
+                    .setFromVector3(new Vector3(1.5, -1.5, -2).normalize());
+                //.setFromVector3(new Vector3(Math.sqrt(2),-Math.sqrt(2),-2).normalize());
                 self.tweenViewRotation(euler.x, euler.y, euler.z);
                 break;
             case self.FACES.TOP_FRONT_RIGHT_CORNER:
                 euler = new THREE
                     .Euler(0, 0, 0)
-                    .setFromVector3(new THREE.Vector3(1.5, 1.5, 2).normalize());
-                //.setFromVector3(new THREE.Vector3(Math.sqrt(2),Math.sqrt(2),2).normalize());
+                    .setFromVector3(new Vector3(1.5, 1.5, 2).normalize());
+                //.setFromVector3(new Vector3(Math.sqrt(2),Math.sqrt(2),2).normalize());
                 self.tweenViewRotation(euler.x, euler.y, euler.z);
                 break;
             case self.FACES.TOP_LEFT_EDGE:
@@ -727,7 +748,7 @@ const ViewCube = (function () {
                         setOpacity(m, opacity);
                     });
                 }
-                if (material instanceof THREE.MultiMaterial) {
+                if (material instanceof MultiMaterial) {
                     material.materials.forEach(function (m) {
                         m.opacity = opacity;
                     });
@@ -756,9 +777,9 @@ const ViewCube = (function () {
     ViewCube.prototype.tweenViewRotation = function (rx, ry, rz, duration) {
         var self = this;
         return new Promise(function (resolve) {
-            var targetEuler = new THREE.Euler(rx, ry, rz, 'XYZ');
+            var targetEuler = new Euler(rx, ry, rz, 'XYZ');
             var startQuaternion = self.view.quaternion.clone();
-            var endQuaternion = new THREE.Quaternion().setFromEuler(targetEuler);
+            var endQuaternion = new Quaternion().setFromEuler(targetEuler);
 
             var start = {t: 0};
             var finish = {t: 1};
@@ -766,13 +787,13 @@ const ViewCube = (function () {
             var tween = new TWEEN.Tween(start).to(finish, duration || 1000);
             tween.easing(TWEEN.Easing.Cubic.InOut);
             tween.onComplete(function () {
-                THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.view.quaternion, this.t);
+                Quaternion.slerp(startQuaternion, endQuaternion, self.view.quaternion, this.t);
                 self.render();
                 self.renderContinuous = false;
                 resolve();
             });
             tween.onUpdate(function () {
-                THREE.Quaternion.slerp(startQuaternion, endQuaternion, self.view.quaternion, this.t);
+                Quaternion.slerp(startQuaternion, endQuaternion, self.view.quaternion, this.t);
                 self.render();
             });
             self.renderContinuous = true;
@@ -791,7 +812,7 @@ const ViewCube = (function () {
 
     ViewCube.prototype.updateOrientation = function () {
         var self = this;
-        var euler = new THREE.Euler(
+        var euler = new Euler(
             self.viewport.camera.rotation.x,
             self.viewport.camera.rotation.y,
             self.viewport.camera.rotation.z,

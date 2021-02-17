@@ -1,6 +1,6 @@
-import { CURSOR, EVENT, KEY } from '../Globals';
-import TargetCamera from '../TargetCamera';
-import THREE from 'three';
+import { CURSOR, EVENT, KEY } from '../Globals.mjs';
+import TargetCamera from '../TargetCamera.mjs';
+import { EventDispatcher, PerspectiveCamera, Vector2, Vector3 } from 'three';
 
 const LookController = (function () {
 
@@ -12,7 +12,7 @@ const LookController = (function () {
      * TODO when the GRAVE_ACCENT key is pressed, reset the camera to the start orientation
      */
     function LookController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -28,14 +28,14 @@ const LookController = (function () {
         self.enabled = false;
         self.listeners = {};
         self.look = {
-            delta: new THREE.Vector2(),
-            dir: new THREE.Vector3(),
-            end: new THREE.Vector2(),
-            offset: new THREE.Vector3(),
-            screen: new THREE.Vector3(),
-            start: new THREE.Vector2(),
-            target: new THREE.Vector3(),
-            world: new THREE.Vector3()
+            delta: new Vector2(),
+            dir: new Vector3(),
+            end: new Vector2(),
+            offset: new Vector3(),
+            screen: new Vector3(),
+            start: new Vector2(),
+            target: new Vector3(),
+            world: new Vector3()
         };
         self.lookSpeed = 0.75;
         self.mouse = self.MOUSE_STATE.UP;
@@ -46,7 +46,7 @@ const LookController = (function () {
         });
     }
 
-    LookController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    LookController.prototype = Object.create(EventDispatcher.prototype);
 
     LookController.prototype.disable = function () {
         var self = this;
@@ -143,7 +143,7 @@ const LookController = (function () {
                 if (this.camera instanceof TargetCamera) {
                     this.camera.lookAt(this.look.target);
                     //console.info('TargetCamera', this.look.target);
-                } else if (this.camera instanceof THREE.PerspectiveCamera) {
+                } else if (this.camera instanceof PerspectiveCamera) {
                     //console.log('set THREE.PerspectiveCamera');
                 }
                 //this.look.end.copy(this.look.start); // consume the change

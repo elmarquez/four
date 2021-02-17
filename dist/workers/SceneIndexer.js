@@ -1,4 +1,3 @@
-/* globals self */
 var ViewIndexer = (function () {
 
 }());

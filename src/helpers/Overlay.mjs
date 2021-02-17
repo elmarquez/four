@@ -1,6 +1,6 @@
-import Globals from '../Globals';
-import THREE from 'three';
-import utils from '../utils';
+import Globals from '../Globals.mjs';
+import { EventDispatcher, Line, Object3D, Vector3 } from 'three';
+import Utils from '../utils.mjs';
 
 const Overlay = (function () {
 
@@ -9,7 +9,7 @@ const Overlay = (function () {
      * labels.
      */
     function Overlay(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
 
         var self = this;
 
@@ -24,7 +24,7 @@ const Overlay = (function () {
         });
     }
 
-    Overlay.prototype = Object.create(THREE.EventDispatcher.prototype);
+    Overlay.prototype = Object.create(EventDispatcher.prototype);
 
     /**
      * Add overlay element.
@@ -113,22 +113,22 @@ const Overlay = (function () {
             el = self.elements[key];
             if (el.position !== Globals.POSITION.FIXED) {
                 offset = el.offset || 0;
-                if (el.target instanceof THREE.Vector3) {
-                    dummy = new THREE.Object3D();
+                if (el.target instanceof Vector3) {
+                    dummy = new Object3D();
                     dummy.position.copy(el.target);
                 } else {
                     obj = scene.getObjectByProperty('uuid', el.target);
                     // if (el.index) {
                     // } // point elements
-                    if (obj instanceof THREE.Line) {
+                    if (obj instanceof Line) {
                         obj.geometry.computeBoundingSphere();
-                        dummy = new THREE.Object3D();
+                        dummy = new Object3D();
                         dummy.position.copy(obj.geometry.boundingSphere.center);
                     } else {
                         dummy = obj;
                     }
                 }
-                screen = utils.getObjectScreenCoordinates(
+                screen = Utils.getObjectScreenCoordinates(
                     dummy,
                     camera,
                     self.viewport.domElement.clientWidth,

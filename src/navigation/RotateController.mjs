@@ -1,5 +1,5 @@
-import { EVENT } from '../Globals';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import { EventDispatcher, Quaternion, Vector3 } from 'three';
 
 /**
  * Camera rotation controller. Rotation can be performed using the middle
@@ -50,14 +50,14 @@ const RotateController = (function () {
 
         // Previously located in the update() closure. moved here so that we can
         // reset them when needed
-        var offset = new THREE.Vector3();
+        var offset = new Vector3();
 
         // so camera.up is the orbit axis
-        var quat = new THREE.Quaternion().setFromUnitVectors(camera.up, new THREE.Vector3(0, 1, 0));
+        var quat = new Quaternion().setFromUnitVectors(camera.up, new Vector3(0, 1, 0));
         var quatInverse = quat.clone().inverse();
 
-        var lastPosition = new THREE.Vector3();
-        var lastQuaternion = new THREE.Quaternion();
+        var lastPosition = new Vector3();
+        var lastQuaternion = new Quaternion();
 
         //---------------------------------------------------------------------
         // API
@@ -130,7 +130,7 @@ const RotateController = (function () {
     }
 
     function RotateController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
 
         var self = this;
@@ -150,15 +150,15 @@ const RotateController = (function () {
         self.enableRotate = true;
         self.modifiers = {};
         self.listeners = {};
-        self.rotateDelta = new THREE.Vector2();
-        self.rotateEnd = new THREE.Vector2();
+        self.rotateDelta = new Vector2();
+        self.rotateEnd = new Vector2();
         self.rotateSpeed = 1.0;
-        self.rotateStart = new THREE.Vector2();
+        self.rotateStart = new Vector2();
         self.state = self.STATE.NONE;
         self.viewport = config.viewport;
     }
 
-    RotateController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    RotateController.prototype = Object.create(EventDispatcher.prototype);
 
     RotateController.prototype.constructor = RotateController;
 

@@ -1,6 +1,6 @@
-import { EVENT } from '../Globals';
-import PathPlanner from '../PathPlanner';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import PathPlanner from '../PathPlanner.mjs';
+import { EventDispatcher, Vector3 } from 'three';
 
 const TourController = (function () {
 
@@ -11,7 +11,7 @@ const TourController = (function () {
      * @param {Object} config Configuration
      */
     function TourController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
 
         this.current = -1; // index of the tour feature
@@ -22,7 +22,7 @@ const TourController = (function () {
         this.viewport = config.viewport;
     }
 
-    TourController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    TourController.prototype = Object.create(EventDispatcher.prototype);
 
     //TourController.prototype.constructor = TourController;
 
@@ -91,13 +91,13 @@ const TourController = (function () {
     TourController.prototype.navigate = function (i) {
         var feature = this.path[i];
         var camera = this.viewport.getCamera();
-        var point = new THREE.Vector3(feature.x, feature.y, feature.z);
+        var point = new Vector3(feature.x, feature.y, feature.z);
         camera.setTarget(point, true);
         this.dispatchEvent({
             type: EVENT.UPDATE,
             id: 'move',
             task: 'move-camera-target',
-            target: new THREE.Vector3(feature.x, feature.y, feature.z)
+            target: new Vector3(feature.x, feature.y, feature.z)
         });
     };
 

@@ -1,4 +1,4 @@
-import KeyCommandController from '../../src/KeyCommandController';
+import KeyCommandController from '../../src/KeyCommandController.mjs';
 
 /**
  * Key command controller tests.

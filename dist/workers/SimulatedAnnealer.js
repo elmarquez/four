@@ -1,4 +1,3 @@
-/* globals params, rtn, self */
 /**
  * Simulated annealing path planner.
  * @see http://www.theprojectspot.com/tutorial-post/simulated-annealing-algorithm-for-beginners/6
@@ -152,7 +151,7 @@ function itineraryHasDuplicatePoint(itinerary) {
     var i, key, points = {};
     for (i = 0; i < itinerary.length; i++) {
         key = String(itinerary[i].x) + String(itinerary[i].y + String(itinerary[i].z));
-        if (points.hasOwnProperty(key)) {
+        if (points[key]) {
             return true;
         }
     }

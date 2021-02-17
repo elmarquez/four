@@ -1,5 +1,5 @@
-import { EVENT } from '../Globals';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import { EventDispatcher } from 'three';
 
 const MultiController = (function () {
 
@@ -9,7 +9,7 @@ const MultiController = (function () {
      * @constructor
      */
     function MultiController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
 
         var self = this;
@@ -19,7 +19,7 @@ const MultiController = (function () {
         self.viewport = config.viewport;
     }
 
-    MultiController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    MultiController.prototype = Object.create(EventDispatcher.prototype);
 
     MultiController.prototype.constructor = MultiController;
 

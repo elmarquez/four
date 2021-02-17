@@ -8,5 +8,6 @@ NOTES.md
 demo/dist
 demo/lib
 demo/vendor
+dist
 docs
 node_modules

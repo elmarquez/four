@@ -1,5 +1,3 @@
-/* jshint unused:false */
-/* globals self */
 'use strict';
 
 /**

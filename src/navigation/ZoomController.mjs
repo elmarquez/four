@@ -1,6 +1,6 @@
-import { CURSOR, EVENT } from '../Globals';
-import TargetCamera from '../TargetCamera';
-import THREE from 'three';
+import { CURSOR, EVENT } from '../Globals.mjs';
+import TargetCamera from '../TargetCamera.mjs';
+import { EventDispatcher, PerspectiveCamera, Vector2, Vector3 } from 'three';
 
 /**
  * Camera zoom controller. Zooming can be performed using mouse wheel rotation
@@ -11,7 +11,7 @@ import THREE from 'three';
 const ZoomController = (function () {
 
     function ZoomController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -41,8 +41,8 @@ const ZoomController = (function () {
         self.wheelZoomSpeed = 500;
         self.zoom = {
             delta: 0,
-            end: new THREE.Vector2(),
-            start: new THREE.Vector2()
+            end: new Vector2(),
+            start: new Vector2()
         };
 
         Object.keys(config).forEach(function (key) {
@@ -50,7 +50,7 @@ const ZoomController = (function () {
         });
     }
 
-    ZoomController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    ZoomController.prototype = Object.create(EventDispatcher.prototype);
 
     ZoomController.prototype.disable = function () {
         var self = this;
@@ -201,8 +201,8 @@ const ZoomController = (function () {
                     camera.setDistance(distance);
                     this.dispatchEvent({type: EVENT.RENDER});
                 }
-            } else if (camera instanceof THREE.PerspectiveCamera) {
-                lookAt = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            } else if (camera instanceof PerspectiveCamera) {
+                lookAt = new Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                 distance = this.zoom.delta * this.dragZoomSpeed;
                 if (Math.abs(distance) > this.EPS) {
                     lookAt.setLength(distance);

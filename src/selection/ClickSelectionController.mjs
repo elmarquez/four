@@ -1,5 +1,5 @@
-import { KEY, SINGLE_CLICK_TIMEOUT } from '../Globals';
-import THREE from 'three';
+import { KEY, SINGLE_CLICK_TIMEOUT } from '../Globals.mjs';
+import { EventDispatcher, Raycaster, Vector2 } from 'three';
 
 const ClickSelectionController = (function () {
 
@@ -22,7 +22,7 @@ const ClickSelectionController = (function () {
      * @constructor
      */
     function ClickSelectionController(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
         var self = this;
 
@@ -51,11 +51,11 @@ const ClickSelectionController = (function () {
         self.listeners = {};
         self.modifiers = {};
         self.mouse = {
-            end: new THREE.Vector2(),
-            start: new THREE.Vector2(),
+            end: new Vector2(),
+            start: new Vector2(),
             state: self.MOUSE_STATE.UP
         };
-        self.raycaster = new THREE.Raycaster();
+        self.raycaster = new Raycaster();
         self.timeout = null;
         self.viewport = config.viewport;
 
@@ -64,7 +64,7 @@ const ClickSelectionController = (function () {
         self.modifiers[KEY.SHIFT] = false;
     }
 
-    ClickSelectionController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    ClickSelectionController.prototype = Object.create(EventDispatcher.prototype);
 
     /**
      * Remove the current selection filter.

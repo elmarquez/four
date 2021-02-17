@@ -171,7 +171,10 @@ const VIEW = {
     BOTTOM: 'bottom'
 };
 
-export default {
+
+export default DEFAULT;
+
+export {
     CURSOR,
     DEFAULT,
     EVENT,

@@ -1,5 +1,5 @@
-import { EVENT } from '../Globals';
-import THREE from 'three';
+import { EVENT } from '../Globals.mjs';
+import { EventDispatcher, Face3, Line, LineSegments, Mesh, Points } from 'three';
 
 const SelectionSet = (function () {
 
@@ -29,7 +29,7 @@ const SelectionSet = (function () {
      * @constructor
      */
     function SelectionSet(config) {
-        THREE.EventDispatcher.call(this);
+        EventDispatcher.call(this);
         config = config || {};
 
         var self = this;
@@ -41,7 +41,7 @@ const SelectionSet = (function () {
         });
     }
 
-    SelectionSet.prototype = Object.create(THREE.EventDispatcher.prototype);
+    SelectionSet.prototype = Object.create(EventDispatcher.prototype);
 
     SelectionSet.prototype.constructor = SelectionSet;
 
@@ -142,11 +142,11 @@ const SelectionSet = (function () {
         // can't be easily resolved
         var type = 'undefined';
         var types = {
-            'THREE.Face3': THREE.Face3,
-            'THREE.Line': THREE.Line,
-            'THREE.LineSegments': THREE.LineSegments,
-            'THREE.Mesh': THREE.Mesh,
-            'THREE.Points': THREE.Points
+            'THREE.Face3': Face3,
+            'THREE.Line': Line,
+            'THREE.LineSegments': LineSegments,
+            'THREE.Mesh': Mesh,
+            'THREE.Points': Points
         };
         try {
             Object.keys(types).forEach(function (key) {
