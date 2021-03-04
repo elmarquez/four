@@ -20,6 +20,7 @@
     "four-angular": "https://github.com/elmarquez/four-angular.git",
     "jasmine": "^3.6.4",
     "jsdoc": "^3.6.6",
+    "release": "^6.3.0",
     "serve": "^11.3.2",
     "terser-webpack-plugin": "^5.1.1",
     "webpack": "^5.22.0",
@@ -32,7 +33,7 @@
     "demo": "",
     "docs": "./node_modules/.bin/jsdoc -d demo/docs dist/four.js",
     "lint": "./node_modules/.bin/eslint src/**/*.js",
-    "release": "release-it",
+    "release": "release",
     "serve": "./node_modules/.bin/serve ./demo",
     "test": "./node_modules/.bin/jasmine --config=jasmine.json"
   },
