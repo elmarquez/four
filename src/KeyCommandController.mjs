@@ -1,3 +1,5 @@
+import { EventDispatcher } from 'three';
+
 const KeyCommandController = (function () {
 
     /**
@@ -23,7 +25,7 @@ const KeyCommandController = (function () {
         });
     }
 
-    KeyCommandController.prototype = Object.create(THREE.EventDispatcher.prototype);
+    KeyCommandController.prototype = Object.create(EventDispatcher.prototype);
 
     KeyCommandController.prototype.constructor = KeyCommandController;
 
