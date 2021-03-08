@@ -1,5 +1,5 @@
 {
-  "name": "four",
+  "name": "@elmarquez/four",
   "version": "0.3.1",
   "description": "UI components for web based CAD",
   "authors": [
@@ -28,10 +28,8 @@
   "scripts": {
     "build": "webpack",
     "clean": "rm -fr dist/*; rm -fr ",
-    "demo": "",
     "docs": "./node_modules/.bin/jsdoc -d demo/docs dist/four.js",
     "lint": "./node_modules/.bin/eslint src/**/*.js",
-    "serve": "./node_modules/.bin/serve ./demo",
     "test": "./node_modules/.bin/jasmine --config=jasmine.json"
   },
   "dependencies": {
