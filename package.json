@@ -30,7 +30,10 @@
     "clean": "rm -fr dist/*; rm -fr ",
     "docs": "./node_modules/.bin/jsdoc -d demo/docs dist/four.js",
     "lint": "./node_modules/.bin/eslint src/**/*.js",
-    "test": "./node_modules/.bin/jasmine --config=jasmine.json"
+    "preversion": "npm run clean",
+    "release": "npm version patch -m 'Release v%s'",
+    "test": "./node_modules/.bin/jasmine --config=jasmine.json",
+    "version": "npm run build && git add --all --force dist"
   },
   "dependencies": {
     "quadtree-lib": "~0.1.2",
