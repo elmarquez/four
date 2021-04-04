@@ -21,7 +21,7 @@ import {
     Vector2,
     Vector3,
     WebGLRenderer } from 'three';
-import TWEEN from 'tween.js';
+import TWEEN from '@tweenjs/tween.js';
 
 const ViewCube = (function () {
 

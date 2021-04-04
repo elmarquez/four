@@ -12,32 +12,43 @@ FOUR is a family of components for building web-based computer aided design appl
  * ViewCube - camera orientation controller
  * Viewport3D - 3D viewport.
 
+Add FOUR as a dependency to your project:
 
-Dependencies
-------------
+    npm install -S @elmarquez/four
 
-Install dependencies:
+then import the library in your application:
 
-    yarn install
-    
+    import FOUR from '@elmarquez/four';
+
 The ViewAxis control requires the THREE Helvetiker Regular typeface. This font
 file is not included in the compiled FOUR library and must be loaded separately.
-However, the file itself is provided in the distribution folder.
+However, the file itself has been provided in the distribution folder.
+
+    import '@elmarquez/four/dist/fonts/helvetiker_regular.typeface';
+
+Optional FOUR css styles for HTML viewport overlay elements are available in a 
+separate file:
+
+    import '@elmarquez/four/dist/css/four.css';
 
 
-Compiling and Running the Demo
-------------------------------
+Development
+-----------
 
-Compile the library:
-    
-    yarn build
-    
-Start a web server and serve the demo application from the localhost:
+See the issues list and project board for the list of current or planned 
+modifications.
 
-    yarn serve
+Install build and runtime dependencies:
 
-Your default browser will open at the top level folder of the project. Select
-the 'demo' folder in the file listing.
+    npm install
+ 
+Build the library:
+
+    npm run build
+
+Build documentation:
+
+    npm run docs
 
 
 License

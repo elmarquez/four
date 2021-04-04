@@ -7,7 +7,6 @@
   ],
   "license": "MIT",
   "main": "dist/four.js",
-  "private": false,
   "type": "module",
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -24,24 +23,26 @@
     "webpack": "^5.22.0",
     "webpack-cli": "^4.5.0"
   },
-  "optionalDependencies": {},
   "scripts": {
     "build": "webpack",
     "clean": "rm -fr dist/*; rm -fr ",
-    "docs": "./node_modules/.bin/jsdoc -d demo/docs dist/four.js",
+    "docs": "./node_modules/.bin/jsdoc -d dist/docs dist/four.js",
     "lint": "./node_modules/.bin/eslint src/**/*.js",
+    "postversion": "git push origin HEAD && git push origin --tags",
     "preversion": "npm run clean",
     "release": "npm version patch -m 'Release v%s'",
+    "serve": "./node_modules/.bin/serve dist/docs",
     "test": "./node_modules/.bin/jasmine --config=jasmine.json",
     "version": "npm run build && git add --all --force dist"
   },
   "dependencies": {
+    "@tweenjs/tween.js": "*",
     "quadtree-lib": "~0.1.2",
-    "spatialhash": "https://github.com/elmarquez/spatialhash.js",
-    "three": "^0.125.2",
-    "tween.js": "*"
+    "spatialhash": "@elmarquez/spatialhash"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "three": "^0.125.2"
+  },
   "keywords": [
     "3D",
     "CAD",
