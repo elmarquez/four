@@ -150,7 +150,7 @@ const ArrowController = (function () {
                     this.move.down = true;
                     this.dispatchEvent({type: EVENT.CONTINUOUS_UPDATE_START, id: 'move', task: 'arrow-move-down'});
                 }
-                break;
+            break;
         }
     };
 

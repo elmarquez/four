@@ -1,6 +1,6 @@
 {
   "name": "@elmarquez/four",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "UI components for web based CAD",
   "authors": [
     "Davis Marques <dmarq.ezz@gmail.com>"
@@ -25,7 +25,7 @@
   },
   "scripts": {
     "build": "webpack",
-    "clean": "rm -fr dist/*; rm -fr ",
+    "clean": "rm -fr dist/*",
     "docs": "./node_modules/.bin/jsdoc -d dist/docs dist/four.js",
     "lint": "./node_modules/.bin/eslint src/**/*.js",
     "postversion": "git push origin HEAD && git push origin --tags",
@@ -41,7 +41,7 @@
     "spatialhash": "@elmarquez/spatialhash"
   },
   "peerDependencies": {
-    "three": "^0.125.2"
+    "three": "^0.127.0"
   },
   "keywords": [
     "3D",
